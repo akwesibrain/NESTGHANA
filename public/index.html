@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>NestGH: find a room in your area</title>
+<title>NestGH: find a room in your preferred area</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="image" href="hero.jpg" fetchpriority="high">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -40,10 +42,18 @@
 
 <section class="sec" id="rooms"><div class="w">
   <div class="head"><div><p class="eyebrow" id="re">Rooms in your area</p><h2 id="rt">Available rooms</h2></div><button id="clr">Clear filters <i data-ic="arrow"></i></button></div>
-  <p id="db-status" role="status" aria-live="polite">Connecting to available rooms…</p>
+  <p id="db-status" class="sr-only" role="status" aria-live="polite">Loading available rooms.</p>
   <p id="payment-return-status" role="status" aria-live="polite" hidden></p>
   <button class="btn2" id="retry-payment" type="button" hidden>Retry secure payment</button>
-  <div class="grid" id="list"></div>
+  <div class="grid" id="list" aria-busy="true" aria-label="Available rooms">
+    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
+    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
+    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
+    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
+    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
+    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
+  </div>
+  <div class="load-more-wrap"><button class="btn2" id="load-more" type="button" hidden>Load more rooms</button></div>
 </div></section>
 
 <section class="sec" id="how"><div class="w why">
@@ -62,7 +72,8 @@
     <div><h4>Get in touch</h4><p><i data-ic="phone"></i>+233 00 000 0000</p><p><i data-ic="mail"></i>hello@nestgh.com</p><p><i data-ic="pin"></i>Accra, Ghana</p></div>
    
   <div class="fb"><span>© 2026 NestGH. All rights reserved.</span><span><a href="#" data-pol="privacy">Privacy Policy</a><a href="#" data-pol="cookie">Cookie Policy</a><a href="#" id="cookie-settings">Cookie settings</a><a href="#" data-pol="terms">Terms and Conditions</a></span></div>
-</div></footer>
+</div>
+</footer>
 <aside class="cookie-banner" id="cookie-banner" aria-label="Cookie consent" hidden>
   <div class="cookie-copy">
     <div class="cookie-icon" aria-hidden="true">i</div>

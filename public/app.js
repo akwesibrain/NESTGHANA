@@ -13,11 +13,18 @@ const NB={"Tema|Community 20":[["Community 18","Tema",2,8,15],["Community 25","T
 let ROOMS=[];
 let TOWN_RECORDS=[];
 let CAMPUS={};
+let locationCatalogPromise=null;
+const LISTING_PAGE_SIZE=24;
+let listingOffset=0,hasMoreListings=true,isLoadingListings=false;
 const DEF={single:{bath:"Shared",kit:"Shared",size:"about 12 m²"},chamber:{bath:"Private",kit:"Private",size:"about 30 m²"},self:{bath:"Private",kit:"Private",size:"about 20 m²"},hostel:{bath:"Shared",kit:"Shared",size:"shared room"}};
 const $=id=>document.getElementById(id),town=$("town"),region=$("region"),area=$("area"),ty=$("ty"),max=$("max"),camp=$("camp"),stu=$("stu"),saved=new Set(),must=new Set(),townSuggestions=$("town-suggestions");
 let selectedTown=null,currentTownSuggestions=[];
 let savedOnly=false;
 let listingFeePesewas=null;
+const supabaseClient=window.supabase?.createClient&&window.NESTGH_SUPABASE_CONFIG?.publishableKey
+  ?window.supabase.createClient(window.NESTGH_SUPABASE_CONFIG.url,window.NESTGH_SUPABASE_CONFIG.publishableKey)
+  :null;
+let listingLoadFailed=false;
 function updateModalScroll(){document.body.classList.toggle("modal-open",["sheet","lf","pol","psheet"].some(id=>$(id).classList.contains("on")))}
 try{
   const stored=JSON.parse(localStorage.getItem("nestgh_saved_rooms_v1")||"[]");
@@ -75,8 +82,25 @@ async function loadLocationCatalog(){
     return [label,{r:entry.region,t:entry.town,m:{}}];
   }));
   camp.innerHTML='<option value="">Choose your campus</option>'+Object.keys(CAMPUS).map(name=>`<option>${htmlEsc(name)}</option>`).join("");
-  populateOwnerTownOptions();
+  populateOwnerTownOptions($("f_town")?.value||"",$("f_region")?.value||"");
 }
+function ensureLocationCatalog(){
+  if(!locationCatalogPromise){
+    locationCatalogPromise=loadLocationCatalog().then(()=>{
+      $("location-status").hidden=true;
+    }).catch(error=>{
+      locationCatalogPromise=null;
+      console.error("Could not load Ghana location directory:",error);
+      const status=$("location-status");
+      status.textContent="Town and campus suggestions could not be loaded. Please try again.";
+      status.hidden=false;
+      camp.innerHTML='<option value="">Campus suggestions unavailable</option>';
+      throw error;
+    });
+  }
+  return locationCatalogPromise;
+}
+function requestLocationCatalog(){return ensureLocationCatalog().catch(()=>{});}
 const st=r=>r.un?["r","Unavailable"]:r.availableFrom?["y","Available from "+new Date(r.availableFrom+"T00:00:00").toLocaleDateString()]:r.d===0?["g","Confirmed today"]:r.d<=7?["g","Confirmed "+(r.d===1?"1 day":r.d+" days")+" ago"]:r.d<=20?["y","Confirmed "+r.d+" days ago"]:["w","Needs confirmation"];
 const rank=r=>r.un?3:r.d>20?2:r.d>7?1:0;
 function sv(r){const f=r.f,D=DEF[r.ty];return{Water:f.includes("Water")?"Included":"Separate",Electricity:"Separate","Wi-Fi":f.includes("Wi-Fi")?"Included":"No",Kitchen:D.kit,Bathroom:D.bath,Security:f.includes("Security")||f.includes("Gated")?"Included":"No",Parking:f.includes("Parking")?"Included":"No"}}
@@ -87,7 +111,7 @@ function art(i){const w=["#E4D9C3","#D3DCD5","#DCD6E4","#EBDCCB"][i%4],b=["#5B7A
 return `<svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="170" fill="${w}"/><rect y="128" width="400" height="42" fill="#0000001c"/><rect x="40" y="30" width="86" height="80" rx="3" fill="#BFD8E8"/><path d="M83 30v80M40 70h86" stroke="#fff" stroke-width="4"/><rect x="170" y="78" width="190" height="50" rx="6" fill="${b}"/><rect x="170" y="62" width="34" height="30" rx="6" fill="#fff"/><rect x="170" y="128" width="8" height="14" fill="#5a4a3a"/><rect x="352" y="128" width="8" height="14" fill="#5a4a3a"/><rect x="336" y="96" width="4" height="34" fill="#444"/><path d="M328 96h20l-4-14h-12z" fill="#F6D58A"/></svg>`}
 const btns=r=>`<a class="wa" href="https://wa.me/${encodeURIComponent(r.wa||r.c)}?text=${encodeURIComponent("Hello, is the room on NestGH ("+r.n+") still available?")}">WhatsApp</a><a class="call" href="tel:+${encodeURIComponent(r.c)}" aria-label="Call">${ico("phone")}</a>`;
 function card(r,cm){const i=ROOMS.indexOf(r),[k,l]=st(r),mn=cm&&cm.m[r.a];
-return `<article class="card${r.un?" off":""}" data-o="${i}"><div class="pic">${r.photos?.[0]?`<img src="${htmlEsc(r.photos[0])}" alt="${htmlEsc(r.n)}" loading="lazy">`:art(i)}<span class="ty">${htmlEsc(TYPE[r.ty])}</span><button class="hb" data-i="${i}" aria-label="${saved.has(r.id)?"Remove from":"Save"} saved rooms" aria-pressed="${saved.has(r.id)}">${ico("heart")}</button></div><div class="b"><h3><button class="lk" data-o="${i}">${htmlEsc(r.n)}</button></h3><div class="loc">${ico("pin")}${htmlEsc(r.a)}, ${htmlEsc(r.t)}${mn?" · "+mn+" min from campus":""}</div><div class="fac">${r.f.map(x=>`<span>${htmlEsc(x)}</span>`).join("")}</div><div class="meta"><span class="st"><i class="${k}"></i>${l}</span>${r.v?" · <b>✔ Verified</b>":""}</div><div class="ft"><div class="pr">${ghs(r.p)} <small>/month</small></div><div class="acts">${r.un?'<span class="gone">Taken</span>':btns(r)}</div></div></div></article>`}
+return `<article class="card${r.un?" off":""}" data-o="${i}"><div class="pic">${r.photos?.[0]?`<img src="${htmlEsc(r.photos[0])}" alt="${htmlEsc(r.n)}" width="400" height="170" loading="lazy" decoding="async">`:art(i)}<span class="ty">${htmlEsc(TYPE[r.ty])}</span><button class="hb" data-i="${i}" aria-label="${saved.has(r.id)?"Remove from":"Save"} saved rooms" aria-pressed="${saved.has(r.id)}">${ico("heart")}</button></div><div class="b"><h3><button class="lk" data-o="${i}">${htmlEsc(r.n)}</button></h3><div class="loc">${ico("pin")}${htmlEsc(r.a)}, ${htmlEsc(r.t)}${mn?" · "+mn+" min from campus":""}</div><div class="fac">${r.f.map(x=>`<span>${htmlEsc(x)}</span>`).join("")}</div><div class="meta"><span class="st"><i class="${k}"></i>${l}</span>${r.v?" · <b>✔ Verified</b>":""}</div><div class="ft"><div class="pr">${ghs(r.p)} <small>/month</small></div><div class="acts">${r.un?'<span class="gone">Taken</span>':btns(r)}</div></div></div></article>`}
 function nearby(){const a=area.value;
 if(!a)return `<div class="empty"><b>No rooms found in ${htmlEsc(town.value)}</b><p>Try a higher budget, another room type, or fewer must-haves.</p></div>`;
 const c=(NB[town.value+"|"+a]||[]).map(([na,nt,km,lo,hi])=>({na,nt,km,lo,hi,n:ROOMS.filter(r=>!r.un&&match(r,na,nt)).length})).filter(x=>x.n).sort((x,y)=>(x.lo+x.hi)-(y.lo+y.hi)||x.km-y.km);
@@ -97,15 +121,21 @@ const res=ROOMS.filter(r=>savedOnly?saved.has(r.id):match(r,area.value,town.valu
 const live=res.filter(r=>!r.un).length;
 $("re").textContent=savedOnly?"Your saved rooms":"Rooms in "+([region.value&&`${region.value} Region`,area.value||town.value].filter(Boolean).join(" · ")||"Ghana");
 $("rt").textContent=savedOnly?(live?`${live} saved room${live>1?"s":""}`:"No saved rooms yet"):ROOMS.length?(live?`${live} room${live>1?"s":""} available`:"No rooms found"):"";
-$("list").innerHTML=(live?"":savedOnly?'<div class="empty"><b>No saved rooms yet</b><p>Tap the heart on a room to save it here.</p></div>':nearby())+res.map(r=>card(r,cm)).join("");
-if(!ROOMS.length&&!savedOnly)$("list").innerHTML="";
+$("list").setAttribute("aria-busy",String(isLoadingListings));
+const emptyMessage=live?"":savedOnly?'<div class="empty"><b>No saved rooms yet</b><p>Tap the heart on a room to save it here.</p></div>':hasMoreListings?`<div class="empty"><b>No matching rooms in the listings loaded so far.</b><p>Load more rooms to continue your search.</p></div>`:nearby();
+const loadError=listingLoadFailed?'<div class="empty"><b>Could not load more rooms.</b><p>Check your connection, then try again.</p></div>':"";
+$("list").innerHTML=loadError+emptyMessage+res.map(r=>card(r,cm)).join("");
+const loadMore=$("load-more");
+loadMore.hidden=(!hasMoreListings&&!listingLoadFailed)||savedOnly||!supabaseClient;
+loadMore.disabled=isLoadingListings;
+loadMore.textContent=isLoadingListings?"Loading rooms…":listingLoadFailed?"Try loading rooms again":(town.value||region.value||area.value||ty.value||max.value||must.size?"Load more to find matches":"Load more rooms");
 }
 function openSheet(i){const r=ROOMS[i],d=r.details||{},m=d.m||{},D=DEF[r.ty],s=sv(r),[k,l]=st(r),h=r.ty==="hostel";
 const kv=o=>`<div class="kv">${Object.entries(o).map(([a,b])=>`<div><span>${htmlEsc(a)}</span><b>${htmlEsc(b)}</b></div>`).join("")}</div>`;
 const tg=(a,c="")=>`<div class="tags ${c}">${a.map(x=>`<span>${htmlEsc(x)}</span>`).join("")||"<span>None</span>"}</div>`;
 const included=Object.entries(m).filter(([,v])=>["Included","Private","Shared"].includes(v)).map(([a,b])=>`${a.replace(/^(inc_|fac_)/,"")}: ${b}`);
 const separate=Object.entries(m).filter(([,v])=>["Separate Charge","Not Included","Extra Charge"].includes(v)).map(([a,b])=>`${a.replace(/^(inc_|fac_)/,"")}: ${b}`);
-const photos=r.photos.map((photo,index)=>`<img src="${htmlEsc(photo)}" alt="${htmlEsc(r.n)} photo ${index+1}" loading="lazy">`).join("");
+const photos=r.photos.map((photo,index)=>`<img src="${htmlEsc(photo)}" alt="${htmlEsc(r.n)} photo ${index+1}" width="400" height="300" loading="lazy" decoding="async">`).join("");
 const pl=d.period==="Other"?d.periodOther:(d.period||"Monthly");
 const otherCost=Number(d.oth)||0;
 const extras=[d.othNote?`${d.othNote}: ${ghs(otherCost)}`:"",d.notinc].filter(Boolean);
@@ -129,8 +159,8 @@ document.onkeydown=e=>{if(e.key==="Escape"){closeSheet();$("links").classList.re
 $("list").onclick=e=>{const nb=e.target.closest(".nb");if(nb){const place=TOWN_RECORDS.find(item=>item.name===nb.dataset.t&&item.region===region.value)||TOWN_RECORDS.find(item=>item.name===nb.dataset.t);if(place)chooseTown(place);else town.value=nb.dataset.t;fillAreas();area.value=nb.dataset.a;render();return}
 const hb=e.target.closest(".hb");if(hb){const r=ROOMS[+hb.dataset.i];saved.has(r.id)?saved.delete(r.id):saved.add(r.id);try{localStorage.setItem("nestgh_saved_rooms_v1",JSON.stringify([...saved]))}catch(error){console.error("Could not save room preference:",error)}render();return}
 if(e.target.closest("a"))return;const c=e.target.closest(".card");if(c)openSheet(+c.dataset.o)};
-town.addEventListener("input",()=>{selectedTown=null;area.value="";showTownSuggestions(town.value)});
-town.addEventListener("focus",()=>showTownSuggestions(town.value));
+town.addEventListener("input",()=>{selectedTown=null;area.value="";showTownSuggestions(town.value);requestLocationCatalog().then(()=>showTownSuggestions(town.value))});
+town.addEventListener("focus",()=>{showTownSuggestions(town.value);requestLocationCatalog().then(()=>showTownSuggestions(town.value))});
 town.addEventListener("keydown",event=>{
   if(event.key==="ArrowDown"&&!townSuggestions.hidden){event.preventDefault();townSuggestions.querySelector("button")?.focus()}
   else if(event.key==="Escape")hideTownSuggestions();
@@ -166,7 +196,7 @@ region.onchange=()=>{
   render();
 };
 document.querySelectorAll(".mh").forEach(b=>b.onclick=()=>{const k=b.dataset.k;must.has(k)?must.delete(k):must.add(k);b.setAttribute("aria-pressed",must.has(k));render()});
-stu.onchange=()=>{camp.classList.toggle("open",stu.checked);if(!stu.checked)camp.value="";render()};
+stu.onchange=()=>{camp.classList.toggle("open",stu.checked);if(!stu.checked)camp.value="";else requestLocationCatalog();render()};
 camp.onchange=()=>{if(camp.value){const selected=CAMPUS[camp.value];region.value=selected.r;town.value=selected.t;area.value="";selectedTown={name:selected.t,region:selected.r};hideTownSuggestions();fillAreas()}render()};
 [area,ty].forEach(e=>e.onchange=render);max.oninput=render;
 $("clr").onclick=()=>{region.value="";town.value="";selectedTown=null;ty.value="";max.value="";area.value="";must.clear();document.querySelectorAll(".mh").forEach(b=>b.setAttribute("aria-pressed","false"));stu.checked=false;camp.value="";camp.classList.remove("open");hideTownSuggestions();fillAreas();render()};
@@ -185,17 +215,7 @@ function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");setTi
 $("sv").onclick=()=>{savedOnly=!savedOnly;$("sv").setAttribute("aria-pressed",savedOnly);$("sv").setAttribute("aria-label",savedOnly?"Show all rooms":"Show saved rooms");render();$("rooms").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"})};
 $("mn").onclick=()=>{const open=$("links").classList.toggle("open");$("mn").setAttribute("aria-expanded",String(open))};
 $("links").onclick=e=>{if(e.target.closest("a")){$("links").classList.remove("open");$("mn").setAttribute("aria-expanded","false")}};
-camp.innerHTML='<option value="">Loading campus directory…</option>';fillAreas();render();
-loadLocationCatalog().catch(error=>{
-  console.error("Could not load Ghana location directory:",error);
-  const status=$("location-status");
-  status.textContent="Town and campus suggestions could not be loaded. Please refresh the page and try again.";
-  status.hidden=false;
-  camp.innerHTML='<option value="">Campus suggestions unavailable</option>';
-});
-const supabaseClient=window.supabase?.createClient&&window.NESTGH_SUPABASE_CONFIG?.publishableKey
-  ?window.supabase.createClient(window.NESTGH_SUPABASE_CONFIG.url,window.NESTGH_SUPABASE_CONFIG.publishableKey)
-  :null;
+camp.innerHTML='<option value="">Select student to load campuses</option>';fillAreas();render();
 async function loadListingFee(){
   if(!supabaseClient)throw new Error("Supabase is not configured.");
   const {data,error}=await supabaseClient.from("public_site_settings")
@@ -231,16 +251,42 @@ function mapPublicListing(row){
 }
 async function loadPublicListings(){
   const state=$("db-status");
-  if(!supabaseClient){state.textContent="Room listings are temporarily unavailable because the Supabase browser configuration could not load.";return}
-  state.textContent="Loading approved rooms…";
-  const {data,error}=await supabaseClient.from("public_listings").select("id,public_data,created_at").order("created_at",{ascending:false});
-  if(error){console.error("Could not load approved listings:",error);state.textContent="We could not load rooms right now. Please try again later.";return}
-  ROOMS=(data||[]).map(mapPublicListing).filter(room=>room.t&&room.a&&room.p>0&&room.c);
+  if(isLoadingListings)return;
+  if(!supabaseClient){$("list").innerHTML='<div class="empty"><b>Room listings are temporarily unavailable.</b><p>We could not connect to the listings service.</p></div>';$("list").setAttribute("aria-busy","false");$("load-more").hidden=true;state.textContent="Room listings are temporarily unavailable because the Supabase browser configuration could not load.";return}
+  isLoadingListings=true;
+  listingLoadFailed=false;
+  state.textContent=listingOffset?"Loading more rooms.":"Loading available rooms.";
+  $("list").setAttribute("aria-busy","true");
+  $("load-more").hidden=true;
+  let data,error;
+  try{
+    ({data,error}=await supabaseClient.from("public_listings")
+      .select("id,public_data,created_at")
+      .order("created_at",{ascending:false})
+      .order("id",{ascending:true})
+      .range(listingOffset,listingOffset+LISTING_PAGE_SIZE-1));
+  }catch(requestError){
+    isLoadingListings=false;
+    listingLoadFailed=true;
+    console.error("Could not request approved listings:",requestError);
+    state.textContent="We could not load rooms right now. Please try again.";
+    render();
+    return;
+  }
+  isLoadingListings=false;
+  if(error){listingLoadFailed=true;console.error("Could not load approved listings:",error);state.textContent="We could not load rooms right now. Please try again.";render();return}
+  listingLoadFailed=false;
+  const page=data||[];
+  listingOffset+=page.length;
+  hasMoreListings=page.length===LISTING_PAGE_SIZE;
+  const selectedArea=area.value;
+  ROOMS.push(...page.map(mapPublicListing).filter(room=>room.t&&room.a&&room.p>0&&room.c));
   fillAreas();
-  state.hidden=ROOMS.length>0;
-  if(!ROOMS.length)state.textContent="There are no approved rooms available at the moment.";
+  if(selectedArea&&[...area.options].some(option=>option.value===selectedArea))area.value=selectedArea;
+  state.textContent=ROOMS.length?`${ROOMS.length} room${ROOMS.length===1?"":"s"} loaded${hasMoreListings?". Load more to continue browsing.":"."}`:"There are no approved rooms available at the moment.";
   render();
 }
+document.querySelector("#load-more").addEventListener("click",loadPublicListings);
 loadPublicListings();
 async function verifyPaymentReturn(){
   const url=new URL(window.location.href),reference=url.searchParams.get("payment_reference");
@@ -484,7 +530,7 @@ go(cur);
 toast(S.payMsg);
 }}
 function reset(){for(const k of Object.keys(S))delete S[k];Object.assign(S,{m:{},ph:{},extra:[],who:[],cons:[]});cur=0;reach=0;done.clear();$("lf").classList.remove("fin","on");updateModalScroll()}
-async function openLF(){$("lf").classList.add("on");updateModalScroll();go(cur);await refreshListingFee();if(cur===STEPS.length-1)draw()}
+async function openLF(){await requestLocationCatalog();$("lf").classList.add("on");updateModalScroll();go(cur);await refreshListingFee();if(cur===STEPS.length-1)draw()}
 function closeLF(){$("lf").classList.remove("on");updateModalScroll()}
 const shrink=(f,max,q)=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL("image/jpeg",q))};im.onerror=()=>{URL.revokeObjectURL(u);no("type")};im.src=u});
 async function pic(f,max,q){if(!["image/jpeg","image/png","image/webp"].includes(f.type))throw"type";if(f.size>15*1048576)throw"size";return shrink(f,max,q)}
