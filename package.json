@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/sync-public-frontend.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-public-frontend.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

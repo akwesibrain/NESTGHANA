@@ -7,6 +7,7 @@ export async function proxy(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const secure = process.env.NODE_ENV === "production";
   const supabaseOrigin = url ? new URL(url).origin : "";
+  const browserSupabaseOrigin = "https://plbtnltcocsuekifddat.supabase.co";
   const policy = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -14,10 +15,10 @@ export async function proxy(request: NextRequest) {
     "frame-ancestors 'none'",
     "object-src 'none'",
     "img-src 'self' data: blob: https://*.supabase.co",
-    "font-src 'self'",
-    `style-src 'self' 'nonce-${nonce}'`,
+    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
     `script-src 'self' 'nonce-${nonce}'`,
-    `connect-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+    `connect-src 'self' ${browserSupabaseOrigin}${supabaseOrigin && supabaseOrigin !== browserSupabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+    "font-src 'self' https://fonts.gstatic.com",
     "upgrade-insecure-requests",
   ].join("; ");
   const requestHeaders = new Headers(request.headers);
