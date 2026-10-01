@@ -1,0 +1,9 @@
+Local browser check against the production build:
+
+- First visit displayed the cookie banner with Accept cookies and Reject actions.
+- Accept saved `{"choice":"accepted","updatedAt":"..."}` under the legacy-compatible `nestgh_cookie_consent_v1` key.
+- Cookie settings reopened the banner; Reject then saved `{"choice":"rejected","updatedAt":"..."}`.
+- Subsequent navigation retained the saved preference and kept the banner dismissed.
+- No browser console errors occurred during the final interaction check.
+
+This tests local browser behavior only; it does not constitute legal review or a production deployment.

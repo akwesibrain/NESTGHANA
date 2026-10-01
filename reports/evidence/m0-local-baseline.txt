@@ -1,0 +1,17 @@
+M0 LOCAL BASELINE — no remote service contacted
+=== JavaScript syntax checks ===
+PASS node --check app.js
+PASS node --check NestGH-admin/app.js
+=== Stack and environment markers ===
+package.json: False
+next.config.js: False
+next.config.mjs: False
+tsconfig.json: False
+supabase/migrations: True
+supabase/functions: True
+NestGH-admin/package.json: True
+git worktree: unavailable (workspace is not a Git repository)
+=== Supabase identifiers only ===
+https://fcsclcxvxvhzlsrolxhn.supabase.co
+linked project_id: fcsclcxvxvhzlsrolxhn
+No secrets or credential values were included in this evidence log.

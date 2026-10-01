@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f1efed">
+    <meta name="description" content="NestGH administrator workspace">
+    <title>Dashboard | NestGH Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="../supabase-config.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <section class="auth-panel" id="auth-panel" aria-labelledby="auth-title">
+      <form class="auth-card" id="auth-form">
+        <a class="brand auth-brand" href="../index.html" aria-label="NestGH home">
+          <span class="brand-mark" aria-hidden="true" data-icon="home"></span>
+          <span class="brand-copy"><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span>
+        </a>
+        <p class="eyebrow">Secure sign in</p>
+        <h1 id="auth-title">Admin workspace</h1>
+        <p>Sign in with an account that has been granted NestGH administrator access.</p>
+        <label>Email address<input id="auth-email" type="email" autocomplete="username" required></label>
+        <label>Password<input id="auth-password" type="password" autocomplete="current-password" required></label>
+        <p id="auth-error" class="auth-error" role="alert" hidden></p>
+        <button class="primary-button" type="submit" id="auth-submit">Sign in</button>
+      </form>
+    </section>
+    <div class="app-shell" id="app-shell" hidden>
+      <button class="scrim" id="scrim" type="button" aria-label="Close navigation"></button>
+      <header class="sidebar" id="sidebar">
+        <a class="brand" href="#dashboard" aria-label="NestGH Admin home">
+          <span class="brand-mark" aria-hidden="true" data-icon="home"></span>
+          <span class="brand-copy"><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span>
+        </a>
+        <nav class="navigation" aria-label="Main navigation">
+          <a class="nav-link active" href="#dashboard" data-page="Dashboard">
+            <span>Dashboard</span>
+          </a>
+          <a class="nav-link" href="#listings" data-page="All Listings">
+            <span>Listings</span>
+          </a>
+          <a class="nav-link" href="#payments" data-page="All Payments">
+            <span>Payments</span>
+          </a>
+          <a class="nav-link" href="#owners" data-page="Owners & Caretakers">
+            <span>Owners</span>
+          </a>
+          <a class="nav-link" href="#reports" data-page="Reports & Safety">
+            <span>Reports</span>
+          </a>
+          <details class="nav-more">
+            <summary>More</summary>
+            <div class="nav-more-menu">
+              <a href="#changes-requested" data-page="Changes Requested">Changes Requested</a>
+              <a href="#live-listings" data-page="Live Listings">Live Listings</a>
+              <a href="#needs-confirmation" data-page="Needs Confirmation">Needs Confirmation</a>
+              <a href="#unavailable" data-page="Unavailable">Unavailable</a>
+              <a href="#rejected" data-page="Rejected">Rejected</a>
+              <a href="#removed" data-page="Removed">Removed</a>
+              <a href="#successful-payments" data-page="Successful Payments">Successful Payments</a>
+              <a href="#pending-payments" data-page="Pending Payments">Pending Payments</a>
+              <a href="#failed-payments" data-page="Failed Payments">Failed Payments</a>
+              <a href="#refunded-payments" data-page="Refunded Payments">Refunded Payments</a>
+              <a href="#locations" data-page="Locations">Locations</a>
+              <a href="#analytics" data-page="Analytics">Analytics</a>
+              <a href="#website-content" data-page="Website Content">Website Content</a>
+              <a href="#settings" data-page="Settings">Settings</a>
+              <a href="#admin-users" data-page="Admin Users">Admin Users</a>
+              <a href="#activity-logs" data-page="Activity Logs">Activity Logs</a>
+            </div>
+          </details>
+        </nav>
+        <div class="topbar-actions">
+          <a class="round-action" href="#pending-approval" data-page="Pending Approval" aria-label="Pending approvals" title="Pending approvals"><span aria-hidden="true" data-icon="bell"></span><i></i></a>
+          <button class="avatar-button" id="profile-button" type="button" aria-label="Open admin menu" aria-expanded="false" aria-controls="profile-menu">N</button>
+          <div class="profile-menu" id="profile-menu" hidden>
+            <strong id="admin-name">NestGH Admin</strong>
+            <span id="admin-email"></span>
+            <button class="secondary-button" id="sign-out" type="button">Sign out</button>
+          </div>
+        </div>
+        <button class="icon-button menu-button" id="menu-button" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
+          <span aria-hidden="true" data-icon="menu"></span>
+        </button>
+      </header>
+
+      <div class="main-column">
+        <main class="main-content" id="main-content">
+          <section class="page-heading" aria-labelledby="page-title">
+            <p class="eyebrow" id="page-eyebrow">Overview</p>
+            <h1 id="page-title">Dashboard</h1>
+            <p class="page-description" id="page-description">A clear view of listings, payments, and platform activity.</p>
+          </section>
+
+          <section class="connection-banner demo-banner" aria-labelledby="connection-title">
+            <span class="banner-icon" aria-hidden="true" data-icon="help"></span>
+            <div>
+              <h2 id="connection-title">Connecting to the NestGH backend…</h2>
+              <p id="connection-description">Live listing and payment data is protected by your administrator session.</p>
+            </div>
+            <button class="secondary-button reset-button" id="refresh-data" type="button">Refresh data</button>
+          </section>
+
+          <section class="dashboard-hero" id="dashboard-hero">
+            <div class="hero-copy">
+              <p class="eyebrow">NestGH overview</p>
+              <h2>Good homes.<br><em>Better beginnings.</em></h2>
+              <p>Keep track of rooms, owners, and the latest activity across your workspace.</p>
+              <a class="hero-link" href="#listings" data-page="All Listings">Explore listings <span aria-hidden="true" data-icon="chevron-right"></span></a>
+            </div>
+            <div class="hero-photo" role="img" aria-label="A welcoming home interior"></div>
+            <div class="hero-stats" id="hero-stats"></div>
+          </section>
+
+          <div class="overview-grid" id="overview-grid">
+          <section class="dashboard-section" id="snapshot-section" aria-labelledby="snapshot-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Platform snapshot</p>
+                <h2 class="visually-hidden" id="snapshot-title">Platform snapshot</h2>
+              </div>
+            </div>
+            <div class="metrics-grid" id="metrics-grid"></div>
+          </section>
+
+          <section class="dashboard-section featured-section" id="featured-section" aria-labelledby="featured-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Curated for review</p>
+                <h2 id="featured-title">Property collection</h2>
+              </div>
+              <a class="section-link" href="#listings" data-page="All Listings">View all <span aria-hidden="true" data-icon="chevron-right"></span></a>
+            </div>
+            <div class="featured-grid" id="featured-grid"></div>
+          </section>
+          </div>
+
+          <section class="dashboard-section lower-grid" id="lower-grid">
+            <article class="preview-panel">
+              <div class="section-heading">
+                <div><p class="eyebrow">Recently added</p><h2>Latest properties</h2></div>
+                <a class="section-link" href="#listings" data-page="All Listings">All listings <span aria-hidden="true" data-icon="chevron-right"></span></a>
+              </div>
+              <div class="preview-table-wrap">
+                <table class="preview-table">
+                  <thead><tr><th>Property</th><th>Location</th><th>Rent / month</th><th>Status</th></tr></thead>
+                  <tbody id="preview-listing-rows"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="area-panel">
+              <div class="section-heading">
+                <div><p class="eyebrow">Across Ghana</p><h2>Popular areas</h2></div>
+                <span class="map-pin" aria-hidden="true" data-icon="pin"></span>
+              </div>
+              <div class="area-map" aria-label="Illustration showing popular listing locations">
+                <span class="map-road road-one"></span><span class="map-road road-two"></span>
+                <span class="map-water"></span>
+                <i class="map-marker marker-one">Tema <b id="tema-count">0</b></i>
+                <i class="map-marker marker-two">Accra <b id="accra-count">0</b></i>
+                <i class="map-marker marker-three">Kumasi <b id="kumasi-count">0</b></i>
+              </div>
+              <p class="map-caption">Sample rooms grouped by town</p>
+            </article>
+          </section>
+
+          <section class="dashboard-section recent-section" id="recent-section" aria-labelledby="recent-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Latest updates</p>
+                <h2 id="recent-title">Workspace activity</h2>
+              </div>
+            </div>
+            <div class="activity-grid" id="activity-grid"></div>
+          </section>
+
+          <section class="dashboard-section listings-section" id="listings-section" aria-labelledby="listings-title" hidden>
+            <div class="section-heading listings-heading">
+              <div>
+                <p class="eyebrow">Live records</p>
+                <h2 id="listings-title">All Listings</h2>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="listing-table">
+                <thead><tr><th>Listing</th><th>Owner</th><th>Location</th><th>Rent</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="listing-rows"></tbody>
+              </table>
+              <div class="table-empty" id="listings-empty" hidden>No records found for this view.</div>
+            </div>
+          </section>
+
+          <section class="dashboard-section placeholder-section" id="placeholder-section" hidden>
+            <div class="placeholder-card">
+              <span class="empty-icon" aria-hidden="true" data-icon="help"></span>
+              <h2 id="placeholder-title">This section is not in the frontend demo yet</h2>
+              <p>This workspace view is not connected to a live data source yet.</p>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

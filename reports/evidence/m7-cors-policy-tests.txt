@@ -1,0 +1,17 @@
+Command: npm run test:security
+
+> nestgh@1.0.0 test:security
+> node --test tests/security/*.test.mjs
+
+✔ allows only an exact configured HTTPS origin (6.2024ms)
+✔ denies unconfigured origins and missing configuration (0.9924ms)
+✔ denies a configured origin with a path or non-canonical origin string (0.6544ms)
+✔ denies insecure non-local origins but allows an exact localhost development origin (0.6426ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 822.8335

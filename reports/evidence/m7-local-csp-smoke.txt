@@ -1,0 +1,19 @@
+Command: local production-server HTTP smoke check against npm run start -- -p 3001
+
+Homepage:
+  Status: 200
+  Content-Security-Policy present: true
+  Nonce attribute rendered on scripts: true
+  Script policy: same-origin sources plus a per-request nonce
+  unsafe-inline present in CSP: false
+  Cookie consent rendered: true
+  Next.js same-origin chunks load: true
+  Browser console errors: none
+
+Privacy route:
+  Status: 200
+
+List-room staging notice:
+  Status: 200
+
+The local server was stopped after the check. This is not a deployment or staging integration test.
