@@ -6,6 +6,7 @@ const publicDir = resolve(root, "public");
 const assets = [
   ["index.html", "index.html"],
   ["app.js", "app.js"],
+  ["font-loader.js", "font-loader.js"],
   ["styles.css", "styles.css"],
   ["supabase-config.js", "supabase-config.js"],
   ["hero.jpg", "hero.jpg"],
