@@ -122,6 +122,13 @@ Deno.serve(async (request) => {
     ]);
     if (settingsError) throw settingsError;
     if (existingError) throw existingError;
+    const expectedFeePesewas = Number(form.get("expected_fee_pesewas"));
+    if (!Number.isSafeInteger(expectedFeePesewas) || expectedFeePesewas <= 0) {
+      return jsonResponse({ error: "The current listing fee is missing. Refresh the page and review the fee before paying." }, 400, request);
+    }
+    if (expectedFeePesewas !== Number(setting.listing_fee_pesewas)) {
+      return jsonResponse({ error: "The listing fee changed. Refresh the page and review the updated fee before paying." }, 409, request);
+    }
     if (existing && existing.status !== "PAYMENT_PENDING") {
       return jsonResponse({ error: "This listing has already been paid or is already being reviewed. Contact NestGH if you need help." }, 409, request);
     }

@@ -4,6 +4,10 @@
 **Scope:** Local workspace inspection only. No Supabase, Paystack, Netlify, or other external service was contacted.
 **Evidence:** [reports/evidence/m0-local-baseline.txt](./reports/evidence/m0-local-baseline.txt)
 
+## Follow-on implementation update — 2026-10-01
+
+The browser's hardcoded listing fee has since been replaced by a read from `public_site_settings`. The admin dashboard now has a fee editor backed by an MFA-protected database function that records changes in `website_settings_history`; checkout uses the backend setting and rejects a stale displayed amount. These changes and their migration are local only. No Supabase project has been migrated or contacted, so this does not supersede the deployment gates below.
+
 ## Section 0 — confirmed facts and decisions
 
 | Item | Confirmed value |

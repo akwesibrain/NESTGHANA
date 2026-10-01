@@ -23,7 +23,7 @@ Last updated: 2026-10-01
 - Staging project: `plbtnltcocsuekifddat`.
 - Production project: `fcsclcxvxvhzlsrolxhn`, production-only; do not use for implementation tests/deployments.
 - Paystack: TEST mode; credentials not configured.
-- Listing fee: GH₵30 / 3,000 pesewas, now consistent between the browser form and database seed.
+- Listing fee: initially GH₵30 / 3,000 pesewas. A staging migration now adds an MFA-protected, audited admin update function; the public form reads the current backend value and payment initialization remains server-authoritative. Migration not applied to Supabase.
 - Owners have no accounts; WhatsApp notifications selected; provider not configured.
 - Cloudflare Turnstile selected; keys not configured.
 
@@ -42,3 +42,4 @@ M0 is complete. The user explicitly approved a Next.js migration for staging onl
 - Local browser/HTTP checks: consent accept/reject and persistence, homepage/privacy/list-room responses, CSP nonce, same-origin framework chunks, and no browser-console errors.
 - No SQL engine validation, staging request, Supabase migration, payment test, or deployment was performed.
 - The public search now loads the GeoNames-based Ghana place catalogue, filters region/town pairs, and offers prefix suggestions (including duplicate town names labeled by region); the student campus selector uses the curated campus catalogue and applies the matching region/town. The owner listing location form uses the same towns grouped under the selected region. The catalogue is copied to the public asset directory by the existing pre-dev/prebuild sync script. The generated location SQL seed remains unapplied, and the campus list is curated rather than an official exhaustive register.
+- Listing-fee controls are implemented locally in the MFA-protected admin dashboard. The public form reads `public_site_settings`, and new Paystack attempts use the current `website_settings.listing_fee_pesewas`; changes are recorded in settings history. Staging Supabase credentials are not configured here, and the migration/functions have not been deployed, so the live site will not change until the migration is reviewed and applied to staging.

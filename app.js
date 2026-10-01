@@ -17,6 +17,7 @@ const DEF={single:{bath:"Shared",kit:"Shared",size:"about 12 m²"},chamber:{bath
 const $=id=>document.getElementById(id),town=$("town"),region=$("region"),area=$("area"),ty=$("ty"),max=$("max"),camp=$("camp"),stu=$("stu"),saved=new Set(),must=new Set(),townSuggestions=$("town-suggestions");
 let selectedTown=null,currentTownSuggestions=[];
 let savedOnly=false;
+let listingFeePesewas=null;
 function updateModalScroll(){document.body.classList.toggle("modal-open",["sheet","lf","pol","psheet"].some(id=>$(id).classList.contains("on")))}
 try{
   const stored=JSON.parse(localStorage.getItem("nestgh_saved_rooms_v1")||"[]");
@@ -24,6 +25,7 @@ try{
 }catch(error){console.error("Could not read saved rooms:",error)}
 document.querySelectorAll("i[data-ic]").forEach(e=>{e.outerHTML=ico(e.dataset.ic)});
 const ghs=n=>"GH₵ "+Number(n||0).toLocaleString("en-GH"),total=r=>(r.rentAmount??r.p)*r.adv+r.dep+r.fee;
+const formatFeePesewas=value=>"GH₵ "+(value/100).toLocaleString("en-GH",{minimumFractionDigits:2,maximumFractionDigits:2});
 const htmlEsc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const locationKey=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLocaleLowerCase();
 function hideTownSuggestions(){townSuggestions.hidden=true;town.setAttribute("aria-expanded","false");currentTownSuggestions=[]}
@@ -194,6 +196,21 @@ loadLocationCatalog().catch(error=>{
 const supabaseClient=window.supabase?.createClient&&window.NESTGH_SUPABASE_CONFIG?.publishableKey
   ?window.supabase.createClient(window.NESTGH_SUPABASE_CONFIG.url,window.NESTGH_SUPABASE_CONFIG.publishableKey)
   :null;
+async function loadListingFee(){
+  if(!supabaseClient)throw new Error("Supabase is not configured.");
+  const {data,error}=await supabaseClient.from("public_site_settings")
+    .select("listing_fee_pesewas, currency")
+    .single();
+  if(error)throw error;
+  const fee=Number(data?.listing_fee_pesewas);
+  if(!Number.isSafeInteger(fee)||fee<=0||data?.currency!=="GHS")throw new Error("Listing fee settings are invalid.");
+  listingFeePesewas=fee;
+}
+async function refreshListingFee(){
+  try{await loadListingFee()}
+  catch(error){console.error("Could not load current listing fee:",error);listingFeePesewas=null}
+}
+refreshListingFee();
 function mapPublicListing(row){
   const d=row.public_data||{},m=d.m||{},type=d.type||"";
   const ty=/hostel/i.test(type)?"hostel":/self-contained/i.test(type)?"self":/chamber/i.test(type)?"chamber":"single";
@@ -267,6 +284,8 @@ function clearPendingSubmission(){
   catch(error){console.error("Could not clear saved payment retry details:",error)}
 }
 async function beginCheckout(form){
+  if(!Number.isSafeInteger(listingFeePesewas)||listingFeePesewas<=0)throw new Error("The current listing fee could not be loaded. Please refresh and try again.");
+  form.set("expected_fee_pesewas",String(listingFeePesewas));
   const response=await fetch(window.NESTGH_SUPABASE_CONFIG.url+"/functions/v1/start-listing-payment",{
     method:"POST",headers:{apikey:window.NESTGH_SUPABASE_CONFIG.publishableKey},body:form
   });
@@ -275,7 +294,7 @@ async function beginCheckout(form){
   const checkout=new URL(result.authorization_url);
   if(checkout.protocol!=="https:"||(checkout.hostname!=="paystack.com"&&!checkout.hostname.endsWith(".paystack.com")))throw new Error("The payment provider returned an invalid checkout link.");
   const submission=JSON.parse(form.get("listing"));
-  try{sessionStorage.setItem("nestgh_pending_payment",JSON.stringify({submission_id:form.get("submission_id"),email:submission.email,reference:result.reference}))}
+  try{sessionStorage.setItem("nestgh_pending_payment",JSON.stringify({submission_id:form.get("submission_id"),email:submission.email,reference:result.reference,expectedFeePesewas:listingFeePesewas}))}
   catch(error){console.error("Could not save payment retry details:",error)}
   S.ref=result.reference;
   window.location.assign(checkout.toString());
@@ -284,12 +303,22 @@ async function retrySecurePayment(){
   const pending=readPendingSubmission();
   const reference=pending?.reference;
   if(!pending){toast("Payment retry details are unavailable. Contact NestGH with your payment reference.");return}
+  await refreshListingFee();
+  if(listingFeePesewas===null){$("payment-return-status").textContent="The current listing fee could not be loaded. Please refresh the page before retrying.";return}
+  if(pending.expectedFeePesewas!==listingFeePesewas){
+    pending.expectedFeePesewas=listingFeePesewas;
+    try{sessionStorage.setItem("nestgh_pending_payment",JSON.stringify(pending))}
+    catch(error){console.error("Could not update saved listing fee for retry:",error)}
+    $("payment-return-status").textContent="The listing fee is now "+formatFeePesewas(listingFeePesewas)+". Review the updated fee, then select the retry button again to continue.";
+    $("retry-payment").textContent="Retry at "+formatFeePesewas(listingFeePesewas);
+    return;
+  }
   const listing={submission_id:pending.submission_id,email:pending.email,title:"Previously submitted listing",town:"Pending",area:"Pending",rent:1,phone:"0240000000",cons:Array(6).fill(true)};
   const form=new FormData();
   form.append("submission_id",pending.submission_id);
   form.append("listing",JSON.stringify(listing));
   $("retry-payment").disabled=true;
-  try{await beginCheckout(form)}
+  try{await refreshListingFee();await beginCheckout(form)}
   catch(error){
     console.error("Could not retry listing payment:",error);
     toast(error instanceof Error?error.message:"Secure checkout could not be started.");
@@ -298,7 +327,7 @@ async function retrySecurePayment(){
 }
 $("retry-payment").onclick=retrySecurePayment;
 /* ===== LIST A ROOM ===== */
-const FEE=30,esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const TYPES=["Single Room","Chamber & Hall","Self-Contained","1-in-a-Room","2-in-a-Room","4-in-a-Room","Student Hostel"],CONDS=["New","Newly Renovated","Good Condition","Fair Condition"],
 PERIODS=["Monthly","3 Months","6 Months","Yearly","Semester","Other"],
 INC=["Water","Electricity","Wi-Fi","Kitchen","Bathroom","Wardrobe","Bed","Mattress","Parking","Security","Cleaning"],INCO=["Included","Not Included","Shared","Separate Charge"],
@@ -392,7 +421,8 @@ ${F("role","Your role",sel("role",ROLES))}${F("rel","Relationship to the propert
 v:()=>{const e={};if(!S.profile)e.profile="Please upload a clear profile photo.";if((S.name||"").trim().length<3)e.name="Please enter your full name.";if(!okPhone(S.phone))e.phone="Please enter a valid Ghana phone number, like 024 000 0000.";if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(S.email||""))e.email="Please enter a valid email address for the payment receipt.";if(!okPhone(S.wa))e.wa="Please enter a valid WhatsApp number.";if(!S.role)e.role="Please select your role.";if((S.rel||"").trim().length<3)e.rel="Please describe your relationship to the property.";return e}},
 {n:"Review",r:()=>{const pl=S.period==="Other"?S.periodOther:PL[S.period],t=STEPS,al=[...PHC.map(c=>S.ph[c]),...S.extra.map(x=>x.src)].filter(Boolean);
 const fail=S.payMsg?`<div class="warn fail" role="alert">${S.payMsg}</div>`:"";
-return `<h2>Review and pay</h2><p class="sub2">Check everything. This is what seekers will see once NestGH approves your listing.</p>${fail}
+const feeNotice=S.feeChanged?'<div class="warn" role="status">The listing fee changed while you were preparing this submission. Review the updated amount, then submit again.</div>':"";
+return `<h2>Review and pay</h2><p class="sub2">Check everything. This is what seekers will see once NestGH approves your listing.</p>${feeNotice}${fail}
 ${sec("Room",0,KV({Title:S.title,Type:S.type,Condition:S.cond,Furnished:S.furn,"Units available":S.units,Bedrooms:S.beds,Bathroom:S.bath,Kitchen:S.kit,Size:S.size,Floor:S.floor,Storage:S.store,Balcony:S.balc,...(S.feat?{Features:S.feat}:{})})+`<p class="np">${esc(S.desc)}</p>`)}
 ${sec("Location",1,KV({Region:S.region,"Town or city":S.town,Area:S.area,"Nearest landmark":S.lm,"Map":S.lat?"Saved from GPS":"Google Maps link"})+`<p class="np">Public: area and landmark only. Your exact address is private to NestGH admin.</p>`)}
 ${sec("Price and costs",2,bd())}
@@ -405,8 +435,8 @@ ${sec("Owner or caretaker",8,`<div style="display:flex;gap:12px;align-items:cent
 <div class="warn">CHECK YOUR INFORMATION CAREFULLY</div><div class="fld" data-f="consent"><label class="ch line"><input type="checkbox" data-k="accurate"${S.accurate?" checked":""}><span>I confirm that all information is accurate.</span></label>
 ${CONS.map((c,i)=>`<label class="ch line"><input type="checkbox" data-cons="${i}"${S.cons[i]?" checked":""}><span>${c}</span></label>`).join("")}<em class="er"></em></div>
 <p class="pv2"><b>Privacy notice.</b> NestGH uses what you submit to review and publish your listing, contact you about availability, and prevent fraud. Your profile photo, name, role and contact buttons may be shown on your listing. Your exact address is only seen by NestGH admin, and identity documents are never shown publicly. You can ask to see, correct or delete your information under Ghana's Data Protection Act, 2012 (Act 843). Read our full <a href="#" data-pol="privacy">Privacy Policy</a> , <a href="#" data-pol="cookie">Cookie Policy</a> and <a href="#" data-pol="terms">Terms and Conditions</a>.</p>
-<div class="tot"><span>Standard listing (one-time)</span><b>${ghs(FEE)}</b></div><p class="pv2">There is one package only. No renewal fee: your listing stays live while the room is genuinely available. Payment does not approve or verify your listing. NestGH reviews every listing first.</p>`},
-v:()=>{const e={};if(!S.accurate||CONS.some((_,i)=>!S.cons[i]))e.consent="Please tick every box to continue.";return e}}];
+<div class="tot"><span>Standard listing (one-time)</span><b>${listingFeePesewas===null?"Unavailable":formatFeePesewas(listingFeePesewas)}</b></div>${listingFeePesewas===null?'<p class="warn" role="alert">The current listing fee could not be loaded. Payment is unavailable until the site reconnects to its settings.</p>':""}<p class="pv2">There is one package only. No renewal fee: your listing stays live while the room is genuinely available. Payment does not approve or verify your listing. NestGH reviews every listing first.</p>`},
+v:()=>{const e={};if(!S.accurate||CONS.some((_,i)=>!S.cons[i]))e.consent="Please tick every box to continue.";if(listingFeePesewas===null)e.listingFee="The current listing fee could not be loaded. Please refresh and try again.";return e}}];
 function show(e){document.querySelectorAll(".bad").forEach(x=>{x.classList.remove("bad");const m=x.querySelector(".er");m&&(m.textContent="")});let first=null,extra=[];
 for(const[k,v]of Object.entries(e)){const el=document.querySelector(`#lb [data-f="${k}"]`);if(!el){extra.push(v);continue}el.classList.add("bad");el.querySelector(".er").textContent=v;first=first||el}
 const c=Object.keys(e).length;$("sum").textContent=c?"Please fix "+c+" item"+(c>1?"s":"")+" below."+(extra.length?" "+extra.join(" "):""):"";
@@ -415,15 +445,15 @@ function dyn(){const c=$("cc");if(c){const l=(S.desc||"").trim().length;c.textCo
 const b=$("bd");if(b)b.innerHTML=bd();const po=$("po");if(po)po.hidden=S.period!=="Other";const on=$("on");if(on)on.hidden=!(n("oth")>0);const ct=$("ct");if(ct)ct.hidden=S.curfew!=="Curfew applies"}
 function paint(){const L=STEPS.length;$("pb").innerHTML=`<div class="pt">Step ${cur+1} of ${L}: <b>${STEPS[cur].n}</b></div><div class="seg">${STEPS.map((s,i)=>`<i class="${i===cur?"c":i<cur?"d":""}"></i>`).join("")}</div>`;
 $("pn").innerHTML=STEPS.map((s,i)=>`<button type="button" data-go="${i}" class="${i===cur?"c":done.has(i)?"d":""}"${i>reach?" disabled":""}${i===cur?' aria-current="step"':""}>${done.has(i)&&i!==cur?"✓ ":""}${s.n}</button>`).join('<span aria-hidden="true">→</span>');
-$("bk").hidden=cur===0;$("nx").textContent=cur===L-1?(S.ref?"Retry payment":"Submit & pay "+ghs(FEE)):"Next";const a=$("pn").querySelector(".c");a&&a.scrollIntoView({inline:"center",block:"nearest"})}
+$("bk").hidden=cur===0;$("nx").textContent=cur===L-1?(S.ref?"Retry payment":"Submit & pay"+(listingFeePesewas===null?"":" "+formatFeePesewas(listingFeePesewas))):"Next";const a=$("pn").querySelector(".c");a&&a.scrollIntoView({inline:"center",block:"nearest"})}
 function draw(){$("lb").innerHTML='<div class="sum" id="sum" role="alert"></div>'+STEPS[cur].r();paint();dyn()}
 function go(i){cur=i;reach=Math.max(reach,i);draw();$("lf").scrollTo(0,0)}
-function next(){const e=STEPS[cur].v();if(Object.keys(e).length){done.delete(cur);paint();show(e);return}done.add(cur);if(cur<STEPS.length-1)go(cur+1);else submit()}
-function submit(){for(let i=0;i<STEPS.length-1;i++){const e=STEPS[i].v();if(Object.keys(e).length){go(i);show(e);toast("Please fix step "+(i+1)+" ("+STEPS[i].n+") before paying.");return}}pay()}
+async function next(){if(cur===STEPS.length-1){await submit();return}const e=STEPS[cur].v();if(Object.keys(e).length){done.delete(cur);paint();show(e);return}done.add(cur);go(cur+1)}
+async function submit(){const displayedFee=listingFeePesewas;await refreshListingFee();if(listingFeePesewas!==null&&displayedFee!==listingFeePesewas){S.feeChanged=true;draw();return}S.feeChanged=false;draw();for(let i=0;i<STEPS.length;i++){const e=STEPS[i].v();if(Object.keys(e).length){go(i);show(e);if(i<STEPS.length-1)toast("Please fix step "+(i+1)+" ("+STEPS[i].n+") before paying.");return}}await pay()}
 async function pay(){
 if(!supabaseClient){S.payMsg="Payment is unavailable because Supabase did not load. Please try again later.";return go(cur)}
 if(!S.submissionId)S.submissionId=crypto.randomUUID();
-$("psheet").innerHTML=`<div class="sp" role="dialog" aria-modal="true" aria-label="Secure payment"><h3 class="sn">Standard listing fee</h3><p class="np">Your listing details will be sent securely for review. Payment is processed by Paystack.</p><div class="tot"><span>One-time listing fee</span><b>${ghs(FEE)}</b></div><p class="np" role="status">Preparing secure checkout…</p></div>`;
+$("psheet").innerHTML=`<div class="sp" role="dialog" aria-modal="true" aria-label="Secure payment"><h3 class="sn">Standard listing fee</h3><p class="np">Your listing details will be sent securely for review. Payment is processed by Paystack.</p><div class="tot"><span>One-time listing fee</span><b>${formatFeePesewas(listingFeePesewas)}</b></div><p class="np" role="status">Preparing secure checkout…</p></div>`;
 $("psheet").classList.add("on");
 updateModalScroll();
 try{
@@ -454,7 +484,7 @@ go(cur);
 toast(S.payMsg);
 }}
 function reset(){for(const k of Object.keys(S))delete S[k];Object.assign(S,{m:{},ph:{},extra:[],who:[],cons:[]});cur=0;reach=0;done.clear();$("lf").classList.remove("fin","on");updateModalScroll()}
-function openLF(){$("lf").classList.add("on");updateModalScroll();go(cur)}
+async function openLF(){$("lf").classList.add("on");updateModalScroll();go(cur);await refreshListingFee();if(cur===STEPS.length-1)draw()}
 function closeLF(){$("lf").classList.remove("on");updateModalScroll()}
 const shrink=(f,max,q)=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL("image/jpeg",q))};im.onerror=()=>{URL.revokeObjectURL(u);no("type")};im.src=u});
 async function pic(f,max,q){if(!["image/jpeg","image/png","image/webp"].includes(f.type))throw"type";if(f.size>15*1048576)throw"size";return shrink(f,max,q)}

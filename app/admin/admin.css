@@ -117,6 +117,75 @@
   margin: 0 0 8px;
 }
 
+.settings-card {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  background: var(--card);
+}
+
+.settings-card h2,
+.settings-card p {
+  margin: 0;
+}
+
+.settings-card > p:not(.eyebrow, .status-banner, .current-fee, .settings-note) {
+  color: var(--muted);
+}
+
+.current-fee strong {
+  font-size: 20px;
+}
+
+.fee-form {
+  display: grid;
+  max-width: 460px;
+  gap: 8px;
+}
+
+.fee-form label {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fee-form input {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 11px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+.fee-form button {
+  justify-self: start;
+  margin-top: 6px;
+}
+
+.settings-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.status-banner {
+  border-left: 3px solid #418464;
+  padding: 8px 10px;
+  background: #edf7f1;
+  color: #24573f;
+  font-size: 13px;
+}
+
+.status-banner[data-kind="error"] {
+  border-color: #b43c32;
+  background: #fff0ee;
+  color: #8b2a22;
+}
+
 .admin-table-wrap {
   overflow-x: auto;
   margin-top: 20px;

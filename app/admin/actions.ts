@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -56,4 +57,41 @@ export async function signOutAdmin() {
   const supabase = await createSupabaseServerClient();
   if (supabase) await supabase.auth.signOut();
   redirect("/admin");
+}
+
+export async function updateListingFee(formData: FormData) {
+  const amount = String(formData.get("feeGhs") || "").trim();
+  const reason = String(formData.get("reason") || "").trim();
+  if (!/^\d{1,8}(?:\.\d{1,2})?$/.test(amount) || reason.length < 3 || reason.length > 1000) {
+    redirect("/admin?fee=invalid");
+  }
+
+  const [whole, fraction = ""] = amount.split(".");
+  const listingFeePesewas = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  if (!Number.isSafeInteger(listingFeePesewas) || listingFeePesewas <= 0 || listingFeePesewas > 2_147_483_647) {
+    redirect("/admin?fee=invalid");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) redirect("/admin?error=configuration");
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) redirect("/admin?error=unauthorized");
+  const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assuranceError) {
+    console.error("admin_listing_fee_mfa_lookup_failed", assuranceError.name);
+    redirect("/admin?error=mfa_required");
+  }
+  if (assurance.currentLevel !== "aal2") redirect("/admin/verify?returnTo=%2Fadmin");
+
+  const { error } = await supabase.rpc("update_listing_fee", {
+    p_listing_fee_pesewas: listingFeePesewas,
+    p_reason: reason,
+  });
+  if (error) {
+    console.error("admin_listing_fee_update_failed", error.code);
+    redirect(error.code === "42501" ? "/admin?error=unauthorized" : "/admin?fee=save_failed");
+  }
+
+  revalidatePath("/admin");
+  redirect("/admin?fee=saved");
 }

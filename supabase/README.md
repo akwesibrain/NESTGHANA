@@ -26,7 +26,7 @@ Before applying a migration, verify the linked project reference in the CLI outp
 - Cloudflare Turnstile site and secret keys
 - Exact HTTPS staging origin(s)
 
-The application expects `PUBLIC_SITE_URL` for the canonical staging URL and `PUBLIC_SITE_ORIGINS` for the comma-separated browser-origin allowlist. Never use a wildcard origin. The configured listing fee is GH₵30 (3,000 pesewas).
+The application expects `PUBLIC_SITE_URL` for the canonical staging URL and `PUBLIC_SITE_ORIGINS` for the comma-separated browser-origin allowlist. Never use a wildcard origin. The initial listing fee is GH₵30 (3,000 pesewas); the authenticated admin dashboard can change it after the `update_listing_fee` migration is applied. The public form reads the current fee from `public_site_settings`, and payment initialization independently charges the value in `website_settings`. Fee changes are MFA-protected and recorded in `website_settings_history`; a payment attempt already created keeps its original amount.
 
 ## Admin provisioning
 
