@@ -1,10 +1,12 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { signInAdmin, signOutAdmin, updateListingFee } from "@/app/admin/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import "./admin.css";
 
-type SearchParams = Promise<{ error?: string; fee?: string }>;
+type SearchParams = Promise<{ error?: string; fee?: string; q?: string; status?: string }>;
+const listingStatuses = ["DRAFT", "PAYMENT_PENDING", "PENDING_APPROVAL", "CHANGES_REQUESTED", "LIVE", "NEEDS_CONFIRMATION", "UNAVAILABLE", "REJECTED", "REMOVED"] as const;
 
 const signInErrors: Record<string, string> = {
   invalid: "Enter a valid email and password.",
@@ -57,73 +59,178 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
 
   const { data: listings, error: listingsError } = await supabase
     .from("listings")
-    .select("id,status,title,room_type,rent_amount_pesewas,rent_period,created_at")
+    .select("id,status,title,room_type,rent_amount_pesewas,rent_period,area_id,created_at")
     .order("created_at", { ascending: false })
     .range(0, 19);
   if (listingsError) console.error("admin_listing_query_failed", listingsError.code);
+  const recentListings = listings || [];
+  const pendingCount = recentListings.filter((listing) => listing.status === "PENDING_APPROVAL").length;
+  const liveCount = recentListings.filter((listing) => listing.status === "LIVE").length;
+  const areaIds = [...new Set(recentListings.map((listing) => listing.area_id))];
+  const { data: areas, error: areasError } = areaIds.length
+    ? await supabase.from("locations").select("id,name,parent_id").in("id", areaIds)
+    : { data: [], error: null };
+  if (areasError) console.error("admin_listing_locations_query_failed", areasError.code);
+  const townIds = [...new Set((areas || []).flatMap((location) => location.parent_id ? [location.parent_id] : []))];
+  const { data: towns, error: townsError } = townIds.length
+    ? await supabase.from("locations").select("id,name").in("id", townIds)
+    : { data: [], error: null };
+  if (townsError) console.error("admin_listing_towns_query_failed", townsError.code);
+  const townById = new Map((towns || []).map((town) => [town.id, town.name]));
+  const areaById = new Map((areas || []).map((location) => [location.id, {
+    name: location.name,
+    town: location.parent_id ? townById.get(location.parent_id) : undefined,
+  }]));
+  const listingIds = recentListings.map((listing) => listing.id);
+  const { data: listingImages, error: listingImagesError } = listingIds.length
+    ? await supabase.from("listing_images")
+      .select("listing_id,storage_path,display_order")
+      .in("listing_id", listingIds)
+      .order("display_order", { ascending: true })
+    : { data: [], error: null };
+  if (listingImagesError) console.error("admin_listing_images_query_failed", listingImagesError.code);
+  const firstImageByListing = new Map<string, string>();
+  for (const image of listingImages || []) {
+    if (!firstImageByListing.has(image.listing_id)) firstImageByListing.set(image.listing_id, image.storage_path);
+  }
+  const imagePaths = [...new Set(firstImageByListing.values())];
+  const { data: signedImages, error: signedImagesError } = imagePaths.length
+    ? await supabase.storage.from("listing-pending").createSignedUrls(imagePaths, 3600)
+    : { data: [], error: null };
+  if (signedImagesError) console.error("admin_listing_image_urls_failed", signedImagesError.name);
+  const imageUrlByPath = new Map((signedImages || [])
+    .filter((image) => image.signedUrl)
+    .map((image) => [image.path, image.signedUrl]));
+  const thumbnails = new Map([...firstImageByListing].flatMap(([listingId, path]) => {
+    const url = imageUrlByPath.get(path);
+    return url ? [[listingId, url] as const] : [];
+  }));
+  const searchQuery = params.q?.trim().slice(0, 100) || "";
+  const statusFilter = listingStatuses.includes(params.status as (typeof listingStatuses)[number]) ? params.status : "";
+  const visibleListings = recentListings.filter((listing) => {
+    const matchesSearch = !searchQuery || `${listing.title} ${listing.room_type} ${listing.id}`.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch && (!statusFilter || listing.status === statusFilter);
+  });
+  const formatMoney = (pesewas: number) => new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    maximumFractionDigits: 0,
+  }).format(pesewas / 100);
 
   return (
     <main className="admin-shell">
-      <header className="admin-topbar">
-        <Link className="brand" href="/"><span className="brand-copy"><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span></Link>
-        <div><span>{auth.user.email}</span><form action={signOutAdmin}><button className="secondary-button" type="submit">Sign out</button></form></div>
-      </header>
-      <section className="admin-content">
-        <p className="eyebrow">Overview</p>
-        <h1>Listings dashboard</h1>
-        <p>Authenticated staging workspace. Your role: {roles.map((item) => item.role).join(", ")}.</p>
-        {canManageSettings ? (
-          <section className="settings-card" aria-labelledby="listing-fee-heading">
-            <p className="eyebrow">Website settings</p>
-            <h2 id="listing-fee-heading">Listing fee</h2>
-            <p>Set the one-time fee owners pay to submit a listing. The payment backend uses the saved amount for new and retried checkouts.</p>
-            {params.fee && feeMessages[params.fee] ? (
-              <p className="status-banner" data-kind={feeMessages[params.fee].kind} role={feeMessages[params.fee].kind === "error" ? "alert" : "status"}>
-                {feeMessages[params.fee].text}
-              </p>
-            ) : null}
-            {settingsError || !settings ? (
-              <p className="status-banner" data-kind="error" role="alert">Could not load the current listing fee. Check that the database migration has been applied.</p>
-            ) : (
-              <>
-                <p className="current-fee">Current fee: <strong>{new Intl.NumberFormat("en-GH", { style: "currency", currency: settings.currency }).format(settings.listing_fee_pesewas / 100)}</strong></p>
-                <form className="fee-form" action={updateListingFee}>
-                  <label htmlFor="feeGhs">New fee (GH₵)</label>
-                  <input
-                    id="feeGhs"
-                    name="feeGhs"
-                    type="number"
-                    min="0.01"
-                    max="21474836.47"
-                    step="0.01"
-                    defaultValue={(settings.listing_fee_pesewas / 100).toFixed(2)}
-                    required
-                  />
-                  <label htmlFor="fee-reason">Reason for change</label>
-                  <input id="fee-reason" name="reason" type="text" minLength={3} maxLength={1000} required />
-                  <button className="primary-button" type="submit">Save listing fee</button>
-                </form>
-                <p className="settings-note">Changes are audited and take effect for new checkouts. Payments already initiated keep their original amount.</p>
-              </>
-            )}
-          </section>
-        ) : null}
-        {listingsError ? <p className="status-banner" data-kind="error" role="alert">Could not load listings. Check your role permissions and database migration.</p> : null}
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead><tr><th>Listing</th><th>Type</th><th>Rent (pesewas)</th><th>Status</th><th>Submitted</th></tr></thead>
-            <tbody>
-              {(listings || []).map((listing) => (
-                <tr key={listing.id}>
-                  <td>{listing.title}</td><td>{listing.room_type}</td><td>{listing.rent_amount_pesewas}</td>
-                  <td>{listing.status}</td><td>{new Date(listing.created_at).toLocaleDateString()}</td>
-                </tr>
+      <div className="admin-workspace">
+        <header className="admin-topbar">
+          <Link className="admin-brand" href="/"><span className="admin-brand-mark">N</span><span><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span></Link>
+          <nav className="admin-desktop-nav" aria-label="Admin workspace">
+            <a className="active" href="#overview">Dashboard</a><a href="#listings">Listings</a>{canManageSettings ? <a href="#website-settings">Settings</a> : null}
+          </nav>
+          <div className="admin-topbar-actions">
+            <a className="admin-icon-button" href="#listings" aria-label="Search listings">⌕</a>
+            <a className="admin-icon-button" href="#listings" aria-label="Review pending listings">♧</a>
+            <span className="admin-user-avatar" aria-label={auth.user.email || "Admin"}>{(auth.user.email || "A").slice(0, 1).toUpperCase()}</span>
+            <form action={signOutAdmin}><button className="secondary-button" type="submit">Sign out</button></form>
+          </div>
+        </header>
+        <nav className="admin-mobile-nav" aria-label="Admin workspace">
+          <a className="active" href="#overview">Dashboard</a><a href="#listings">Listings</a>{canManageSettings ? <a href="#website-settings">Settings</a> : null}
+        </nav>
+        <section className="admin-content" id="overview">
+          <div className="admin-hero">
+            <div className="admin-hero-copy">
+              <p className="eyebrow">PROPERTY MANAGEMENT</p>
+              <h1>Your rooms, all in one place.</h1>
+              <p>Welcome back. Here’s the latest from your NestGH marketplace.</p>
+              <div className="admin-hero-metrics">
+                <div><span>Recent submissions</span><strong>{recentListings.length}</strong></div>
+                <div><span>Awaiting review</span><strong>{pendingCount}</strong></div>
+              </div>
+            </div>
+            <Image className="admin-hero-image" src="/hero.jpg" alt="Modern home with a secure gated entrance" width={900} height={500} priority />
+          </div>
+
+          <div className="admin-stats" aria-label="Listing summary">
+            <article className="admin-stat-card"><span className="admin-stat-icon gold" aria-hidden="true">▤</span><small>Latest listings</small><strong>{recentListings.length}</strong><span>Most recent submissions</span></article>
+            <article className="admin-stat-card"><span className="admin-stat-icon blue" aria-hidden="true">◷</span><small>Awaiting review</small><strong>{pendingCount}</strong><span>In the latest 20 listings</span></article>
+            <article className="admin-stat-card"><span className="admin-stat-icon green" aria-hidden="true">✓</span><small>Live listings</small><strong>{liveCount}</strong><span>In the latest 20 listings</span></article>
+            <article className="admin-stat-card"><span className="admin-stat-icon lilac" aria-hidden="true">GH₵</span><small>Listing fee</small><strong>{settings ? formatMoney(settings.listing_fee_pesewas) : "—"}</strong>{canManageSettings ? <a href="#website-settings">Manage fee →</a> : <span>Admin access only</span>}</article>
+          </div>
+
+          <section className="admin-property-section" aria-labelledby="properties-heading">
+            <div className="admin-panel-heading"><div><p className="eyebrow">LATEST FROM THE MARKETPLACE</p><h2 id="properties-heading">Property listings</h2></div><a className="admin-text-link" href="#listings">View all listings <span aria-hidden="true">↗</span></a></div>
+            {listingsError ? <p className="status-banner" data-kind="error" role="alert">Could not load listings. Check your role permissions and database migration.</p> : null}
+            <div className="admin-property-cards">
+              {recentListings.slice(0, 3).map((listing) => (
+                <article className="admin-property-card" key={listing.id}>
+                  <div className="admin-property-photo">
+                    {thumbnails.has(listing.id)
+                      ? <Image src={thumbnails.get(listing.id)!} alt="" width={400} height={230} unoptimized />
+                      : <span aria-label="No listing photo" role="img">⌂</span>}
+                    <span className={`admin-status status-${listing.status.toLowerCase()}`}>{listing.status.replaceAll("_", " ")}</span>
+                  </div>
+                  <div className="admin-property-details"><h3>{listing.title}</h3><p>{areaById.get(listing.area_id)?.name || "Ghana"}{areaById.get(listing.area_id)?.town ? `, ${areaById.get(listing.area_id)?.town}` : ""}</p><div><span>{listing.room_type}</span><strong>{formatMoney(listing.rent_amount_pesewas)} <small>/ period</small></strong></div></div>
+                </article>
               ))}
-            </tbody>
-          </table>
-          {!listingsError && !listings?.length ? <p>No listings have been submitted yet.</p> : null}
-        </div>
-      </section>
+              {!listingsError && !recentListings.length ? <p className="admin-empty">No listings have been submitted yet.</p> : null}
+            </div>
+          </section>
+
+          <div className="admin-dashboard-grid">
+            <section className="admin-panel admin-listings-panel" id="listings" aria-labelledby="listings-heading">
+              <div className="admin-panel-heading"><div><h2 id="listings-heading">Manage listings</h2><p>Search and filter the 20 most recent submissions.</p></div><span className="admin-result-count">{visibleListings.length} shown</span></div>
+              <form className="admin-listing-filters" action="/admin#listings">
+                <input type="search" name="q" aria-label="Search listings" placeholder="Search property or type" defaultValue={searchQuery} />
+                <select name="status" aria-label="Filter by status" defaultValue={statusFilter}>
+                  <option value="">All statuses</option>{listingStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}
+                </select>
+                <button className="admin-filter-button" type="submit"><span aria-hidden="true">⌕</span> Search</button>
+              </form>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead><tr><th>PROPERTY NAME</th><th>TYPE</th><th>MONTHLY RENT</th><th>STATUS</th><th>SUBMITTED</th></tr></thead>
+                  <tbody>
+                    {visibleListings.map((listing) => (
+                      <tr key={listing.id}>
+                        <td data-label="Property"><span className="admin-table-property">{thumbnails.has(listing.id) ? <Image src={thumbnails.get(listing.id)!} alt="" width={44} height={44} unoptimized /> : <span aria-hidden="true">⌂</span>}<span><strong>{listing.title}</strong><small>{areaById.get(listing.area_id)?.name || "Ghana"} · {listing.id.slice(0, 8)}</small></span></span></td>
+                        <td data-label="Type">{listing.room_type}</td><td data-label="Rent">{formatMoney(listing.rent_amount_pesewas)}</td>
+                        <td data-label="Status"><span className={`admin-status status-${listing.status.toLowerCase()}`}>{listing.status.replaceAll("_", " ")}</span></td>
+                        <td data-label="Submitted">{new Date(listing.created_at).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!listingsError && !visibleListings.length ? <p className="admin-empty">{recentListings.length ? "No listings match your search." : "No listings have been submitted yet."}</p> : null}
+              </div>
+            </section>
+            {canManageSettings ? (
+              <section className="settings-card" id="website-settings" aria-labelledby="listing-fee-heading">
+                <div className="admin-panel-heading"><div><p className="eyebrow">WEBSITE SETTINGS</p><h2 id="listing-fee-heading">Listing fee</h2></div><span className="admin-stat-icon lilac" aria-hidden="true">GH₵</span></div>
+                <p>Set the one-time fee owners pay to submit a listing. New and retried checkouts use the saved amount.</p>
+                {params.fee && feeMessages[params.fee] ? (
+                  <p className="status-banner" data-kind={feeMessages[params.fee].kind} role={feeMessages[params.fee].kind === "error" ? "alert" : "status"}>
+                    {feeMessages[params.fee].text}
+                  </p>
+                ) : null}
+                {settingsError || !settings ? (
+                  <p className="status-banner" data-kind="error" role="alert">Could not load the current listing fee. Check that the database migration has been applied.</p>
+                ) : (
+                  <>
+                    <p className="current-fee"><span>Current fee</span><strong>{new Intl.NumberFormat("en-GH", { style: "currency", currency: settings.currency }).format(settings.listing_fee_pesewas / 100)}</strong></p>
+                    <form className="fee-form" action={updateListingFee}>
+                      <label htmlFor="feeGhs">New fee (GH₵)</label>
+                      <input id="feeGhs" name="feeGhs" type="number" min="0.01" max="21474836.47" step="0.01" defaultValue={(settings.listing_fee_pesewas / 100).toFixed(2)} required />
+                      <label htmlFor="fee-reason">Reason for change</label>
+                      <input id="fee-reason" name="reason" type="text" minLength={3} maxLength={1000} required />
+                      <button className="primary-button" type="submit">Save listing fee <span aria-hidden="true">→</span></button>
+                    </form>
+                    <p className="settings-note">Changes are audited and apply to new checkouts. Payments already started keep their original amount.</p>
+                  </>
+                )}
+              </section>
+            ) : null}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
