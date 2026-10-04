@@ -19,7 +19,8 @@ export async function proxy(request: NextRequest) {
     `script-src 'self' 'nonce-${nonce}'`,
     `connect-src 'self' ${browserSupabaseOrigin}${supabaseOrigin && supabaseOrigin !== browserSupabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
     "font-src 'self' https://fonts.gstatic.com",
-    "upgrade-insecure-requests",
+    // Only upgrade in production: the dev server is plain HTTP, so upgrading breaks every asset when opened via a LAN IP.
+    ...(secure ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);

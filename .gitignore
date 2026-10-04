@@ -7,3 +7,4 @@ out/
 coverage/
 reports/evidence/*.tmp
 .netlify/
+/generated/

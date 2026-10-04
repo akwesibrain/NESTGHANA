@@ -24,6 +24,13 @@ let listingFeePesewas=null;
 const supabaseClient=window.supabase?.createClient&&window.NESTGH_SUPABASE_CONFIG?.publishableKey
   ?window.supabase.createClient(window.NESTGH_SUPABASE_CONFIG.url,window.NESTGH_SUPABASE_CONFIG.publishableKey)
   :null;
+// Public reads and reports go to the NestGH MySQL API (app/api/*); supabaseClient is only used by the legacy payment flow.
+async function apiJson(path,options){
+  const response=await fetch(path,{credentials:"same-origin",...options});
+  const body=await response.json().catch(()=>null);
+  if(!response.ok)throw new Error(body?.error||"Request failed ("+response.status+").");
+  return body;
+}
 let listingLoadFailed=false;
 function updateModalScroll(){document.body.classList.toggle("modal-open",["sheet","lf","pol","psheet"].some(id=>$(id).classList.contains("on")))}
 try{
@@ -126,7 +133,7 @@ const emptyMessage=live?"":savedOnly?'<div class="empty"><b>No saved rooms yet</
 const loadError=listingLoadFailed?'<div class="empty"><b>Could not load more rooms.</b><p>Check your connection, then try again.</p></div>':"";
 $("list").innerHTML=loadError+emptyMessage+res.map(r=>card(r,cm)).join("");
 const loadMore=$("load-more");
-loadMore.hidden=(!hasMoreListings&&!listingLoadFailed)||savedOnly||!supabaseClient;
+loadMore.hidden=(!hasMoreListings&&!listingLoadFailed)||savedOnly;
 loadMore.disabled=isLoadingListings;
 loadMore.textContent=isLoadingListings?"Loading rooms…":listingLoadFailed?"Try loading rooms again":(town.value||region.value||area.value||ty.value||max.value||must.size?"Load more to find matches":"Load more rooms");
 }
@@ -154,7 +161,7 @@ $("sheet").innerHTML=`<div class="sp" role="dialog" aria-modal="true" aria-label
 <h4>Report this listing</h4><div class="rep"><select id="rr" aria-label="Reason"><option>Room already taken</option><option>Wrong price</option><option>Fake photos</option><option>Wrong location</option><option>Suspicious or scam</option><option>Owner not responding</option></select><button class="btn" id="rp" data-id="${htmlEsc(r.id)}">Report</button></div></div>`;
 $("sheet").classList.add("on");updateModalScroll();{const sp=$("sheet").querySelector(".sp");sp.tabIndex=-1;sp.focus({preventScroll:true})}}
 function closeSheet(){$("sheet").classList.remove("on");updateModalScroll()}
-$("sheet").onclick=async e=>{if(e.target.id==="sheet"||e.target.closest("#cx"))closeSheet();const report=e.target.closest("#rp");if(report){if(!supabaseClient)return toast("Reports are unavailable right now.");report.disabled=true;const {error}=await supabaseClient.from("listing_reports").insert({listing_id:report.dataset.id,reason:$("rr").value});if(error){console.error("Could not submit listing report:",error);report.disabled=false;toast("Your report could not be sent. Please try again.")}else{toast("Thank you. Your report has been sent for review.");report.textContent="Reported"}}};
+$("sheet").onclick=async e=>{if(e.target.id==="sheet"||e.target.closest("#cx"))closeSheet();const report=e.target.closest("#rp");if(report){report.disabled=true;try{await apiJson("/api/reports",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({listing_id:report.dataset.id,reason:$("rr").value})});toast("Thank you. Your report has been sent for review.");report.textContent="Reported"}catch(error){console.error("Could not submit listing report:",error);report.disabled=false;toast(error.message||"Your report could not be sent. Please try again.")}}};
 document.onkeydown=e=>{if(e.key==="Escape"){closeSheet();$("links").classList.remove("open");$("mn").setAttribute("aria-expanded","false")}};
 $("list").onclick=e=>{const nb=e.target.closest(".nb");if(nb){const place=TOWN_RECORDS.find(item=>item.name===nb.dataset.t&&item.region===region.value)||TOWN_RECORDS.find(item=>item.name===nb.dataset.t);if(place)chooseTown(place);else town.value=nb.dataset.t;fillAreas();area.value=nb.dataset.a;render();return}
 const hb=e.target.closest(".hb");if(hb){const r=ROOMS[+hb.dataset.i];saved.has(r.id)?saved.delete(r.id):saved.add(r.id);try{localStorage.setItem("nestgh_saved_rooms_v1",JSON.stringify([...saved]))}catch(error){console.error("Could not save room preference:",error)}render();return}
@@ -217,11 +224,7 @@ $("mn").onclick=()=>{const open=$("links").classList.toggle("open");$("mn").setA
 $("links").onclick=e=>{if(e.target.closest("a")){$("links").classList.remove("open");$("mn").setAttribute("aria-expanded","false")}};
 camp.innerHTML='<option value="">Select student to load campuses</option>';fillAreas();render();
 async function loadListingFee(){
-  if(!supabaseClient)throw new Error("Supabase is not configured.");
-  const {data,error}=await supabaseClient.from("public_site_settings")
-    .select("listing_fee_pesewas, currency")
-    .single();
-  if(error)throw error;
+  const data=await apiJson("/api/settings");
   const fee=Number(data?.listing_fee_pesewas);
   if(!Number.isSafeInteger(fee)||fee<=0||data?.currency!=="GHS")throw new Error("Listing fee settings are invalid.");
   listingFeePesewas=fee;
@@ -252,31 +255,25 @@ function mapPublicListing(row){
 async function loadPublicListings(){
   const state=$("db-status");
   if(isLoadingListings)return;
-  if(!supabaseClient){$("list").innerHTML='<div class="empty"><b>Room listings are temporarily unavailable.</b><p>We could not connect to the listings service.</p></div>';$("list").setAttribute("aria-busy","false");$("load-more").hidden=true;state.textContent="Room listings are temporarily unavailable because the Supabase browser configuration could not load.";return}
   isLoadingListings=true;
   listingLoadFailed=false;
   state.textContent=listingOffset?"Loading more rooms.":"Loading available rooms.";
   $("list").setAttribute("aria-busy","true");
   $("load-more").hidden=true;
-  let data,error;
+  let data;
   try{
-    ({data,error}=await supabaseClient.from("public_listings")
-      .select("id,public_data,created_at")
-      .order("created_at",{ascending:false})
-      .order("id",{ascending:true})
-      .range(listingOffset,listingOffset+LISTING_PAGE_SIZE-1));
+    data=await apiJson("/api/listings?offset="+listingOffset+"&limit="+LISTING_PAGE_SIZE);
   }catch(requestError){
     isLoadingListings=false;
     listingLoadFailed=true;
-    console.error("Could not request approved listings:",requestError);
+    console.error("Could not load approved listings:",requestError);
     state.textContent="We could not load rooms right now. Please try again.";
     render();
     return;
   }
   isLoadingListings=false;
-  if(error){listingLoadFailed=true;console.error("Could not load approved listings:",error);state.textContent="We could not load rooms right now. Please try again.";render();return}
   listingLoadFailed=false;
-  const page=data||[];
+  const page=Array.isArray(data?.rows)?data.rows:[];
   listingOffset+=page.length;
   hasMoreListings=page.length===LISTING_PAGE_SIZE;
   const selectedArea=area.value;
