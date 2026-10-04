@@ -3,105 +3,1064 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>NestGH: find a room in your preferred area</title>
+<title>NestGH: Find a room in your preferred area</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="image" href="hero.jpg" fetchpriority="high">
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Caveat:wght@700&display=swap" data-font-stylesheet>
 <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Caveat:wght@700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="styles.css">
+ <link rel="icon" href="logo.png" type="image/x-icon" />
 </head>
 <body>
-<nav><div class="w">
-  <div class="logo"><i data-ic="home"></i><div>NestGH<small>FIND · LIST · RENT</small></div></div>
-  <div class="links" id="links"><a href="#top">Home</a><a href="#rooms">Rooms</a><a href="#how">How it works</a><a href="#listroom">List your room</a></div>
-  <div class="nr"><button class="ib" aria-label="Show saved rooms" aria-pressed="false" id="sv"><i data-ic="heart"></i></button><button class="btn gold links-btn" id="l1">List a room</button><button class="ib m" aria-label="Menu" aria-expanded="false" aria-controls="links" id="mn"><i data-ic="menu"></i></button></div>
-</div></nav>
-
-<header class="hero" id="top"><div class="w">
-  <p class="eyebrow">Verified rooms. Better living.</p>
-  <h1>Find Your Next Room</h1>
-  <div class="script">with NestGH</div>
-  <p class="d">Discover morden homes and rooms,<br>prime locations and lifestyle-driven communities-all in one place</p>
-</div></header>
-
-<div class="w"><form class="search" id="form" aria-label="Search rooms">
-  <div class="f"><label for="region"><i data-ic="pin"></i>Region</label><select id="region"><option value="">All regions</option><option>Ahafo</option><option>Ashanti</option><option>Bono</option><option>Bono East</option><option>Central</option><option>Eastern</option><option>Greater Accra</option><option>North East</option><option>Northern</option><option>Oti</option><option>Savannah</option><option>Upper East</option><option>Upper West</option><option>Volta</option><option>Western</option><option>Western North</option></select></div>
-  <div class="f town-field"><label for="town"><i data-ic="pin"></i>Town</label><div class="town-control"><input id="town" type="search" autocomplete="off" placeholder="Type a town" aria-autocomplete="list" aria-controls="town-suggestions" aria-expanded="false"><div id="town-suggestions" class="town-suggestions" role="listbox" aria-label="Matching towns" hidden></div></div></div>
-  <div class="f"><label for="area"><i data-ic="home"></i>Area</label><select id="area"></select></div>
-  <div class="f"><label for="ty"><i data-ic="home"></i>Room type</label><select id="ty"><option value="">Any</option><option value="single">Single room</option><option value="chamber">Chamber and hall</option><option value="self">Self-contained</option><option value="hostel">Hostel</option></select></div>
-  <div class="f"><label for="max"><i data-ic="tag"></i>Budget (per month)</label><input id="max" type="number" inputmode="numeric" min="0" step="50" placeholder="Any"></div>
-  <button class="go" type="submit"><i data-ic="search"></i>Search</button>
-</form><p id="location-status" class="location-status" role="alert" hidden></p><p class="location-credit">Place names: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a>, CC BY 4.0.</p><div class="opts"><b>Must have</b><button type="button" class="mh" data-k="Water" aria-pressed="false">Water</button><button type="button" class="mh" data-k="Security" aria-pressed="false">Security</button><button type="button" class="mh" data-k="Kitchen" aria-pressed="false">Kitchen</button><label class="stu"><input type="checkbox" id="stu"> I'm a student</label><select id="camp" aria-label="Campus"></select></div></div>
-
-<section class="trust"><div class="w">
-  <div class="tr"><i data-ic="home"></i><b>Verified listings</b><span>100% genuine listings with verified owners</span></div>
-  <div class="tr"><i data-ic="chat"></i><b>Direct contact</b><span>WhatsApp or call the owner</span></div>
-  <div class="tr"><i data-ic="heart"></i><b>Better Living</b><span>Find a home that fits your lifestyle</span></div>
-  <div class="tr"><i data-ic="shield"></i><b>Trusted & Secure</b><span>Safe transactions with complete transparency</span></div>
-</div></section>
-
-<section class="sec" id="rooms"><div class="w">
-  <div class="head"><div><p class="eyebrow" id="re">Rooms in your area</p><h2 id="rt">Available rooms</h2></div><button id="clr">Clear filters <i data-ic="arrow"></i></button></div>
-  <p id="db-status" class="sr-only" role="status" aria-live="polite">Loading available rooms.</p>
-  <p id="payment-return-status" role="status" aria-live="polite" hidden></p>
-  <button class="btn2" id="retry-payment" type="button" hidden>Retry secure payment</button>
-  <div class="grid" id="list" aria-busy="true" aria-label="Available rooms">
-    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
-    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
-    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
-    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
-    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
-    <article class="card skeleton-card" aria-hidden="true"><div class="skeleton-image skel"></div><div class="skeleton-body"><span class="skel skeleton-title"></span><span class="skel skeleton-location"></span><span class="skel skeleton-facility"></span><span class="skel skeleton-meta"></span><span class="skel skeleton-price"></span></div></article>
+<nav>
+  <div class="w">
+    <div class="logo">
+      <i data-ic="home"></i>
+      <div>NestGH<small>FIND · LIST · RENT</small></div>
+    </div>
+    <div class="links" id="links">
+      <a href="#top">Home</a>
+      <a href="#rooms">Rooms</a>
+      <a href="#how">How it works</a>
+      <a href="#listroom">List your room</a>
+    </div>
+    <div class="nr">
+      <button class="ib" aria-label="Show saved rooms" aria-pressed="false" id="sv">
+        <i data-ic="heart"></i>
+      </button>
+      <button class="btn gold links-btn" id="l1">List a room</button>
+      <button class="ib m" aria-label="Menu" aria-expanded="false" aria-controls="links" id="mn">
+        <i data-ic="menu"></i>
+      </button>
+    </div>
   </div>
-  <div class="load-more-wrap"><button class="btn2" id="load-more" type="button" hidden>Load more rooms</button></div>
-</div></section>
-
-<section class="sec" id="how"><div class="w why">
-  <div class="wimg"><span>Rooms you can trust</span></div>
-  <div><p class="eyebrow">Why NestGH</p><h2>More than listings.<br>We Help You Find What's Actually Available</h2>
-  <p>Finding a room in Ghana should be about more than seeing a photo and calling a number. NestGH helps you check where the room is, what it costs, what comes with it, and whether it is available before you make the trip.</p>
-  <div class="stats"><div><b>12K+</b><span>Happy Clients</span>
-  </div><div><b>500+</b><span>Properties Listed</span>
+</nav>
+<header class="hero" id="top">
+  <div class="w">
+    <p class="eyebrow">Verified rooms. Better living.</p>
+    <h1>Find Your Next Room</h1>
+    <div class="script">with NestGH</div>
+    <p class="d">
+      Discover modern homes and rooms,<br>
+      prime locations and lifestyle-driven communities-all in one place
+    </p>
   </div>
-  <div><b>1000+</b><span>Areas Around Ghana</span>
+</header>
+<div class="w">
+  <form class="search" id="form" aria-label="Search rooms">
+    <div class="f">
+      <label for="region">
+        <i data-ic="pin"></i>Region
+      </label>
+      <select id="region">
+        <option value="">All regions</option>
+        <option>Ahafo</option>
+        <option>Ashanti</option>
+        <option>Bono</option>
+        <option>Bono East</option>
+        <option>Central</option>
+        <option>Eastern</option>
+        <option>Greater Accra</option>
+        <option>North East</option>
+        <option>Northern</option>
+        <option>Oti</option>
+        <option>Savannah</option>
+        <option>Upper East</option>
+        <option>Upper West</option>
+        <option>Volta</option>
+        <option>Western</option>
+        <option>Western North</option>
+      </select>
+    </div>
+    <div class="f town-field">
+      <label for="town">
+        <i data-ic="pin"></i>Town
+      </label>
+      <div class="town-control">
+        <input
+          id="town"
+          type="search"
+          autocomplete="off"
+          placeholder="Type a town"
+          aria-autocomplete="list"
+          aria-controls="town-suggestions"
+          aria-expanded="false"
+        >
+        <div
+          id="town-suggestions"
+          class="town-suggestions"
+          role="listbox"
+          aria-label="Matching towns"
+          hidden
+        ></div>
+      </div>
+    </div>
+    <div class="f">
+      <label for="area">
+        <i data-ic="home"></i>Area
+      </label>
+      <select id="area"></select>
+    </div>
+    <div class="f">
+      <label for="ty">
+        <i data-ic="home"></i>Room type
+      </label>
+      <select id="ty">
+        <option value="">Any</option>
+        <option value="single">Single room</option>
+        <option value="chamber">Chamber and hall</option>
+        <option value="self">Self-contained</option>
+        <option value="hostel">Hostel</option>
+      </select>
+    </div>
+    <div class="f">
+      <label for="max">
+        <i data-ic="tag"></i>Budget (per month)
+      </label>
+      <input
+        id="max"
+        type="number"
+        inputmode="numeric"
+        min="0"
+        step="50"
+        placeholder="Any"
+      >
+    </div>
+    <button class="go" type="submit">
+      <i data-ic="search"></i>Search
+    </button>
+  </form>
+  <p id="location-status" class="location-status" role="alert" hidden></p>
+  <p class="location-credit">
+    Place names:
+    <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a>,
+    CC BY 4.0.
+  </p>
+  <div class="opts">
+    <b>Must have</b>
+    <button type="button" class="mh" data-k="Water" aria-pressed="false">
+      Water
+    </button>
+    <button type="button" class="mh" data-k="Security" aria-pressed="false">
+      Security
+    </button>
+    <button type="button" class="mh" data-k="Kitchen" aria-pressed="false">
+      Kitchen
+    </button>
+    <label class="stu">
+      <input type="checkbox" id="stu"> I'm a student
+    </label>
+    <select id="camp" aria-label="Campus"></select>
   </div>
-   <div><b>98%</b><span>Sucess Rate</span>
-  </div>
-</div></div>
-</div></section>
-
-<div class="w" id="listroom"><section class="cta"><h2>Got a room to rent out?</h2><p>Send us the details. We check every listing before it goes live.</p><button class="btn gold" id="l2">List your room <i data-ic="arrow"></i></button></section></div>
-
-<footer><div class="w">
-  <div class="fg">
-    <div class="logo"><i data-ic="home"></i><div>NestGH<small>FIND · LIST · RENT</small></div></div>
-    <div><h4>Quick links</h4><a href="#top">Home</a><a href="#rooms">Rooms</a><a href="#how">How it works</a><a href="#listroom">List your room</a></div>
-    <div><h4>Get in touch</h4><p><i data-ic="phone"></i>+233 00 000 0000</p><p><i data-ic="mail"></i>hello@nestgh.com</p><p><i data-ic="pin"></i>Accra, Ghana</p></div>
-   
-  <div class="fb"><span>© 2026 NestGH. All rights reserved.</span><span><a href="#" data-pol="privacy">Privacy Policy</a><a href="#" data-pol="cookie">Cookie Policy</a><a href="#" id="cookie-settings">Cookie settings</a><a href="#" data-pol="terms">Terms and Conditions</a></span></div>
 </div>
+<section class="trust">
+  <div class="w">
+    <div class="tr">
+      <i data-ic="home"></i>
+      <b>Verified listings</b>
+      <span>100% genuine listings with verified owners</span>
+    </div>
+    <div class="tr">
+      <i data-ic="chat"></i>
+      <b>Direct contact</b>
+      <span>WhatsApp or call the owner</span>
+    </div>
+    <div class="tr">
+      <i data-ic="heart"></i>
+      <b>Better Living</b>
+      <span>Find a home that fits your lifestyle</span>
+    </div>
+    <div class="tr">
+      <i data-ic="shield"></i>
+      <b>Trusted & Secure</b>
+      <span>Safe transactions with complete transparency</span>
+    </div>
+  </div>
+</section>
+<section class="sec" id="rooms">
+  <div class="w">
+    <div class="head">
+      <div>
+        <p class="eyebrow" id="re">Rooms in your area</p>
+        <h2 id="rt">Available rooms</h2>
+      </div>
+      <button id="clr">
+        Clear filters <i data-ic="arrow"></i>
+      </button>
+    </div>
+    <p id="db-status" class="sr-only" role="status" aria-live="polite">
+      Loading available rooms.
+    </p>
+    <p id="payment-return-status" role="status" aria-live="polite" hidden></p>
+    <button class="btn2" id="retry-payment" type="button" hidden>
+      Retry secure payment
+    </button>
+    <div class="grid" id="list" aria-busy="true" aria-label="Available rooms">
+      <article class="card skeleton-card" aria-hidden="true">
+        <div class="skeleton-image skel"></div>
+        <div class="skeleton-body">
+          <span class="skel skeleton-title"></span>
+          <span class="skel skeleton-location"></span>
+          <span class="skel skeleton-facility"></span>
+          <span class="skel skeleton-meta"></span>
+          <span class="skel skeleton-price"></span>
+        </div>
+      </article>
+      <article class="card skeleton-card" aria-hidden="true">
+        <div class="skeleton-image skel"></div>
+        <div class="skeleton-body">
+          <span class="skel skeleton-title"></span>
+          <span class="skel skeleton-location"></span>
+          <span class="skel skeleton-facility"></span>
+          <span class="skel skeleton-meta"></span>
+          <span class="skel skeleton-price"></span>
+        </div>
+      </article>
+      <article class="card skeleton-card" aria-hidden="true">
+        <div class="skeleton-image skel"></div>
+        <div class="skeleton-body">
+          <span class="skel skeleton-title"></span>
+          <span class="skel skeleton-location"></span>
+          <span class="skel skeleton-facility"></span>
+          <span class="skel skeleton-meta"></span>
+          <span class="skel skeleton-price"></span>
+        </div>
+      </article>
+      <article class="card skeleton-card" aria-hidden="true">
+        <div class="skeleton-image skel"></div>
+        <div class="skeleton-body">
+          <span class="skel skeleton-title"></span>
+          <span class="skel skeleton-location"></span>
+          <span class="skel skeleton-facility"></span>
+          <span class="skel skeleton-meta"></span>
+          <span class="skel skeleton-price"></span>
+        </div>
+      </article>
+      <article class="card skeleton-card" aria-hidden="true">
+        <div class="skeleton-image skel"></div>
+        <div class="skeleton-body">
+          <span class="skel skeleton-title"></span>
+          <span class="skel skeleton-location"></span>
+          <span class="skel skeleton-facility"></span>
+          <span class="skel skeleton-meta"></span>
+          <span class="skel skeleton-price"></span>
+        </div>
+      </article>
+      <article class="card skeleton-card" aria-hidden="true">
+        <div class="skeleton-image skel"></div>
+        <div class="skeleton-body">
+          <span class="skel skeleton-title"></span>
+          <span class="skel skeleton-location"></span>
+          <span class="skel skeleton-facility"></span>
+          <span class="skel skeleton-meta"></span>
+          <span class="skel skeleton-price"></span>
+        </div>
+      </article>
+    </div>
+    <div class="load-more-wrap">
+      <button class="btn2" id="load-more" type="button" hidden>
+        Load more rooms
+      </button>
+    </div>
+  </div>
+</section>
+<section class="sec" id="how">
+  <div class="w why">
+    <div class="wimg">
+      <span>Rooms you can trust</span>
+    </div>
+    <div>
+      <p class="eyebrow">Why NestGH</p>
+      <h2>
+        More than listings.<br>
+        We Help You Find What's Actually Available
+      </h2>
+      <p>
+        Finding a room in Ghana should be about more than seeing a photo and calling a number.
+        NestGH helps you check where the room is, what it costs, what comes with it,
+        and whether it is available before you make the trip.
+      </p>
+      <div class="stats">
+        <div>
+          <b>12K+</b>
+          <span>Happy Clients</span>
+        </div>
+        <div>
+          <b>500+</b>
+          <span>Properties Listed</span>
+        </div>
+        <div>
+          <b>1000+</b>
+          <span>Areas Around Ghana</span>
+        </div>
+        <div>
+          <b>98%</b>
+          <span>Sucess Rate</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="w" id="listroom">
+  <section class="cta">
+    <h2>Got a room to rent out?</h2>
+    <p>Send us the details. We check every listing before it goes live.</p>
+    <button class="btn gold" id="l2">
+      List your room <i data-ic="arrow"></i>
+    </button>
+  </section>
+</div>
+<footer>
+  <div class="w">
+    <div class="fg">
+      <div class="logo">
+        <i data-ic="home"></i>
+        <div>NestGH<small>FIND · LIST · RENT</small></div>
+      </div>
+      <div>
+        <h4>Quick links</h4>
+        <a href="#top">Home</a>
+        <a href="#rooms">Rooms</a>
+        <a href="#how">How it works</a>
+        <a href="#listroom">List your room</a>
+      </div>
+      <div>
+        <h4>Get in touch</h4>
+        <p><i data-ic="phone"></i>+233 00 000 0000</p>
+        <p><i data-ic="mail"></i>hello@nestgh.com</p>
+        <p><i data-ic="pin"></i>Accra, Ghana</p>
+      </div>
+    </div>
+    <div class="fb">
+      <span>&copy 2026 NestGH. All rights reserved.</span>
+      <span>
+        <a href="#" data-pol="privacy">Privacy Policy</a>
+        <a href="#" data-pol="cookie">Cookie Policy</a>
+        <a href="#" id="cookie-settings">Cookie settings</a>
+        <a href="#" data-pol="terms">Terms and Conditions</a>
+      </span>
+    </div>
+  </div>
 </footer>
 <aside class="cookie-banner" id="cookie-banner" aria-label="Cookie consent" hidden>
   <div class="cookie-copy">
     <div class="cookie-icon" aria-hidden="true">i</div>
     <div>
       <h2>We value your privacy</h2>
-      <p>NestGH uses essential browser storage to keep the site working and remember your preferences. Optional cookies are only used with your consent. <a href="#" data-pol="cookie">Cookie Policy</a></p>
+      <p>
+        NestGH uses essential browser storage to keep the site working and remember your preferences.
+        Optional cookies are only used with your consent.
+        <a href="#" data-pol="cookie">Cookie Policy</a>
+      </p>
     </div>
   </div>
   <div class="cookie-actions">
-    <button class="cookie-reject" id="cookie-reject" type="button">Reject</button>
-    <button class="cookie-accept" id="cookie-accept" type="button">Accept Cookies</button>
+    <button class="cookie-reject" id="cookie-reject" type="button">
+      Reject
+    </button>
+    <button class="cookie-accept" id="cookie-accept" type="button">
+      Accept Cookies
+    </button>
   </div>
 </aside>
-<div class="sheet" id="sheet"></div><div class="sheet" id="psheet"></div>
-<div class="lf" id="lf" role="dialog" aria-modal="true" aria-label="List a room"><div class="lh"><div class="lw"><div class="lt"><b>List a room</b><button class="ib" id="lx" aria-label="Close form">✕</button></div><div id="pb"></div><div class="pn" id="pn"></div></div></div><div class="lw lbody" id="lb"></div><div class="lfoot"><div class="lw"><button class="btn2 big" id="bk">Back</button><button class="btn gold big" id="nx">Next</button></div></div></div>
-<div class="pol" id="pol" role="dialog" aria-modal="true" aria-label="Policy"><div class="ph"><div class="lw"><b id="pt2"></b><button class="ib" id="px" aria-label="Close">✕</button></div></div><article class="pc" id="pc"></article></div>
-<template id="t-privacy"><h1>NestGH Privacy Policy</h1><p><strong>Effective date:</strong> 30 September 2026<br><strong>Last updated:</strong> 30 September 2026</p><h2>1. Introduction</h2><p>Welcome to <strong>NestGH</strong> ("NestGH", "we", "us" or "our").</p><p>NestGH is a Ghanaian platform that helps people find available rooms, student hostels and other accommodation.</p><p>This Privacy Policy explains how we collect, use, store, protect and share personal information when you search for accommodation, contact an owner, submit a listing, or otherwise use our website and services.</p><p><strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br><strong>Location:</strong> Accra, Ghana<br><strong>Email:</strong> <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br><strong>Phone:</strong> <a href="tel:0540309637">0540309637</a></p><p>By using NestGH you acknowledge this Privacy Policy. Where the law requires your consent, for example when you submit a listing, we ask for it separately.</p><h2>2. Information we collect</h2><h3>2.1 People searching for accommodation</h3><p>You can search NestGH without creating an account. When you search, we may collect:</p><ul><li>Your search choices: town, area, budget, accommodation type and must-have facilities</li><li>If you use student mode, the campus you choose</li><li>Listings you save, which are stored in your browser on your own device</li><li>A count of when you tap WhatsApp or Call on a listing. We record that a tap happened so owners can see interest. We do not see or record the content of your calls or WhatsApp messages.</li><li>Any report you submit about a listing, and any message you send us</li></ul><h3>2.2 Property owners, caretakers and hostel managers</h3><p>When you submit a listing, we collect:</p><ul><li>Your full name, profile photograph, phone number and WhatsApp number</li><li>Your email address, if you give it</li><li>Your role (Property Owner, Caretaker, Hostel Manager or Authorized Representative) and your relationship to the property</li><li>Property details: title, description, accommodation type, condition, size, floor, furnishing and features</li><li>Location details: region, town, area, nearest landmark, map location, and the exact address or directions</li><li>Price details: rent, payment period, advance, deposit, agency or caretaker fee and other charges</li><li>What is included, what is not included, facilities, house rules and who may stay</li><li>Availability details, and the date you submit or confirm them</li><li>Property photographs</li><li>Payment references and transaction status (see section 5)</li><li>Any information you give us during verification, and your communications with us</li></ul><h3>2.3 Information collected automatically</h3><p>When you use NestGH, we and our service providers may automatically receive technical information such as your IP address, browser type, device type, operating system, the pages you visit, the date and time of access, and error information. We use it for security, troubleshooting, and improving the website.</p><h2>3. What the public can see</h2><p>After a listing has been reviewed and approved, it may be seen by anyone who visits NestGH. Public information may include the listing title, type, description, photos, area, nearest landmark, price and costs, what is included and not included, facilities, rules, availability and when it was last confirmed, your name, profile photograph and role, and WhatsApp and Call buttons linked to your phone numbers.</p><p><strong>What stays private:</strong> your exact address and directions, the exact map pin, your email address, payment details and any identity documents. Exact address details are seen only by NestGH administrators. We do not publish identity documents or other confidential verification information.</p><p>Photos are resized in your browser before upload, and hidden metadata such as GPS location tags is removed.</p><h2>4. Owner profile photos and verification</h2><p>We require owners, caretakers, hostel managers and authorised representatives to upload a profile photograph so that people know who they are contacting.</p><p>A profile photograph, or a paid listing, <strong>does not mean</strong> that NestGH has verified the person, the property or the listing.</p><p>NestGH may separately show <strong>Phone Verified</strong>, <strong>Identity Verified</strong> and <strong>Property Verified</strong>. A status is shown only after NestGH has actually completed that check.</p><h2>5. Payment information</h2><p>Owners pay a <strong>one-time Standard listing fee</strong>. There is no monthly subscription and no renewal fee for keeping a listing live while the room is genuinely available.</p><p>Payments are processed by a third-party provider, <strong>Paystack</strong>, using Mobile Money or card. We receive information such as the payment reference, status, amount, date and time, payment method and transaction identifiers. We do not store complete card numbers, card security codes or Mobile Money PINs. Paystack's own privacy policy and terms apply to the information it processes.</p><h2>6. How we use personal information</h2><p>We use personal information to:</p><ul><li>Run the marketplace, and let people search and contact owners</li><li>Save your listing as a draft so you can retry a failed payment without losing your information</li><li>Process listing payments and confirm payment status</li><li>Review, approve, edit, reject or remove listings</li><li>Confirm that accommodation is still available and show when it was last confirmed</li><li>Contact owners about their listings</li><li>Detect and prevent fraud, scams and misleading listings, and investigate reports</li><li>Answer enquiries and provide support</li><li>Improve the website and search</li><li>Keep the website secure and prevent abuse</li><li>Comply with legal requirements</li></ul><h2>7. Consent and legal basis</h2><p>We process personal information where you have given consent, where it is necessary to provide the service you asked for, where it is necessary to comply with the law, and where we have a legitimate interest in keeping NestGH safe and working. When you submit a listing, you separately consent to your profile photograph and contact information being shown to people who view your listing. You can withdraw consent by contacting us, but we may then have to remove the listing.</p><h2>8. Listing review and approval</h2><p>After payment, a listing enters review. Payment does not approve it. NestGH may approve a listing, ask for changes, reject it, edit it, hide it, mark it unavailable, or remove it, and may contact you to confirm information. Only approved listings are made public.</p><h2>9. Availability information</h2><p>We try to show current availability. We may contact owners to confirm that accommodation is still available, and this confirmation does not cost the owner anything. The date of the latest confirmation may be shown on the listing. A confirmation shows how fresh the information is. It does not guarantee that a room will still be free when you contact the owner.</p><h2>10. Reports and safety</h2><p>People can report a listing because the room is taken, the price or location is wrong, the photos are misleading, the owner is not responding, or the listing looks suspicious or like a scam. We may investigate and take action, including editing, hiding or removing the listing, and we may contact the owner about the report.</p><h2>11. Cookies and similar technologies</h2><p>We use cookies and similar technologies such as browser storage. Please read our <a href="#" data-pol="cookie">Cookie Policy</a> for what we use and how to control it.</p><h2>12. How we share information</h2><p>We share information where reasonably necessary with:</p><ul><li>Payment providers (Paystack)</li><li>Hosting, database and storage providers</li><li>Security and analytics providers, if we use them</li><li>Communication providers</li><li>Professional advisers</li><li>Government authorities or law enforcement, where the law requires it</li></ul><p>We do not sell personal information.</p><h2>13. Public information and your responsibilities</h2><p>Anything in a public listing can be seen, copied or saved by anyone, and we cannot control what others do with it after they see it.</p><p>Do not put any of the following in your listing, including the description and rules fields: passwords, bank or Mobile Money details, national ID numbers, other people's personal information (such as the names or phone numbers of tenants) without their permission, or sensitive personal information.</p><h2>14. WhatsApp, phone and other third-party services</h2><p>When you tap WhatsApp or Call, your conversation happens through WhatsApp or your phone network, which process information under their own policies. When you open a map link, Google Maps processes your visit under Google's policies. We do not control how these services handle information once you leave NestGH.</p><h2>15. Data security</h2><p>We take reasonable steps to protect personal information against unauthorised access, disclosure, loss, misuse, alteration and destruction. No internet service can guarantee absolute security. Please protect your own devices and accounts.</p><h2>16. Accuracy</h2><p>Owners must give accurate and current information. Owners are responsible for making sure that their listing details and prices are accurate, availability is current, photos show the real accommodation, and they are authorised to advertise the property. We may update, hide or remove information that appears inaccurate or misleading.</p><h2>17. How long we keep information</h2><p>We keep personal information only as long as reasonably necessary. As a general guide:</p><div class="tw"><table><tr><th>Information</th><th>How long we keep it</th></tr><tr><td>Live listing and owner details</td><td>While the listing is live, and up to 12 months after it is removed, then deleted or anonymised</td></tr><tr><td>Unpaid or abandoned drafts</td><td>Deleted 30 days after the last activity</td></tr><tr><td>Payment records</td><td>For the period required by Ghanaian tax and accounting rules</td></tr><tr><td>Reports, fraud and dispute records</td><td>Up to 24 months, or longer if needed for a legal matter</td></tr><tr><td>Server and security logs</td><td>Up to 90 days</td></tr></table></div><p>We may keep information for longer where the law requires, or to handle a dispute or enforce our agreements.</p><h2>18. Your privacy rights</h2><p>Subject to applicable law, you may:</p><ul><li>Ask for access to the personal information we hold about you</li><li>Ask us to correct inaccurate information</li><li>Ask us to delete your information</li><li>Object to, or ask us to restrict, certain processing</li><li>Withdraw your consent</li><li>Ask questions about how we use your information</li><li>Make a complaint to us, or to the <strong>Data Protection Commission of Ghana</strong></li></ul><p>To use these rights, contact us using the details in section 23. If your request is about a listing, include the listing reference number. We may need to verify your identity first. We aim to respond within 30 days.</p><h2>19. Children</h2><p>NestGH is for people aged 18 and over. Only adults may submit listings. We do not knowingly collect personal information from children. If you are under 18, please ask a parent or guardian before using NestGH. If we learn that we have collected a child's personal information without proper permission, we will take reasonable steps to delete it.</p><h2>20. International transfers</h2><p>Some of our service providers may store or process information outside Ghana. Where we transfer personal information to another country, we take reasonable steps to make sure it is handled in line with applicable data protection requirements.</p><h2>21. Data protection compliance</h2><p>NestGH intends to comply with the <strong>Data Protection Act, 2012 (Act 843)</strong> and the requirements of the <strong>Data Protection Commission of Ghana</strong>, including any registration that applies to us as a data controller.</p><h2>22. Changes to this policy</h2><p>We may update this Privacy Policy when our services, technology or legal requirements change. We will update the <strong>Last updated</strong> date. If we make a significant change, we will tell you on the website.</p><h2>23. Contact us</h2><p><strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br><strong>Location:</strong> Accra, Ghana<br><strong>Email:</strong> <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br><strong>Phone:</strong> <a href="tel:0540309637">0540309637</a></p><p>© 2026 NestGH. All rights reserved.</p></template><template id="t-cookie"><h1>NestGH Cookie Policy</h1><p><strong>Effective date:</strong> 30 September 2026<br><strong>Last updated:</strong> 30 September 2026</p><h2>1. Introduction</h2><p>This Cookie Policy explains how <strong>NestGH</strong> ("NestGH", "we", "us" or "our") uses cookies and similar technologies when you visit our website. Please read it together with our <a href="#" data-pol="privacy">Privacy Policy</a> and our <a href="#" data-pol="terms">Terms and Conditions</a>.</p><p><strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br><strong>Location:</strong> Accra, Ghana<br><strong>Email:</strong> <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br><strong>Phone:</strong> <a href="tel:0540309637">0540309637</a></p><h2>2. What are cookies?</h2><p>Cookies are small text files that a website stores on your device. They help a website work, remember your choices, stay secure and understand how it is used.</p><p>We also use <strong>similar technologies</strong>, such as your browser's local storage, which keeps small pieces of information on your device in a similar way.</p><h2>3. What we use</h2><p>This is what NestGH uses at the time of writing:</p><div class="tw"><table><tr><th>Purpose</th><th>What it does</th><th>Who sets it</th><th>How long</th></tr><tr><td>Essential: admin sign-in</td><td>Keeps NestGH administrators signed in. Visitors and people submitting listings do not get sign-in cookies.</td><td>NestGH and our database provider</td><td>For the session</td></tr><tr><td>Essential: payment</td><td>Lets Paystack process listing payments securely and prevent fraud.</td><td>Paystack</td><td>As set by Paystack</td></tr><tr><td>Preferences: saved rooms and search choices</td><td>Remembers the rooms you save and your recent choices in your browser. This stays on your device and is not sent to us.</td><td>NestGH (browser storage)</td><td>Until you clear your browser data</td></tr><tr><td>Fonts</td><td>Loads the website's fonts. The provider may receive your IP address.</td><td>Google Fonts</td><td>As set by Google</td></tr><tr><td>Analytics</td><td>We do not currently use analytics cookies.</td><td>None</td><td>Not applicable</td></tr></table></div><p>If we add analytics or other non-essential cookies, we will update this policy first and ask for your consent where it is required.</p><h2>4. Third-party cookies</h2><p>Some services we use may set their own cookies or use similar technologies, including our payment provider (Paystack) and our font provider. We do not control them. Their own privacy and cookie policies apply.</p><p>When you open a map link, you leave NestGH and Google Maps applies its own policies.</p><h2>5. Cookies and the information you give us</h2><p>Cookies do not replace the personal information that you choose to give us, for example when you submit a listing. We handle that information under our <a href="#" data-pol="privacy">Privacy Policy</a>.</p><h2>6. How long cookies last</h2><p><strong>Session cookies</strong> are temporary and usually disappear when you close your browser. <strong>Persistent cookies</strong> stay on your device for a set period, or until you delete them. How long a cookie lasts depends on its purpose and on who set it.</p><h2>7. Managing cookies</h2><p>You can manage cookies in your browser settings. Depending on your browser, you can view, delete or block cookies, block third-party cookies, allow them only for chosen websites, or delete them when you close the browser. You can also clear local storage by clearing your site data.</p><p>Blocking essential cookies may stop parts of NestGH, such as payment, from working properly. If you clear your browser data, your saved rooms will be removed.</p><h2>8. Cookie consent</h2><p>Essential cookies do not need your consent because the website cannot work without them. If we use non-essential cookies, we will show a cookie banner and will not load them until you accept. You will be able to reject them or change your choice at any time.</p><h2>9. Do Not Track</h2><p>Some browsers have a "Do Not Track" setting. There is no universal standard for how websites should respond to it. We manage non-essential cookies through the choices on our website.</p><h2>10. Children</h2><p>NestGH is for people aged 18 and over. We do not knowingly use cookies to collect personal information from children.</p><h2>11. Changes to this policy</h2><p>We may update this Cookie Policy when our technology, services, third-party providers or legal requirements change. We will update the <strong>Last updated</strong> date and, if the change is significant, tell you on the website.</p><h2>12. Data protection</h2><p>NestGH intends to comply with the <strong>Data Protection Act, 2012 (Act 843)</strong>. For how we handle your personal information, please read our <a href="#" data-pol="privacy">Privacy Policy</a>.</p><h2>13. Contact us</h2><p><strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br><strong>Location:</strong> Accra, Ghana<br><strong>Email:</strong> <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br><strong>Phone:</strong> <a href="tel:0540309637">0540309637</a></p><p>© 2026 NestGH. All rights reserved.</p></template>
-<template id="t-terms"><h1>NestGH Terms and Conditions</h1><p><strong>Effective date:</strong> 1 October 2026<br><strong>Last updated:</strong> 1 October 2026</p><h2>1. Introduction and acceptance</h2><p>Welcome to <strong>NestGH</strong> ("NestGH", "we", "us" or "our"). These Terms and Conditions ("Terms") apply when you use the NestGH website and services, whether you are searching for accommodation, contacting an owner, or submitting a listing.</p><p>By using NestGH you agree to these Terms. If you do not agree, please do not use NestGH. Please also read our <a href="#" data-pol="privacy">Privacy Policy</a> and <a href="#" data-pol="cookie">Cookie Policy</a>, which explain how we handle your information.</p><p><strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br><strong>Location:</strong> Accra, Ghana<br><strong>Email:</strong> <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br><strong>Phone:</strong> <a href="tel:0540309637">0540309637</a></p><h2>2. What NestGH is, and what it is not</h2><p>NestGH is an online platform that helps people find available rooms, student hostels and other accommodation in Ghana. Owners, caretakers and hostel managers use NestGH to advertise their accommodation.</p><p>NestGH is <strong>not</strong> a landlord, estate agent, property manager or hostel operator. We do not own, manage, inspect or rent out any accommodation listed on NestGH, and we are not a party to any agreement between a seeker and an owner. We do not collect or hold rent, deposits or any other payment between seekers and owners. Any arrangement is made directly between them.</p><h2>3. Who can use NestGH</h2><p>You must be at least 18 years old to submit a listing. Anyone may search NestGH, and you do not need an account to search. If you are under 18, please ask a parent or guardian before using NestGH.</p><h2>4. Using NestGH to find accommodation</h2><p>NestGH is free for people searching for accommodation.</p><ul><li>Listings are provided by owners. We review listings before they are published, but we cannot check every detail, and we do not guarantee that any listing is accurate, complete, current or available.</li><li>A <strong>Verified</strong> label means only the specific verification that NestGH says it completed (Phone, Identity or Property). It is not a guarantee about the room, the owner or any agreement.</li><li>A "Confirmed" date shows when the owner last confirmed availability. The room may have been taken since.</li></ul><p><strong>Stay safe.</strong> Please always:</p><ul><li>View the room in person, ideally with another person, before you pay anything</li><li>Never pay rent, a deposit or any fee to someone you have not met and whose right to rent out the property you have not checked</li><li>Ask for a written agreement and a receipt for every payment</li><li>Be careful if someone pressures you to pay quickly, asks for payment by a method you do not trust, or refuses to let you view the room</li><li>Report anything suspicious using the <strong>Report this listing</strong> button</li></ul><p>You contact owners and make any arrangement at your own risk.</p><h2>5. Rules for owners who submit listings</h2><p>If you submit a listing, you confirm and agree that:</p><ul><li>You are the owner, or you are authorised by the owner to advertise the accommodation</li><li>All information you give is true, accurate and current, including prices, costs, what is included and not included, facilities, rules and availability</li><li>The photos show the real accommodation as it is now, and you have the right to use them</li><li>The room is genuinely available when you submit it, and you will tell us promptly if it is taken</li><li>Your profile photograph is a clear photograph of you, and your phone and WhatsApp numbers are yours or those you are authorised to use</li><li>You will respond honestly to seekers and to NestGH</li></ul><p>You must not:</p><ul><li>Post false, misleading or duplicate listings, or use photos that are not of the accommodation</li><li>Advertise a property that you are not authorised to advertise</li><li>Ask seekers to pay money before they have seen the accommodation, or take money for a room that does not exist or is not available</li><li>Include other people's personal information, or content that is unlawful, offensive or discriminatory</li><li>Misuse NestGH, or try to avoid our review or security checks</li></ul><p>Your house rules, including who may stay, must follow Ghanaian law.</p><h2>6. Listing fee and payment</h2><p>Owners pay a <strong>one-time Standard listing fee</strong>, shown at checkout before you pay. There is only one package. There is no monthly subscription, no renewal fee, and no extra charge to keep a listing live while the room is genuinely available.</p><p>Payments are processed by <strong>Paystack</strong>, using Mobile Money or card, and Paystack's own terms apply. We do not store your full card details or Mobile Money PIN.</p><p>Paying the fee does <strong>not</strong> guarantee that your listing will be approved or published, and does not make you or your property "Verified".</p><p><strong>Refunds.</strong> If we reject your listing for a reason that is not your fault, or we cannot publish it, we will refund the listing fee. We will not refund the fee if the listing is rejected or removed because it is false or misleading, because you broke these Terms, or because you asked us to remove a listing that we had already approved. Contact us to ask for a refund and quote your listing reference number.</p><h2>7. Review, approval and verification</h2><p>After payment, every listing is reviewed by NestGH. We may approve it, ask you to make changes, edit it, reject it, hide it, mark it unavailable, or remove it. Only approved listings are public. We may contact you to confirm information, and we may ask for more information.</p><p>NestGH may show <strong>Phone Verified</strong>, <strong>Identity Verified</strong> and <strong>Property Verified</strong> statuses. We show a status only after we have completed that check, and we may remove it if we later find it is no longer correct.</p><h2>8. Availability and keeping listings fresh</h2><p>Owners must keep their listing up to date. We may contact owners to confirm that a room is still available, and confirming does not cost anything. You can mark your room as unavailable at any time by contacting us.</p><p>If a listing has not been confirmed for a long time, we may mark it as needing confirmation, move it down the results, mark it unavailable, or hide it until you confirm.</p><h2>9. Agreements, rent and deposits</h2><p>Any tenancy, rent, deposit, advance payment, fee or other agreement is between the seeker and the owner. NestGH is not responsible for it and cannot resolve disputes between them, although we may take action on reports about a listing. Owners and seekers are responsible for following the law that applies to renting accommodation in Ghana.</p><p>The "estimated amount required to move in" shown on a listing is calculated from the figures the owner entered. It is only an estimate, and the owner is responsible for the figures being correct.</p><h2>10. Reports, removal and suspension</h2><p>Anyone can report a listing. We may investigate reports but do not have to investigate every report. We may hide, edit or remove any listing, and may suspend or block anyone from using NestGH, if we think a listing or a person breaks these Terms, is inaccurate or misleading, is unsafe, or is fraudulent, or if the law requires it. We may do this without refunding the listing fee where section 6 says so.</p><h2>11. Your content</h2><p>You keep ownership of the text and photographs you submit. By submitting a listing you give NestGH a free, non-exclusive right to store, display, resize and use that content, and your name and profile photograph, on NestGH and in connection with promoting your listing, for as long as the listing is live and for a reasonable time afterwards. You confirm that you have the right to give us this permission.</p><h2>12. NestGH's intellectual property</h2><p>The NestGH name, logo, design, text and software belong to NestGH or its licensors. You may not copy, scrape, resell or reuse them without our written permission, except for normal personal use of the website.</p><h2>13. Disclaimers</h2><p>NestGH is provided "as is" and "as available". To the extent allowed by law, we do not promise that:</p><ul><li>Any listing, price, photo, description or availability is accurate or current</li><li>Any owner or seeker is who they say they are, or will behave honestly or safely</li><li>The website will always work without interruption or errors</li></ul><h2>14. Limits on our responsibility</h2><p>To the extent allowed by law, NestGH is not responsible for loss or harm caused by owners, seekers or other third parties, by inaccurate or unavailable listings, by agreements or payments between seekers and owners, or by problems with third-party services such as Paystack, WhatsApp or your phone network.</p><p>Where the law allows us to limit our responsibility, our total responsibility to you for any claim connected with NestGH will not be more than the listing fee you paid us in the 12 months before the claim (or, if you paid nothing, GH₵ 100). Nothing in these Terms removes any right you have under Ghanaian law that cannot be limited or excluded, such as responsibility for fraud or for death or personal injury caused by negligence.</p><h2>15. Owners' responsibility</h2><p>If an owner breaks these Terms, for example by posting a false listing, the owner is responsible for the resulting losses and costs that NestGH or others suffer, to the extent allowed by law.</p><h2>16. Privacy and cookies</h2><p>We handle your personal information as described in our <a href="#" data-pol="privacy">Privacy Policy</a> , <a href="#" data-pol="cookie">Cookie Policy</a> and <a href="#" data-pol="terms">Terms and Conditions</a>.</p><h2>17. Changes to these Terms</h2><p>We may change these Terms from time to time, for example when our services or the law change. We will update the <strong>Last updated</strong> date and, if the change is significant, tell you on the website. If you keep using NestGH after a change, you accept the new Terms.</p><h2>18. Governing law and disputes</h2><p>These Terms are governed by the laws of the Republic of Ghana. If you have a problem, please contact us first so we can try to resolve it. If it cannot be resolved, the courts of Ghana have jurisdiction.</p><h2>19. Contact us</h2><p><strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br><strong>Location:</strong> Accra, Ghana<br><strong>Email:</strong> <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br><strong>Phone:</strong> <a href="tel:0540309637">0540309637</a></p><p>© 2026 NestGH. All rights reserved.</p></template>
+<div class="sheet" id="sheet"></div>
+<div class="sheet" id="psheet"></div>
+<div class="lf" id="lf" role="dialog" aria-modal="true" aria-label="List a room">
+  <div class="lh">
+    <div class="lw">
+      <div class="lt">
+        <b>List a room</b>
+        <button class="ib" id="lx" aria-label="Close form">✕</button>
+      </div>
+      <div id="pb"></div>
+      <div class="pn" id="pn"></div>
+    </div>
+  </div>
+  <div class="lw lbody" id="lb"></div>
+  <div class="lfoot">
+    <div class="lw">
+      <button class="btn2 big" id="bk">Back</button>
+      <button class="btn gold big" id="nx">Next</button>
+    </div>
+  </div>
+</div>
+<div class="pol" id="pol" role="dialog" aria-modal="true" aria-label="Policy">
+  <div class="ph">
+    <div class="lw">
+      <b id="pt2"></b>
+      <button class="ib" id="px" aria-label="Close">✕</button>
+    </div>
+  </div>
+  <article class="pc" id="pc"></article>
+</div>
+<template id="t-privacy">
+<h1>NestGH Privacy Policy</h1>
+<p>
+  <strong>Effective date:</strong> 30 September 2026<br>
+  <strong>Last updated:</strong> 30 September 2026
+</p>
+<h2>1. Introduction</h2>
+<p>
+  Welcome to <strong>NestGH</strong> ("NestGH", "we", "us" or "our").
+</p>
+<p>
+  NestGH is a Ghanaian platform that helps people find available rooms,
+  student hostels and other accommodation.
+</p>
+<p>
+  This Privacy Policy explains how we collect, use, store, protect and share
+  personal information when you search for accommodation, contact an owner,
+  submit a listing, or otherwise use our website and services.
+</p>
+<p>
+  <strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br>
+  <strong>Location:</strong> Accra, Ghana<br>
+  <strong>Email:</strong>
+  <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br>
+  <strong>Phone:</strong>
+  <a href="tel:0540309637">0540309637</a>
+</p>
+<p>
+  By using NestGH you acknowledge this Privacy Policy. Where the law requires
+  your consent, for example when you submit a listing, we ask for it separately.
+</p>
+<h2>2. Information we collect</h2>
+<h3>2.1 People searching for accommodation</h3>
+<p>
+  You can search NestGH without creating an account. When you search, we may collect:
+</p>
+<ul>
+  <li>Your search choices: town, area, budget, accommodation type and must-have facilities</li>
+  <li>If you use student mode, the campus you choose</li>
+  <li>Listings you save, which are stored in your browser on your own device</li>
+  <li>A count of when you tap WhatsApp or Call on a listing. We record that a tap happened so owners can see interest. We do not see or record the content of your calls or WhatsApp messages.</li>
+  <li>Any report you submit about a listing, and any message you send us</li>
+</ul>
+<h3>2.2 Property owners, caretakers and hostel managers</h3>
+<p>
+  When you submit a listing, we collect:
+</p>
+<ul>
+  <li>Your full name, profile photograph, phone number and WhatsApp number</li>
+  <li>Your email address, if you give it</li>
+  <li>Your role (Property Owner, Caretaker, Hostel Manager or Authorized Representative) and your relationship to the property</li>
+  <li>Property details: title, description, accommodation type, condition, size, floor, furnishing and features</li>
+  <li>Location details: region, town, area, nearest landmark, map location, and the exact address or directions</li>
+  <li>Price details: rent, payment period, advance, deposit, agency or caretaker fee and other charges</li>
+  <li>What is included, what is not included, facilities, house rules and who may stay</li>
+  <li>Availability details, and the date you submit or confirm them</li>
+  <li>Property photographs</li>
+  <li>Payment references and transaction status (see section 5)</li>
+  <li>Any information you give us during verification, and your communications with us</li>
+</ul>
+<h3>2.3 Information collected automatically</h3>
+<p>
+  When you use NestGH, we and our service providers may automatically receive
+  technical information such as your IP address, browser type, device type,
+  operating system, the pages you visit, the date and time of access, and error
+  information. We use it for security, troubleshooting, and improving the website.
+</p>
+<h2>3. What the public can see</h2>
+<p>
+  After a listing has been reviewed and approved, it may be seen by anyone who visits NestGH.
+  Public information may include the listing title, type, description, photos, area,
+  nearest landmark, price and costs, what is included and not included, facilities,
+  rules, availability and when it was last confirmed, your name, profile photograph
+  and role, and WhatsApp and Call buttons linked to your phone numbers.
+</p>
+<p>
+  <strong>What stays private:</strong> your exact address and directions, the exact map pin,
+  your email address, payment details and any identity documents. Exact address details
+  are seen only by NestGH administrators. We do not publish identity documents or other
+  confidential verification information.
+</p>
+<p>
+  Photos are resized in your browser before upload, and hidden metadata such as GPS
+  location tags is removed.
+</p>
+<h2>4. Owner profile photos and verification</h2>
+<p>
+  We require owners, caretakers, hostel managers and authorised representatives to
+  upload a profile photograph so that people know who they are contacting.
+</p>
+<p>
+  A profile photograph, or a paid listing, <strong>does not mean</strong> that NestGH
+  has verified the person, the property or the listing.
+</p>
+<p>
+  NestGH may separately show <strong>Phone Verified</strong>,
+  <strong>Identity Verified</strong> and <strong>Property Verified</strong>.
+  A status is shown only after NestGH has actually completed that check.
+</p>
+<h2>5. Payment information</h2>
+<p>
+  Owners pay a <strong>one-time Standard listing fee</strong>. There is no monthly
+  subscription and no renewal fee for keeping a listing live while the room is
+  genuinely available.
+</p>
+<p>
+  Payments are processed by a third-party provider, <strong>Paystack</strong>,
+  using Mobile Money or card. We receive information such as the payment reference,
+  status, amount, date and time, payment method and transaction identifiers.
+  We do not store complete card numbers, card security codes or Mobile Money PINs.
+  Paystack's own privacy policy and terms apply to the information it processes.
+</p>
+<h2>6. How we use personal information</h2>
+<p>We use personal information to:</p>
+<ul>
+  <li>Run the marketplace, and let people search and contact owners</li>
+  <li>Save your listing as a draft so you can retry a failed payment without losing your information</li>
+  <li>Process listing payments and confirm payment status</li>
+  <li>Review, approve, edit, reject or remove listings</li>
+  <li>Confirm that accommodation is still available and show when it was last confirmed</li>
+  <li>Contact owners about their listings</li>
+  <li>Detect and prevent fraud, scams and misleading listings, and investigate reports</li>
+  <li>Answer enquiries and provide support</li>
+  <li>Improve the website and search</li>
+  <li>Keep the website secure and prevent abuse</li>
+  <li>Comply with legal requirements</li>
+</ul>
+<h2>7. Consent and legal basis</h2>
+<p>
+  We process personal information where you have given consent, where it is necessary
+  to provide the service you asked for, where it is necessary to comply with the law,
+  and where we have a legitimate interest in keeping NestGH safe and working.
+  When you submit a listing, you separately consent to your profile photograph and
+  contact information being shown to people who view your listing. You can withdraw
+  consent by contacting us, but we may then have to remove the listing.
+</p>
+<h2>8. Listing review and approval</h2>
+<p>
+  After payment, a listing enters review. Payment does not approve it. NestGH may
+  approve a listing, ask for changes, reject it, edit it, hide it, mark it unavailable,
+  or remove it, and may contact you to confirm information. Only approved listings
+  are made public.
+</p>
+<h2>9. Availability information</h2>
+<p>
+  We try to show current availability. We may contact owners to confirm that
+  accommodation is still available, and this confirmation does not cost the owner
+  anything. The date of the latest confirmation may be shown on the listing.
+  A confirmation shows how fresh the information is. It does not guarantee that
+  a room will still be free when you contact the owner.
+</p>
+<h2>10. Reports and safety</h2>
+<p>
+  People can report a listing because the room is taken, the price or location is wrong,
+  the photos are misleading, the owner is not responding, or the listing looks suspicious
+  or like a scam. We may investigate and take action, including editing, hiding or removing
+  the listing, and we may contact the owner about the report.
+</p>
+<h2>11. Cookies and similar technologies</h2>
+<p>
+  We use cookies and similar technologies such as browser storage. Please read our
+  <a href="#" data-pol="cookie">Cookie Policy</a> for what we use and how to control it.
+</p>
+<h2>12. How we share information</h2>
+<p>We share information where reasonably necessary with:</p>
+<ul>
+  <li>Payment providers (Paystack)</li>
+  <li>Hosting, database and storage providers</li>
+  <li>Security and analytics providers, if we use them</li>
+  <li>Communication providers</li>
+  <li>Professional advisers</li>
+  <li>Government authorities or law enforcement, where the law requires it</li>
+</ul>
+<p>
+  We do not sell personal information.
+</p>
+<h2>13. Public information and your responsibilities</h2>
+<p>
+  Anything in a public listing can be seen, copied or saved by anyone, and we cannot
+  control what others do with it after they see it.
+</p>
+<p>
+  Do not put any of the following in your listing, including the description and rules fields:
+  passwords, bank or Mobile Money details, national ID numbers, other people's personal
+  information (such as the names or phone numbers of tenants) without their permission,
+  or sensitive personal information.
+</p>
+<h2>14. WhatsApp, phone and other third-party services</h2>
+<p>
+  When you tap WhatsApp or Call, your conversation happens through WhatsApp or your
+  phone network, which process information under their own policies. When you open
+  a map link, Google Maps processes your visit under Google's policies. We do not
+  control how these services handle information once you leave NestGH.
+</p>
+<h2>15. Data security</h2>
+<p>
+  We take reasonable steps to protect personal information against unauthorised access,
+  disclosure, loss, misuse, alteration and destruction. No internet service can guarantee
+  absolute security. Please protect your own devices and accounts.
+</p>
+<h2>16. Accuracy</h2>
+<p>
+  Owners must give accurate and current information. Owners are responsible for making
+  sure that their listing details and prices are accurate, availability is current,
+  photos show the real accommodation, and they are authorised to advertise the property.
+  We may update, hide or remove information that appears inaccurate or misleading.
+</p>
+<h2>17. How long we keep information</h2>
+<p>
+  We keep personal information only as long as reasonably necessary. As a general guide:
+</p>
+<div class="tw">
+  <table>
+    <tr>
+      <th>Information</th>
+      <th>How long we keep it</th>
+    </tr>
+    <tr>
+      <td>Live listing and owner details</td>
+      <td>While the listing is live, and up to 12 months after it is removed, then deleted or anonymised</td>
+    </tr>
+    <tr>
+      <td>Unpaid or abandoned drafts</td>
+      <td>Deleted 30 days after the last activity</td>
+    </tr>
+    <tr>
+      <td>Payment records</td>
+      <td>For the period required by Ghanaian tax and accounting rules</td>
+    </tr>
+    <tr>
+      <td>Reports, fraud and dispute records</td>
+      <td>Up to 24 months, or longer if needed for a legal matter</td>
+    </tr>
+    <tr>
+      <td>Server and security logs</td>
+      <td>Up to 90 days</td>
+    </tr>
+  </table>
+</div>
+<p>
+  We may keep information for longer where the law requires, or to handle a dispute
+  or enforce our agreements.
+</p>
+<h2>18. Your privacy rights</h2>
+<p>Subject to applicable law, you may:</p>
+<ul>
+  <li>Ask for access to the personal information we hold about you</li>
+  <li>Ask us to correct inaccurate information</li>
+  <li>Ask us to delete your information</li>
+  <li>Object to, or ask us to restrict, certain processing</li>
+  <li>Withdraw your consent</li>
+  <li>Ask questions about how we use your information</li>
+  <li>Make a complaint to us, or to the <strong>Data Protection Commission of Ghana</strong></li>
+</ul>
+<p>
+  To use these rights, contact us using the details in section 23. If your request is
+  about a listing, include the listing reference number. We may need to verify your
+  identity first. We aim to respond within 30 days.
+</p>
+<h2>19. Children</h2>
+<p>
+  NestGH is for people aged 18 and over. Only adults may submit listings.
+  We do not knowingly collect personal information from children. If you are under 18,
+  please ask a parent or guardian before using NestGH. If we learn that we have collected
+  a child's personal information without proper permission, we will take reasonable
+  steps to delete it.
+</p>
+<h2>20. International transfers</h2>
+<p>
+  Some of our service providers may store or process information outside Ghana.
+  Where we transfer personal information to another country, we take reasonable steps
+  to make sure it is handled in line with applicable data protection requirements.
+</p>
+<h2>21. Data protection compliance</h2>
+<p>
+  NestGH intends to comply with the <strong>Data Protection Act, 2012 (Act 843)</strong>
+  and the requirements of the <strong>Data Protection Commission of Ghana</strong>,
+  including any registration that applies to us as a data controller.
+</p>
+<h2>22. Changes to this policy</h2>
+<p>
+  We may update this Privacy Policy when our services, technology or legal requirements change.
+  We will update the <strong>Last updated</strong> date. If we make a significant change,
+  we will tell you on the website.
+</p>
+<h2>23. Contact us</h2>
+<p>
+  <strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br>
+  <strong>Location:</strong> Accra, Ghana<br>
+  <strong>Email:</strong>
+  <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br>
+  <strong>Phone:</strong>
+  <a href="tel:0540309637">0540309637</a>
+</p>
+<p>&copy 2026 NestGH. All rights reserved.</p>
+</template>
+<template id="t-cookie">
+<h1>NestGH Cookie Policy</h1>
+<p>
+  <strong>Effective date:</strong> 30 September 2026<br>
+  <strong>Last updated:</strong> 30 September 2026
+</p>
+<h2>1. Introduction</h2>
+<p>
+  This Cookie Policy explains how <strong>NestGH</strong> ("NestGH", "we", "us" or "our")
+  uses cookies and similar technologies when you visit our website. Please read it together
+  with our <a href="#" data-pol="privacy">Privacy Policy</a> and our
+  <a href="#" data-pol="terms">Terms and Conditions</a>.
+</p>
+<p>
+  <strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br>
+  <strong>Location:</strong> Accra, Ghana<br>
+  <strong>Email:</strong>
+  <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br>
+  <strong>Phone:</strong>
+  <a href="tel:0540309637">0540309637</a>
+</p>
+<h2>2. What are cookies?</h2>
+<p>
+  Cookies are small text files that a website stores on your device. They help a website
+  work, remember your choices, stay secure and understand how it is used.
+</p>
+<p>
+  We also use <strong>similar technologies</strong>, such as your browser's local storage,
+  which keeps small pieces of information on your device in a similar way.
+</p>
+<h2>3. What we use</h2>
+<p>
+  This is what NestGH uses at the time of writing:
+</p>
+<div class="tw">
+  <table>
+    <tr>
+      <th>Purpose</th>
+      <th>What it does</th>
+      <th>Who sets it</th>
+      <th>How long</th>
+    </tr>
+    <tr>
+      <td>Essential: admin sign-in</td>
+      <td>Keeps NestGH administrators signed in. Visitors and people submitting listings do not get sign-in cookies.</td>
+      <td>NestGH and our database provider</td>
+      <td>For the session</td>
+    </tr>
+    <tr>
+      <td>Essential: payment</td>
+      <td>Lets Paystack process listing payments securely and prevent fraud.</td>
+      <td>Paystack</td>
+      <td>As set by Paystack</td>
+    </tr>
+    <tr>
+      <td>Preferences: saved rooms and search choices</td>
+      <td>Remembers the rooms you save and your recent choices in your browser. This stays on your device and is not sent to us.</td>
+      <td>NestGH (browser storage)</td>
+      <td>Until you clear your browser data</td>
+    </tr>
+    <tr>
+      <td>Fonts</td>
+      <td>Loads the website's fonts. The provider may receive your IP address.</td>
+      <td>Google Fonts</td>
+      <td>As set by Google</td>
+    </tr>
+    <tr>
+      <td>Analytics</td>
+      <td>We do not currently use analytics cookies.</td>
+      <td>None</td>
+      <td>Not applicable</td>
+    </tr>
+  </table>
+</div>
+<p>
+  If we add analytics or other non-essential cookies, we will update this policy first
+  and ask for your consent where it is required.
+</p>
+<h2>4. Third-party cookies</h2>
+<p>
+  Some services we use may set their own cookies or use similar technologies, including
+  our payment provider (Paystack) and our font provider. We do not control them.
+  Their own privacy and cookie policies apply.
+</p>
+<p>
+  When you open a map link, you leave NestGH and Google Maps applies its own policies.
+</p>
+<h2>5. Cookies and the information you give us</h2>
+<p>
+  Cookies do not replace the personal information that you choose to give us, for example
+  when you submit a listing. We handle that information under our
+  <a href="#" data-pol="privacy">Privacy Policy</a>.
+</p>
+<h2>6. How long cookies last</h2>
+<p>
+  <strong>Session cookies</strong> are temporary and usually disappear when you close your browser.
+  <strong>Persistent cookies</strong> stay on your device for a set period, or until you delete them.
+  How long a cookie lasts depends on its purpose and on who set it.
+</p>
+<h2>7. Managing cookies</h2>
+<p>
+  You can manage cookies in your browser settings. Depending on your browser, you can view,
+  delete or block cookies, block third-party cookies, allow them only for chosen websites,
+  or delete them when you close the browser. You can also clear local storage by clearing
+  your site data.
+</p>
+<p>
+  Blocking essential cookies may stop parts of NestGH, such as payment, from working properly.
+  If you clear your browser data, your saved rooms will be removed.
+</p>
+<h2>8. Cookie consent</h2>
+<p>
+  Essential cookies do not need your consent because the website cannot work without them.
+  If we use non-essential cookies, we will show a cookie banner and will not load them until
+  you accept. You will be able to reject them or change your choice at any time.
+</p>
+<h2>9. Do Not Track</h2>
+<p>
+  Some browsers have a "Do Not Track" setting. There is no universal standard for how websites
+  should respond to it. We manage non-essential cookies through the choices on our website.
+</p>
+<h2>10. Children</h2>
+<p>
+  NestGH is for people aged 18 and over. We do not knowingly use cookies to collect personal
+  information from children.
+</p>
+<h2>11. Changes to this policy</h2>
+<p>
+  We may update this Cookie Policy when our technology, services, third-party providers or legal
+  requirements change. We will update the <strong>Last updated</strong> date and, if the change
+  is significant, tell you on the website.
+</p>
+<h2>12. Data protection</h2>
+<p>
+  NestGH intends to comply with the <strong>Data Protection Act, 2012 (Act 843)</strong>.
+  For how we handle your personal information, please read our
+  <a href="#" data-pol="privacy">Privacy Policy</a>.
+</p>
+<h2>13. Contact us</h2>
+<p>
+  <strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br>
+  <strong>Location:</strong> Accra, Ghana<br>
+  <strong>Email:</strong>
+  <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br>
+  <strong>Phone:</strong>
+  <a href="tel:0540309637">0540309637</a>
+</p>
+<p>&copy 2026 NestGH. All rights reserved.</p>
+</template>
+<template id="t-terms">
+<h1>NestGH Terms and Conditions</h1>
+<p>
+  <strong>Effective date:</strong> 1 October 2026<br>
+  <strong>Last updated:</strong> 1 October 2026
+</p>
+<h2>1. Introduction and acceptance</h2>
+<p>
+  Welcome to <strong>NestGH</strong> ("NestGH", "we", "us" or "our"). These Terms and
+  Conditions ("Terms") apply when you use the NestGH website and services, whether you
+  are searching for accommodation, contacting an owner, or submitting a listing.
+</p>
+<p>
+  By using NestGH you agree to these Terms. If you do not agree, please do not use NestGH.
+  Please also read our <a href="#" data-pol="privacy">Privacy Policy</a> and
+  <a href="#" data-pol="cookie">Cookie Policy</a>, which explain how we handle your information.
+</p>
+<p>
+  <strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br>
+  <strong>Location:</strong> Accra, Ghana<br>
+  <strong>Email:</strong>
+  <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br>
+  <strong>Phone:</strong>
+  <a href="tel:0540309637">0540309637</a>
+</p>
+<h2>2. What NestGH is, and what it is not</h2>
+<p>
+  NestGH is an online platform that helps people find available rooms, student hostels
+  and other accommodation in Ghana. Owners, caretakers and hostel managers use NestGH
+  to advertise their accommodation.
+</p>
+<p>
+  NestGH is <strong>not</strong> a landlord, estate agent, property manager or hostel operator.
+  We do not own, manage, inspect or rent out any accommodation listed on NestGH, and we are
+  not a party to any agreement between a seeker and an owner. We do not collect or hold rent,
+  deposits or any other payment between seekers and owners. Any arrangement is made directly
+  between them.
+</p>
+<h2>3. Who can use NestGH</h2>
+<p>
+  You must be at least 18 years old to submit a listing. Anyone may search NestGH,
+  and you do not need an account to search. If you are under 18, please ask a parent
+  or guardian before using NestGH.
+</p>
+<h2>4. Using NestGH to find accommodation</h2>
+<p>
+  NestGH is free for people searching for accommodation.
+</p>
+<ul>
+  <li>Listings are provided by owners. We review listings before they are published, but we cannot check every detail, and we do not guarantee that any listing is accurate, complete, current or available.</li>
+  <li>A <strong>Verified</strong> label means only the specific verification that NestGH says it completed (Phone, Identity or Property). It is not a guarantee about the room, the owner or any agreement.</li>
+  <li>A "Confirmed" date shows when the owner last confirmed availability. The room may have been taken since.</li>
+</ul>
+<p>
+  <strong>Stay safe.</strong> Please always:
+</p>
+<ul>
+  <li>View the room in person, ideally with another person, before you pay anything</li>
+  <li>Never pay rent, a deposit or any fee to someone you have not met and whose right to rent out the property you have not checked</li>
+  <li>Ask for a written agreement and a receipt for every payment</li>
+  <li>Be careful if someone pressures you to pay quickly, asks for payment by a method you do not trust, or refuses to let you view the room</li>
+  <li>Report anything suspicious using the <strong>Report this listing</strong> button</li>
+</ul>
+<p>
+  You contact owners and make any arrangement at your own risk.
+</p>
+<h2>5. Rules for owners who submit listings</h2>
+<p>
+  If you submit a listing, you confirm and agree that:
+</p>
+<ul>
+  <li>You are the owner, or you are authorised by the owner to advertise the accommodation</li>
+  <li>All information you give is true, accurate and current, including prices, costs, what is included and not included, facilities, rules and availability</li>
+  <li>The photos show the real accommodation as it is now, and you have the right to use them</li>
+  <li>The room is genuinely available when you submit it, and you will tell us promptly if it is taken</li>
+  <li>Your profile photograph is a clear photograph of you, and your phone and WhatsApp numbers are yours or those you are authorised to use</li>
+  <li>You will respond honestly to seekers and to NestGH</li>
+</ul>
+<p>You must not:</p>
+<ul>
+  <li>Post false, misleading or duplicate listings, or use photos that are not of the accommodation</li>
+  <li>Advertise a property that you are not authorised to advertise</li>
+  <li>Ask seekers to pay money before they have seen the accommodation, or take money for a room that does not exist or is not available</li>
+  <li>Include other people's personal information, or content that is unlawful, offensive or discriminatory</li>
+  <li>Misuse NestGH, or try to avoid our review or security checks</li>
+</ul>
+<p>
+  Your house rules, including who may stay, must follow Ghanaian law.
+</p>
+<h2>6. Listing fee and payment</h2>
+<p>
+  Owners pay a <strong>one-time Standard listing fee</strong>, shown at checkout before you pay.
+  There is only one package. There is no monthly subscription, no renewal fee, and no extra charge
+  to keep a listing live while the room is genuinely available.
+</p>
+<p>
+  Payments are processed by <strong>Paystack</strong>, using Mobile Money or card, and Paystack's
+  own terms apply. We do not store your full card details or Mobile Money PIN.
+</p>
+<p>
+  Paying the fee does <strong>not</strong> guarantee that your listing will be approved or published,
+  and does not make you or your property "Verified".
+</p>
+<p>
+  <strong>Refunds.</strong> If we reject your listing for a reason that is not your fault, or we
+  cannot publish it, we will refund the listing fee. We will not refund the fee if the listing
+  is rejected or removed because it is false or misleading, because you broke these Terms,
+  or because you asked us to remove a listing that we had already approved. Contact us to ask
+  for a refund and quote your listing reference number.
+</p>
+<h2>7. Review, approval and verification</h2>
+<p>
+  After payment, every listing is reviewed by NestGH. We may approve it, ask you to make changes,
+  edit it, reject it, hide it, mark it unavailable, or remove it. Only approved listings are public.
+  We may contact you to confirm information, and we may ask for more information.
+</p>
+<p>
+  NestGH may show <strong>Phone Verified</strong>, <strong>Identity Verified</strong> and
+  <strong>Property Verified</strong> statuses. We show a status only after we have completed
+  that check, and we may remove it if we later find it is no longer correct.
+</p>
+<h2>8. Availability and keeping listings fresh</h2>
+<p>
+  Owners must keep their listing up to date. We may contact owners to confirm that a room is still
+  available, and confirming does not cost anything. You can mark your room as unavailable at any
+  time by contacting us.
+</p>
+<p>
+  If a listing has not been confirmed for a long time, we may mark it as needing confirmation,
+  move it down the results, mark it unavailable, or hide it until you confirm.
+</p>
+<h2>9. Agreements, rent and deposits</h2>
+<p>
+  Any tenancy, rent, deposit, advance payment, fee or other agreement is between the seeker and
+  the owner. NestGH is not responsible for it and cannot resolve disputes between them, although
+  we may take action on reports about a listing. Owners and seekers are responsible for following
+  the law that applies to renting accommodation in Ghana.
+</p>
+<p>
+  The "estimated amount required to move in" shown on a listing is calculated from the figures the
+  owner entered. It is only an estimate, and the owner is responsible for the figures being correct.
+</p>
+<h2>10. Reports, removal and suspension</h2>
+<p>
+  Anyone can report a listing. We may investigate reports but do not have to investigate every report.
+  We may hide, edit or remove any listing, and may suspend or block anyone from using NestGH, if we
+  think a listing or a person breaks these Terms, is inaccurate or misleading, is unsafe, or is
+  fraudulent, or if the law requires it. We may do this without refunding the listing fee where
+  section 6 says so.
+</p>
+<h2>11. Your content</h2>
+<p>
+  You keep ownership of the text and photographs you submit. By submitting a listing you give NestGH
+  a free, non-exclusive right to store, display, resize and use that content, and your name and profile
+  photograph, on NestGH and in connection with promoting your listing, for as long as the listing is
+  live and for a reasonable time afterwards. You confirm that you have the right to give us this permission.
+</p>
+<h2>12. NestGH's intellectual property</h2>
+<p>
+  The NestGH name, logo, design, text and software belong to NestGH or its licensors.
+  You may not copy, scrape, resell or reuse them without our written permission, except for
+  normal personal use of the website.
+</p>
+<h2>13. Disclaimers</h2>
+<p>
+  NestGH is provided "as is" and "as available". To the extent allowed by law, we do not promise that:
+</p>
+<ul>
+  <li>Any listing, price, photo, description or availability is accurate or current</li>
+  <li>Any owner or seeker is who they say they are, or will behave honestly or safely</li>
+  <li>The website will always work without interruption or errors</li>
+</ul>
+<h2>14. Limits on our responsibility</h2>
+<p>
+  To the extent allowed by law, NestGH is not responsible for loss or harm caused by owners,
+  seekers or other third parties, by inaccurate or unavailable listings, by agreements or payments
+  between seekers and owners, or by problems with third-party services such as Paystack, WhatsApp
+  or your phone network.
+</p>
+<p>
+  Where the law allows us to limit our responsibility, our total responsibility to you for any claim
+  connected with NestGH will not be more than the listing fee you paid us in the 12 months before the
+  claim (or, if you paid nothing, GH₵ 100). Nothing in these Terms removes any right you have under
+  Ghanaian law that cannot be limited or excluded, such as responsibility for fraud or for death or
+  personal injury caused by negligence.
+</p>
+<h2>15. Owners' responsibility</h2>
+<p>
+  If an owner breaks these Terms, for example by posting a false listing, the owner is responsible
+  for the resulting losses and costs that NestGH or others suffer, to the extent allowed by law.
+</p>
+<h2>16. Privacy and cookies</h2>
+<p>
+  We handle your personal information as described in our
+  <a href="#" data-pol="privacy">Privacy Policy</a> ,
+  <a href="#" data-pol="cookie">Cookie Policy</a> and
+  <a href="#" data-pol="terms">Terms and Conditions</a>.
+</p>
+<h2>17. Changes to these Terms</h2>
+<p>
+  We may change these Terms from time to time, for example when our services or the law change.
+  We will update the <strong>Last updated</strong> date and, if the change is significant, tell
+  you on the website. If you keep using NestGH after a change, you accept the new Terms.
+</p>
+<h2>18. Governing law and disputes</h2>
+<p>
+  These Terms are governed by the laws of the Republic of Ghana. If you have a problem, please
+  contact us first so we can try to resolve it. If it cannot be resolved, the courts of Ghana
+  have jurisdiction.
+</p>
+<h2>19. Contact us</h2>
+<p>
+  <strong>Operated by:</strong> Brain Amponsah, trading as NestGH<br>
+  <strong>Location:</strong> Accra, Ghana<br>
+  <strong>Email:</strong>
+  <a href="mailto:amponsahbrain2007@gmail.com">amponsahbrain2007@gmail.com</a><br>
+  <strong>Phone:</strong>
+  <a href="tel:0540309637">0540309637</a>
+</p>
+<p> &copy 2026 NestGH. All rights reserved.</p>
+</template>
 <div class="toast" id="toast" role="status"></div>
-
 <script defer src="font-loader.js"></script>
 <script defer src="supabase-config.js"></script>
 <script defer src="supabase.js"></script>
