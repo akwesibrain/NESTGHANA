@@ -7,12 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="image" href="hero.jpg" fetchpriority="high">
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Caveat:wght@700&display=swap" data-font-stylesheet>
-<noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Caveat:wght@700&display=swap" rel="stylesheet"></noscript>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap" data-font-stylesheet>
+<noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" href="./logo.png" type="image/png">
 </head>
-<body>
+<body class="public-site">
 <nav>
   <div class="w">
     <div class="logo">
@@ -22,14 +22,15 @@
     <div class="links" id="links">
       <a href="#top">Home</a>
       <a href="#rooms">Rooms</a>
-      <a href="#how">How it works</a>
-      <a href="#listroom">List your room</a>
+      <a href="#shops-spaces">Shops &amp; Spaces</a>
+      <a href="#how">About</a>
+      <a href="#listroom">List your property</a>
     </div>
     <div class="nr">
       <button class="ib" aria-label="Show saved rooms" aria-pressed="false" id="sv">
         <i data-ic="heart"></i>
       </button>
-      <button class="btn gold links-btn" id="l1">List a room</button>
+      <button class="btn gold links-btn" id="l1">List your property</button>
       <button class="ib m" aria-label="Menu" aria-expanded="false" aria-controls="links" id="mn">
         <i data-ic="menu"></i>
       </button>
@@ -38,13 +39,9 @@
 </nav>
 <header class="hero" id="top">
   <div class="w">
-    <p class="eyebrow">Verified rooms. Better living.</p>
-    <h1>Find Your Next Room</h1>
-    <div class="script">with NestGH</div>
-    <p class="d">
-      Discover modern homes and rooms,<br>
-      prime locations and lifestyle-driven communities-all in one place
-    </p>
+    <p class="eyebrow"><i data-ic="shield"></i> Ghana's Trusted Property Marketplace</p>
+    <h1>Find Your Next Place</h1>
+    <p class="d">Rooms and hostels across Ghana, with clear details and direct owner contact.</p>
   </div>
 </header>
 <div class="w">
@@ -82,7 +79,7 @@
           id="town"
           type="search"
           autocomplete="off"
-          placeholder="Type a town"
+          placeholder="Select town"
           aria-autocomplete="list"
           aria-controls="town-suggestions"
           aria-expanded="false"
@@ -104,7 +101,7 @@
     </div>
     <div class="f">
       <label for="ty">
-        <i data-ic="home"></i>Room type
+        <i data-ic="home"></i>Property type
       </label>
       <select id="ty">
         <option value="">Any</option>
@@ -158,8 +155,8 @@
   <div class="w">
     <div class="tr">
       <i data-ic="home"></i>
-      <b>Verified listings</b>
-      <span>100% genuine listings with verified owners</span>
+      <b>Listing details</b>
+      <span>See photos, pricing and availability shared by owners</span>
     </div>
     <div class="tr">
       <i data-ic="chat"></i>
@@ -168,13 +165,46 @@
     </div>
     <div class="tr">
       <i data-ic="heart"></i>
-      <b>Better Living</b>
-      <span>Find a home that fits your lifestyle</span>
+      <b>Save rooms</b>
+      <span>Keep rooms handy in your browser for later</span>
     </div>
     <div class="tr">
       <i data-ic="shield"></i>
-      <b>Trusted & Secure</b>
-      <span>Safe transactions with complete transparency</span>
+      <b>Costs at a glance</b>
+      <span>Review rent, advance, deposit and listed fees</span>
+    </div>
+  </div>
+</section>
+<section class="sec categories" id="categories" aria-labelledby="categories-title">
+  <div class="w">
+    <div class="head">
+      <div>
+        <p class="eyebrow">Explore rooms</p>
+        <h2 id="categories-title">Popular Categories</h2>
+      </div>
+      <a class="section-link" href="#rooms">View all <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="category-grid">
+      <button class="category-card" type="button" data-category-type="single" aria-pressed="false" data-reveal="fade-up">
+        <span class="category-icon"><i data-ic="home"></i></span>
+        <span><b>Single Rooms</b><small>Simple, comfortable spaces</small></span>
+      </button>
+      <button class="category-card" type="button" data-category-type="chamber" aria-pressed="false" data-reveal="fade-up">
+        <span class="category-icon"><i data-ic="home"></i></span>
+        <span><b>Chamber &amp; Hall</b><small>Room with a separate hall</small></span>
+      </button>
+      <button class="category-card" type="button" data-category-type="self" aria-pressed="false" data-reveal="fade-up">
+        <span class="category-icon"><i data-ic="shield"></i></span>
+        <span><b>Self-Contained</b><small>Private living essentials</small></span>
+      </button>
+      <button class="category-card" type="button" data-category-type="hostel" aria-pressed="false" data-reveal="fade-up">
+        <span class="category-icon"><i data-ic="user"></i></span>
+        <span><b>Hostels</b><small>Student and shared rooms</small></span>
+      </button>
+      <a class="category-card" href="#shops-spaces" data-reveal="fade-up">
+        <span class="category-icon"><i data-ic="tag"></i></span>
+        <span><b>Shops &amp; Spaces</b><small>Business spaces to let</small></span>
+      </a>
     </div>
   </div>
 </section>
@@ -265,84 +295,154 @@
     </div>
   </div>
 </section>
-<section class="sec" id="how">
-  <div class="w why">
-    <div class="wimg">
-      <span>Rooms you can trust</span>
+<section class="sec shops-page" id="shops-spaces" aria-labelledby="shops-title">
+  <div class="w">
+    <div class="shops-breadcrumb" role="navigation" aria-label="Breadcrumb">
+      <a href="#top">Home</a><span aria-hidden="true">/</span><span aria-current="page">Shops &amp; Spaces</span>
     </div>
-    <div>
-      <p class="eyebrow">Why NestGH</p>
-      <h2>
-        More than listings.<br>
-        We Help You Find What's Actually Available
-      </h2>
-      <p>
-        Finding a room in Ghana should be about more than seeing a photo and calling a number.
-        NestGH helps you check where the room is, what it costs, what comes with it,
-        and whether it is available before you make the trip.
-      </p>
-      <div class="stats">
-        <div>
-          <b>12K+</b>
-          <span>Happy Clients</span>
-        </div>
-        <div>
-          <b>500+</b>
-          <span>Properties Listed</span>
-        </div>
-        <div>
-          <b>1000+</b>
-          <span>Areas Around Ghana</span>
-        </div>
-        <div>
-          <b>98%</b>
-          <span>Sucess Rate</span>
-        </div>
+    <div class="head shops-heading">
+      <div>
+        <p class="eyebrow">Commercial property</p>
+        <h2 id="shops-title">Shops &amp; Spaces to Let</h2>
+        <p class="shops-intro">Find a business space using details provided by property owners.</p>
       </div>
+    </div>
+    <form class="shops-filters" id="commercial-filters" aria-label="Filter shops and spaces">
+      <div class="f">
+        <label for="commercial-location"><i data-ic="pin"></i>Location</label>
+        <input id="commercial-location" name="location" type="search" autocomplete="off" placeholder="Region, town or area">
+      </div>
+      <div class="f">
+        <label for="commercial-type"><i data-ic="home"></i>Space type</label>
+        <select id="commercial-type" name="type"><option value="">Any type</option></select>
+      </div>
+      <div class="f">
+        <label for="commercial-min-rent"><i data-ic="tag"></i>Minimum monthly rent</label>
+        <input id="commercial-min-rent" name="minRent" type="number" min="0" step="any" inputmode="decimal" placeholder="No minimum">
+      </div>
+      <div class="f">
+        <label for="commercial-max-rent"><i data-ic="tag"></i>Maximum monthly rent</label>
+        <input id="commercial-max-rent" name="maxRent" type="number" min="0" step="any" inputmode="decimal" placeholder="No maximum">
+      </div>
+      <div class="f">
+        <label for="commercial-min-size">Minimum size</label>
+        <input id="commercial-min-size" name="minSize" type="number" min="0" step="any" inputmode="decimal" placeholder="Any size">
+      </div>
+      <div class="f">
+        <label for="commercial-max-size">Maximum size</label>
+        <input id="commercial-max-size" name="maxSize" type="number" min="0" step="any" inputmode="decimal" placeholder="Any size">
+      </div>
+      <div class="f">
+        <label for="commercial-road">Road visibility</label>
+        <select id="commercial-road" name="roadVisibility"><option value="">Any</option><option value="true">Visible from road</option><option value="false">Not visible from road</option></select>
+      </div>
+      <div class="f">
+        <label for="commercial-parking">Parking</label>
+        <select id="commercial-parking" name="parking"><option value="">Any</option><option value="true">Parking available</option><option value="false">No parking</option></select>
+      </div>
+      <div class="f">
+        <label for="commercial-electricity">Electricity</label>
+        <select id="commercial-electricity" name="electricity"><option value="">Any</option><option value="true">Available</option><option value="false">Not available</option></select>
+      </div>
+      <div class="f">
+        <label for="commercial-water">Water</label>
+        <select id="commercial-water" name="water"><option value="">Any</option><option value="true">Available</option><option value="false">Not available</option></select>
+      </div>
+      <button class="go" type="submit"><i data-ic="search"></i>Search spaces</button>
+      <button class="btn2 shops-clear" id="commercial-clear" type="button">Clear Filters</button>
+    </form>
+    <p class="shops-state" id="commercial-status" role="status" aria-live="polite">Browse available commercial spaces.</p>
+    <div class="commercial-grid" id="commercial-list" aria-live="polite" aria-busy="false"></div>
+    <button class="btn2 commercial-load-more" id="commercial-load-more" type="button" hidden>Load more spaces</button>
+    <div class="empty shops-empty" id="commercial-empty" hidden>
+      <span class="shops-empty-icon"><i data-ic="home"></i></span>
+      <b>No shops or spaces available yet.</b>
+      <p>New commercial listings will appear here when available.</p>
+    </div>
+    <div class="empty shops-error" id="commercial-error" hidden>
+      <span class="shops-empty-icon"><i data-ic="shield"></i></span>
+      <b>We couldn't load shops &amp; spaces. Please try again.</b>
+      <button class="btn2" id="commercial-retry" type="button">Try again</button>
+    </div>
+  </div>
+</section>
+<section class="sec" id="how">
+  <div class="w marketplace">
+    <div class="marketplace-intro">
+      <p class="eyebrow">A simpler way to search</p>
+      <h2>More Than Just Listings. Find a Room That Fits</h2>
+      <p>Search rooms and hostels, check the details shared by owners and get in touch directly.</p>
+      <p class="marketplace-steps">Search <span>·</span> Save <span>·</span> Contact <span>·</span> Report <span>·</span> List</p>
+    </div>
+    <div class="feature-grid">
+      <article class="feature-card" data-reveal="fade-up"><i data-ic="search"></i><div><h3>Smart Search &amp; Filters</h3><p>Explore rooms by location, type, budget and must-have features.</p></div></article>
+      <article class="feature-card" data-reveal="fade-up"><i data-ic="tag"></i><div><h3>Move-in Cost Estimate</h3><p>Review rent, advance, deposit and listed fees before contacting an owner.</p></div></article>
+      <article class="feature-card" data-reveal="fade-up"><i data-ic="chat"></i><div><h3>Direct Owner Contact</h3><p>Contact listing owners by WhatsApp or phone.</p></div></article>
+      <article class="feature-card" data-reveal="fade-up"><i data-ic="heart"></i><div><h3>Saved Listings</h3><p>Save rooms in your browser and come back to them later.</p></div></article>
+      <article class="feature-card" data-reveal="fade-up"><i data-ic="home"></i><div><h3>List Your Property</h3><p>Share your property details and photos using the listing form.</p></div></article>
+      <article class="feature-card" data-reveal="fade-up"><i data-ic="shield"></i><div><h3>Report a Listing</h3><p>Send a report if a listing looks inaccurate or suspicious.</p></div></article>
     </div>
   </div>
 </section>
 <div class="w" id="listroom">
   <section class="cta">
-    <h2>Got a room to rent out?</h2>
-    <p>Send us the details. We check every listing before it goes live.</p>
-    <button class="btn gold" id="l2">
-      List your room <i data-ic="arrow"></i>
-    </button>
+  <div class="cta-icon"><i data-ic="home"></i></div>
+  <div class="cta-copy">
+    <h2>List Your Property</h2>
+    <p>Share your room or hostel listing with people searching for a place to stay.</p>
+  </div>
+  <button class="btn gold" id="l2">
+    Get Started <i data-ic="arrow"></i>
+  </button>
   </section>
 </div>
 <footer>
   <div class="w">
-    <div class="fg">
-      <div class="logo">
-        <i data-ic="home"></i>
-        <div>NestGH<small>FIND · LIST · RENT</small></div>
-      </div>
-      <div>
-        <h4>Quick links</h4>
-        <a href="#top">Home</a>
-        <a href="#rooms">Rooms</a>
-        <a href="#how">How it works</a>
-        <a href="#listroom">List your room</a>
-      </div>
-      <div>
-        <h4>Get in touch</h4>
-        <p><i data-ic="phone"></i>+233 00 000 0000</p>
-        <p><i data-ic="mail"></i>hello@nestgh.com</p>
-        <p><i data-ic="pin"></i>Accra, Ghana</p>
-      </div>
+  <div class="audience-grid">
+    <div class="audience-item"><i data-ic="user"></i><span><b>For Students</b><small>Campus and student-friendly housing</small></span></div>
+    <div class="audience-item"><i data-ic="home"></i><span><b>For Professionals</b><small>Convenient places to call home</small></span></div>
+    <div class="audience-item"><i data-ic="heart"></i><span><b>For Families</b><small>Find a space that fits your needs</small></span></div>
+    <div class="audience-item"><i data-ic="tag"></i><span><b>For Property Owners</b><small>Share your listing with seekers</small></span></div>
+  </div>
+  <div class="fg">
+    <div class="logo">
+      <i data-ic="home"></i>
+      <div>NestGH<small>FIND · LIST · RENT</small><span class="footer-tagline">Find Your Next Place</span></div>
     </div>
-    <div class="fb">
-      <span>&copy 2026 NestGH. All rights reserved.</span>
-      <span>
-        <a href="#" data-pol="privacy">Privacy Policy</a>
-        <a href="#" data-pol="cookie">Cookie Policy</a>
-        <a href="#" id="cookie-settings">Cookie settings</a>
-        <a href="#" data-pol="terms">Terms and Conditions</a>
-      </span>
+    <div>
+      <h4>Quick links</h4>
+      <a href="#top">Home</a>
+      <a href="#rooms">Rooms</a>
+      <a href="#how">How it works</a>
+      <a href="#listroom">List your room</a>
+    </div>
+    <div>
+      <h4>Policies &amp; support</h4>
+      <a href="#" data-pol="privacy">Privacy Policy</a>
+      <a href="#" data-pol="cookie">Cookie Policy</a>
+      <a href="#" data-pol="terms">Terms and Conditions</a>
+      <a href="mailto:amponsahbrain2007@gmail.com">Contact NestGH</a>
     </div>
   </div>
+  <div class="fb">
+    <span>&copy; 2026 NestGH. All rights reserved.</span>
+    <span>
+      <a href="#" id="cookie-settings">Cookie settings</a>
+      <span class="ghana-badge"><span aria-hidden="true">🇬🇭</span> Proudly Ghanaian</span>
+    </span>
+  </div>
+  </div>
 </footer>
+<nav class="mobile-tabs" id="mobile-tabs" aria-label="Quick navigation">
+  <a href="#top"><i data-ic="home"></i><span>Home</span></a>
+  <a href="#rooms"><i data-ic="search"></i><span>Search</span></a>
+  <button id="mobile-saved" type="button" aria-label="Show saved rooms" aria-pressed="false">
+    <i data-ic="heart"></i><span>Saved</span>
+  </button>
+  <button id="mobile-more" type="button" aria-label="Open menu" aria-expanded="false">
+    <i data-ic="menu"></i><span>More</span>
+  </button>
+</nav>
 <aside class="cookie-banner" id="cookie-banner" aria-label="Cookie consent" hidden>
   <div class="cookie-copy">
     <div class="cookie-icon" aria-hidden="true">i</div>
@@ -394,6 +494,9 @@
   </div>
   <article class="pc" id="pc"></article>
 </div>
+<button id="back-to-top" class="back-to-top" type="button" aria-label="Back to top" hidden>
+  <i data-ic="arrow"></i>
+</button>
 <template id="t-privacy">
 <h1>NestGH Privacy Policy</h1>
 <p>
@@ -1064,6 +1167,7 @@
 <script defer src="font-loader.js"></script>
 <script defer src="supabase-config.js"></script>
 <script defer src="supabase.js"></script>
+<script defer src="commercial-listings.js"></script>
 <script defer src="app.js"></script>
 </body>
 </html>
