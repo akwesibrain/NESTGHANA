@@ -1246,7 +1246,7 @@ footer {
   grid-template-columns: 1fr 1fr;
   gap: 24px 14px;
 }
-.fg h4 {
+.fg h3 {
   margin: 0 0 10px;
   font-size: 13px;
   font-weight: 800;
@@ -2761,17 +2761,17 @@ footer {
 
 /* NestGH public-site visual system */
 body.public-site {
-  --green-600: #9a772d;
-  --green-700: #98721e;
+  --green-600: #80601a;
+  --green-700: #6b5114;
   --green-900: #231d10;
   --green-50: #f0e8d8;
   --bg: #f7f4ee;
   --card: #ffffff;
   --ink: #171614;
-  --muted: #716b61;
+  --muted: #6a6358;
   --line: #e7e0d5;
-  --gold: #98721e;
-  --brand: #9a772d;
+  --gold: #80601a;
+  --brand: #80601a;
   --tint: #f0e8d8;
   --fade: rgba(247, 244, 238, 0.9);
   --btn: #171614;
@@ -3611,7 +3611,7 @@ footer .logo i {
   letter-spacing: 0;
 }
 
-.fg h4 {
+.fg h3 {
   margin-bottom: 12px;
   color: #fff;
   font-size: 14px;
@@ -4386,4 +4386,17 @@ body.public-site .cookie-reject {
   height: 40px;
   border-radius: 12px;
   object-fit: cover;
+}
+
+/* Touch-friendly targets for small text links */
+.fg a,
+.fb a,
+.location-credit a,
+#cookie-settings {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.fg a {
+  display: flex;
 }

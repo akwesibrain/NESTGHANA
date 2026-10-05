@@ -196,8 +196,7 @@ try {
 document.querySelectorAll("i[data-ic]").forEach((e) => {
   e.outerHTML = ico(e.dataset.ic);
 });
-const ghs = (n) => "GH₵ " + Number(n || 0).toLocaleString("en-GH"),
-  total = (r) => (r.rentAmount ?? r.p) * r.adv + r.dep + r.fee;
+const ghs = (n) => "GH₵ " + Number(n || 0).toLocaleString("en-GH");
 const formatFeePesewas = (value) =>
   "GH₵ " +
   (value / 100).toLocaleString("en-GH", {
@@ -759,7 +758,11 @@ camp.onchange = () => {
   render();
 };
 [area, ty].forEach((e) => (e.onchange = render));
-max.oninput = render;
+let maxTimer;
+max.oninput = () => {
+  clearTimeout(maxTimer);
+  maxTimer = setTimeout(render, 200);
+};
 $("clr").onclick = () => {
   region.value = "";
   populateTownOptions(town, "");
@@ -866,7 +869,7 @@ async function refreshListingFee() {
   try {
     await loadListingFee();
   } catch (error) {
-    console.error("Could not load current listing fee:", error);
+    console.warn("Could not load current listing fee:", error);
     listingFeePesewas = null;
   }
 }
@@ -1359,7 +1362,6 @@ async function beginCheckout(form) {
 }
 async function retrySecurePayment() {
   const pending = readPendingSubmission();
-  const reference = pending?.reference;
   if (!pending) {
     toast(
       "Payment retry details are unavailable. Contact NestGH with your payment reference.",
@@ -1515,8 +1517,7 @@ const TYPES = [
     Yearly: "year",
     Semester: "semester",
   };
-const S = { m: {}, ph: {}, extra: [], who: [], cons: [] },
-  LIST = {};
+const S = { m: {}, ph: {}, extra: [], who: [], cons: [] };
 let cur = 0,
   reach = 0;
 const done = new Set();
@@ -2269,7 +2270,7 @@ L.addEventListener("change", async (e) => {
         if (S.extra.length >= 10) break;
         try {
           S.extra.push({ src: await pic(f, 1000, 0.68), cat: "Other" });
-        } catch (x) {
+        } catch {
           bad++;
         }
       }
@@ -2364,7 +2365,7 @@ function saveCookieChoice(choice) {
       JSON.stringify({ choice, updatedAt: new Date().toISOString() }),
     );
     cookieBanner.hidden = true;
-  } catch (e) {
+  } catch {
     toast(
       "Your cookie choice could not be saved. Please check your browser storage settings.",
     );
@@ -2372,7 +2373,7 @@ function saveCookieChoice(choice) {
 }
 try {
   if (!localStorage.getItem(COOKIE_CONSENT_KEY)) showCookieBanner();
-} catch (e) {
+} catch {
   showCookieBanner();
   toast(
     "Browser storage is unavailable. Your cookie choice may not be remembered.",
