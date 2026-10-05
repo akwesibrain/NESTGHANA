@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { verifyAdminMfa } from "@/app/admin/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import "../_styles/admin-theme.css";
+import "../admin.css";
 
 type SearchParams = Promise<{ error?: string; returnTo?: string }>;
 
@@ -22,17 +24,17 @@ export default async function VerifyAdminPage({ searchParams }: { searchParams: 
   const returnTo = typeof params.returnTo === "string" && params.returnTo.startsWith("/admin/") ? params.returnTo : "/admin";
 
   return (
-    <main className="auth-panel">
-      <form className="auth-card" action={verifyAdminMfa}>
-        <Link className="brand auth-brand" href="/"><span className="brand-copy"><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span></Link>
+    <main className="admin-auth-panel">
+      <form className="admin-auth-card" action={verifyAdminMfa}>
+        <Link className="brand admin-auth-brand" href="/"><span className="brand-copy"><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span></Link>
         <p className="eyebrow">Multi-factor authentication</p>
         <h1>Verify your sign-in</h1>
         <p>Enter the current code from your registered authenticator app.</p>
-        {params.error && errors[params.error] ? <p className="auth-error" role="alert">{errors[params.error]}</p> : null}
+        {params.error && errors[params.error] ? <p className="admin-auth-error" role="alert">{errors[params.error]}</p> : null}
         <input type="hidden" name="returnTo" value={returnTo} />
         <label htmlFor="code">Authenticator code</label>
         <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" minLength={6} maxLength={8} required />
-        <button className="primary-button" type="submit">Verify and continue</button>
+        <button className="admin-primary-button" type="submit">Verify and continue</button>
       </form>
     </main>
   );

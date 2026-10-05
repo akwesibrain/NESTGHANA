@@ -3,6 +3,8 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { signInAdmin, signOutAdmin, updateListingFee } from "@/app/admin/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AdminNavigation } from "@/app/admin/_components/admin-navigation";
+import "./_styles/admin-theme.css";
 import "./admin.css";
 
 type SearchParams = Promise<{ error?: string; fee?: string; q?: string; status?: string }>;
@@ -121,20 +123,23 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
     <main className="admin-shell">
       <div className="admin-workspace">
         <header className="admin-topbar">
-          <Link className="admin-brand" href="/"><span className="admin-brand-mark">N</span><span><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span></Link>
-          <nav className="admin-desktop-nav" aria-label="Admin workspace">
-            <a className="active" href="#overview">Dashboard</a><a href="#listings">Listings</a>{canManageSettings ? <a href="#website-settings">Settings</a> : null}
-          </nav>
+          <Link className="admin-brand" href="/">
+            <Image alt="NestGH" height={40} src="/logo-80.webp" width={40} />
+            <span><strong>NestGH</strong><small>Find Your Next Place</small></span>
+          </Link>
+          <AdminNavigation canManageSettings={canManageSettings} />
           <div className="admin-topbar-actions">
-            <a className="admin-icon-button" href="#listings" aria-label="Search listings">⌕</a>
-            <a className="admin-icon-button" href="#listings" aria-label="Review pending listings">♧</a>
+            <a className="admin-icon-button" href="#listings" aria-label="Search listings">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+            </a>
+            <a className="admin-icon-button" href="#listings" aria-label="Review listings">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+            </a>
             <span className="admin-user-avatar" aria-label={auth.user.email || "Admin"}>{(auth.user.email || "A").slice(0, 1).toUpperCase()}</span>
-            <form action={signOutAdmin}><button className="secondary-button" type="submit">Sign out</button></form>
+            <span className="admin-user-name">{auth.user.email || "Admin"}</span>
+            <form action={signOutAdmin}><button className="admin-secondary-button" type="submit">Sign out</button></form>
           </div>
         </header>
-        <nav className="admin-mobile-nav" aria-label="Admin workspace">
-          <a className="active" href="#overview">Dashboard</a><a href="#listings">Listings</a>{canManageSettings ? <a href="#website-settings">Settings</a> : null}
-        </nav>
         <section className="admin-content" id="overview">
           <div className="admin-hero">
             <div className="admin-hero-copy">
@@ -158,7 +163,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
 
           <section className="admin-property-section" aria-labelledby="properties-heading">
             <div className="admin-panel-heading"><div><p className="eyebrow">LATEST FROM THE MARKETPLACE</p><h2 id="properties-heading">Property listings</h2></div><a className="admin-text-link" href="#listings">View all listings <span aria-hidden="true">↗</span></a></div>
-            {listingsError ? <p className="status-banner" data-kind="error" role="alert">Could not load listings. Check your role permissions and database migration.</p> : null}
+            {listingsError ? <p className="admin-status-banner" data-kind="error" role="alert">Could not load listings. Check your role permissions and database migration.</p> : null}
             <div className="admin-property-cards">
               {recentListings.slice(0, 3).map((listing) => (
                 <article className="admin-property-card" key={listing.id}>
@@ -203,27 +208,27 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
               </div>
             </section>
             {canManageSettings ? (
-              <section className="settings-card" id="website-settings" aria-labelledby="listing-fee-heading">
+              <section className="admin-settings-card" id="website-settings" aria-labelledby="listing-fee-heading">
                 <div className="admin-panel-heading"><div><p className="eyebrow">WEBSITE SETTINGS</p><h2 id="listing-fee-heading">Listing fee</h2></div><span className="admin-stat-icon lilac" aria-hidden="true">GH₵</span></div>
                 <p>Set the one-time fee owners pay to submit a listing. New and retried checkouts use the saved amount.</p>
                 {params.fee && feeMessages[params.fee] ? (
-                  <p className="status-banner" data-kind={feeMessages[params.fee].kind} role={feeMessages[params.fee].kind === "error" ? "alert" : "status"}>
+                  <p className="admin-status-banner" data-kind={feeMessages[params.fee].kind} role={feeMessages[params.fee].kind === "error" ? "alert" : "status"}>
                     {feeMessages[params.fee].text}
                   </p>
                 ) : null}
                 {settingsError || !settings ? (
-                  <p className="status-banner" data-kind="error" role="alert">Could not load the current listing fee. Check that the database migration has been applied.</p>
+                  <p className="admin-status-banner" data-kind="error" role="alert">Could not load the current listing fee. Check that the database migration has been applied.</p>
                 ) : (
                   <>
-                    <p className="current-fee"><span>Current fee</span><strong>{new Intl.NumberFormat("en-GH", { style: "currency", currency: settings.currency }).format(settings.listing_fee_pesewas / 100)}</strong></p>
-                    <form className="fee-form" action={updateListingFee}>
+                    <p className="admin-current-fee"><span>Current fee</span><strong>{new Intl.NumberFormat("en-GH", { style: "currency", currency: settings.currency }).format(settings.listing_fee_pesewas / 100)}</strong></p>
+                    <form className="admin-fee-form" action={updateListingFee}>
                       <label htmlFor="feeGhs">New fee (GH₵)</label>
                       <input id="feeGhs" name="feeGhs" type="number" min="0.01" max="21474836.47" step="0.01" defaultValue={(settings.listing_fee_pesewas / 100).toFixed(2)} required />
                       <label htmlFor="fee-reason">Reason for change</label>
                       <input id="fee-reason" name="reason" type="text" minLength={3} maxLength={1000} required />
-                      <button className="primary-button" type="submit">Save listing fee <span aria-hidden="true">→</span></button>
+                      <button className="admin-primary-button" type="submit">Save listing fee <span aria-hidden="true">→</span></button>
                     </form>
-                    <p className="settings-note">Changes are audited and apply to new checkouts. Payments already started keep their original amount.</p>
+                    <p className="admin-settings-note">Changes are audited and apply to new checkouts. Payments already started keep their original amount.</p>
                   </>
                 )}
               </section>
@@ -237,18 +242,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
 
 function SignIn({ error }: { error?: string }) {
   return (
-    <main className="auth-panel">
-      <form className="auth-card" action={signInAdmin}>
-        <Link className="brand auth-brand" href="/"><span className="brand-copy"><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span></Link>
+    <main className="admin-auth-panel">
+      <form className="admin-auth-card" action={signInAdmin}>
+        <Link className="brand admin-auth-brand" href="/"><span className="brand-copy"><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span></Link>
         <p className="eyebrow">Secure sign in</p>
         <h1>Admin workspace</h1>
         <p>Sign in with an account that has been granted NestGH administrator access. MFA is required.</p>
-        {error ? <p className="auth-error" role="alert">{error}</p> : null}
+        {error ? <p className="admin-auth-error" role="alert">{error}</p> : null}
         <label htmlFor="email">Email address</label>
         <input id="email" name="email" type="email" autoComplete="username" maxLength={254} required />
         <label htmlFor="password">Password</label>
         <input id="password" name="password" type="password" autoComplete="current-password" minLength={8} maxLength={256} required />
-        <button className="primary-button" type="submit">Sign in</button>
+        <button className="admin-primary-button" type="submit">Sign in</button>
       </form>
     </main>
   );
