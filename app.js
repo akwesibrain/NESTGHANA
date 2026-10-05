@@ -226,9 +226,9 @@ function chooseTown(place) {
   render();
 }
 function populateTownOptions(select, regionName, selectedName = "") {
-  const places = TOWN_RECORDS.filter(
-    (place) => !regionName || place.region === regionName,
-  );
+  const places = regionName
+    ? TOWN_RECORDS.filter((place) => place.region === regionName)
+    : [];
   select.replaceChildren(
     new Option(
       regionName ? "All towns" : "Select a region first",

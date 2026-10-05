@@ -1,5 +1,5 @@
 :root {
-  --img: url(hero.jpg);
+  --img: url(hero.webp);
   --bg: #f7f4ee;
   --card: #ffffff;
   --ink: #171614;
@@ -4399,4 +4399,14 @@ body.public-site .cookie-reject {
 }
 .fg a {
   display: flex;
+}
+
+/* Skip rendering work for sections far below the fold */
+#categories,
+#shops-spaces,
+#how,
+#listroom,
+footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 640px;
 }
