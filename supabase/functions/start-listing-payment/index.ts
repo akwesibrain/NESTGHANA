@@ -3,8 +3,10 @@ import { corsHeaders, env, isAllowedBrowserOrigin, jsonResponse } from "../_shar
 import { getPaystackTransaction, recordVerifiedPayment } from "../_shared/payment.ts";
 
 const requiredPhotos = ["Exterior", "Bedroom", "Bathroom", "Kitchen", "Compound or common area"];
+const requiredCommercialPhotos = ["Exterior", "Interior", "Frontage", "Facilities", "Surrounding area"];
 const supportedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const roomTypes = new Set(["Single Room", "Chamber & Hall", "Self-Contained", "1-in-a-Room", "2-in-a-Room", "4-in-a-Room", "Student Hostel"]);
+const commercialTypes = new Set(["Shop", "Store", "Office", "Showroom", "Warehouse", "Salon", "Restaurant", "Commercial Space", "Other"]);
 const conditions = new Set(["New", "Newly Renovated", "Good Condition", "Fair Condition"]);
 const policyLabels = [
   "authorized_to_list",
@@ -160,35 +162,51 @@ Deno.serve(async (request) => {
     if (!listingId) {
       const phone = normalizePhone(String(listing.phone));
       const whatsapp = normalizePhone(String(listing.wa));
-      const rentPeriodValue = rentPeriod(listing.period);
+      const isCommercial = listing.category === "commercial";
+      const requiredPhotoCategories = isCommercial ? requiredCommercialPhotos : requiredPhotos;
+      const rentPeriodValue = isCommercial ? "MONTH" : rentPeriod(listing.period);
       const rentCedis = numberValue(listing.rent);
       const units = numberValue(listing.units);
-      const bedrooms = numberValue(listing.beds);
-      const advance = numberValue(listing.adv);
+      const bedrooms = isCommercial ? null : numberValue(listing.beds);
+      const advance = isCommercial ? 0 : numberValue(listing.adv);
+      const advanceAmountPesewas = isCommercial ? Math.round(numberValue(listing.advanceAmount) * 100) : null;
       const rentPesewas = Math.round(rentCedis * 100);
       const depositPesewas = Math.round(numberValue(listing.dep) * 100);
       const agencyFeePesewas = Math.round(numberValue(listing.fee) * 100);
       const otherChargesPesewas = Math.round(numberValue(listing.oth) * 100);
+      const estimatedMoveInCostPesewas = (advanceAmountPesewas ?? 0) + depositPesewas + agencyFeePesewas + otherChargesPesewas;
       const maxOccupants = numberValue(listing.maxOcc);
       const exactAddress = typeof listing.addr === "string" ? listing.addr.trim() : "";
       const availability = listing.avail === "Yes, available now" ? new Date().toISOString().slice(0, 10) : listing.from;
       const unitsAvailable = numberValue(listing.aunits);
       const latitude = listing.lat === undefined ? null : numberValue(listing.lat);
       const longitude = listing.lng === undefined ? null : numberValue(listing.lng);
+      const descriptionValid = typeof listing.desc === "string"
+        && listing.desc.trim().length >= 100 && listing.desc.length <= 5000;
+      const categoryValid = isCommercial
+        ? commercialTypes.has(String(listing.type))
+          && (listing.type !== "Other" || (typeof listing.otherType === "string" && listing.otherType.trim().length >= 2 && listing.otherType.trim().length <= 60))
+          && Number.isFinite(numberValue(listing.size)) && numberValue(listing.size) > 0 && numberValue(listing.size) <= 1_000_000
+          && ["Yes", "No"].every((choice) =>
+            [listing.roadVisibility, listing.parking, listing.electricity, listing.water].includes(choice))
+          && Number.isSafeInteger(advanceAmountPesewas) && advanceAmountPesewas >= 0 && advanceAmountPesewas <= 2_147_483_647
+          && Number.isSafeInteger(estimatedMoveInCostPesewas) && estimatedMoveInCostPesewas <= 2_147_483_647
+        : roomTypes.has(String(listing.type))
+          && conditions.has(String(listing.cond))
+          && ["Furnished", "Unfurnished"].includes(String(listing.furn))
+          && Number.isSafeInteger(bedrooms) && bedrooms >= 0 && bedrooms <= 100;
       if (
-        typeof listing.desc !== "string" || listing.desc.trim().length < 100 || listing.desc.length > 5000
-        || typeof listing.type !== "string" || !roomTypes.has(listing.type)
-        || typeof listing.cond !== "string" || !conditions.has(listing.cond)
-        || !["Furnished", "Unfurnished"].includes(String(listing.furn))
+        !descriptionValid
+        || typeof listing.type !== "string" || !categoryValid
+        || (isCommercial && !conditions.has(String(listing.cond)))
         || !Number.isSafeInteger(units) || units < 1 || units > 500
-        || !Number.isSafeInteger(bedrooms) || bedrooms < 0 || bedrooms > 100
         || !Number.isSafeInteger(advance) || advance < 0 || advance > 120
         || !Number.isSafeInteger(rentPesewas) || rentPesewas <= 0 || rentPesewas > 2_147_483_647
         || !Number.isSafeInteger(depositPesewas) || depositPesewas < 0 || depositPesewas > 2_147_483_647
         || !Number.isSafeInteger(agencyFeePesewas) || agencyFeePesewas < 0 || agencyFeePesewas > 2_147_483_647
         || !Number.isSafeInteger(otherChargesPesewas) || otherChargesPesewas < 0 || otherChargesPesewas > 2_147_483_647
-        || !Number.isSafeInteger(maxOccupants) || maxOccupants < 1 || maxOccupants > 500
-        || !rentPeriodValue || (rentPeriodValue === "OTHER" && (typeof listing.periodOther !== "string" || listing.periodOther.trim().length < 2))
+        || (!isCommercial && (!Number.isSafeInteger(maxOccupants) || maxOccupants < 1 || maxOccupants > 500))
+        || !rentPeriodValue || (!isCommercial && rentPeriodValue === "OTHER" && (typeof listing.periodOther !== "string" || listing.periodOther.trim().length < 2))
         || exactAddress.length < 5 || exactAddress.length > 1000
         || !["Yes, available now", "No, available from a later date"].includes(String(listing.avail))
         || !validDate(availability) || !Number.isSafeInteger(unitsAvailable) || unitsAvailable < 1 || unitsAvailable > units
@@ -197,7 +215,7 @@ Deno.serve(async (request) => {
         || ((latitude === null) !== (longitude === null))
         || !slugify(String(listing.region).trim()) || !slugify(String(listing.town).trim()) || !slugify(String(listing.area).trim())
       ) {
-        return jsonResponse({ error: "Some listing details are invalid. Check the description, room details, rent, address, and availability." }, 400, request);
+        return jsonResponse({ error: "Some listing details are invalid. Check the property details, rent, address, and availability." }, 400, request);
       }
 
       const photoUploads: PhotoUpload[] = [];
@@ -210,7 +228,7 @@ Deno.serve(async (request) => {
         totalBytes += value.size;
         if (totalBytes > 4_500_000) return jsonResponse({ error: "The compressed photos are too large to upload together." }, 413, request);
         const rawCategory = key === "profile_photo" ? "Profile" : key.slice("photo:".length);
-        const category = requiredPhotos.includes(rawCategory) ? rawCategory : rawCategory.startsWith("Extra ") ? "Extra" : "";
+        const category = rawCategory === "Profile" ? "Profile" : requiredPhotoCategories.includes(rawCategory) ? rawCategory : rawCategory.startsWith("Extra ") ? "Extra" : "";
         if (!category) return jsonResponse({ error: "The photo category is invalid." }, 400, request);
         const extension = value.type === "image/png" ? "png" : value.type === "image/webp" ? "webp" : "jpg";
         photoUploads.push({
@@ -221,8 +239,8 @@ Deno.serve(async (request) => {
         });
       }
       const received = new Set(photoUploads.map((upload) => upload.category));
-      if (photoUploads.length > 16 || requiredPhotos.some((category) => !received.has(category)) || !received.has("Profile")) {
-        return jsonResponse({ error: "Upload all five required property photos and your profile photo." }, 400, request);
+      if (photoUploads.length > 16 || requiredPhotoCategories.some((category) => !received.has(category)) || !received.has("Profile")) {
+        return jsonResponse({ error: "Upload every required property photo and your profile photo." }, 400, request);
       }
 
       const regionId = await findOrCreateLocation(supabase, "REGION", String(listing.region).trim());
@@ -247,15 +265,27 @@ Deno.serve(async (request) => {
         area_id: areaId,
         title: listing.title.trim(),
         description: listing.desc.trim(),
+        property_category: isCommercial ? "COMMERCIAL" : "ROOM",
         room_type: listing.type,
         condition: listing.cond,
-        furnished: listing.furn,
+        furnished: isCommercial ? "Not Applicable" : listing.furn,
         units_total: units,
         bedrooms,
         rent_amount_pesewas: rentPesewas,
         rent_period: rentPeriodValue,
         rent_period_other: rentPeriodValue === "OTHER" ? String(listing.periodOther).trim() : null,
         advance_payments: advance,
+        advance_amount_pesewas: advanceAmountPesewas,
+        commercial_details: isCommercial ? {
+          type: listing.type,
+          typeOther: listing.type === "Other" ? String(listing.otherType).trim() : null,
+          size: numberValue(listing.size),
+          roadVisibility: listing.roadVisibility === "Yes",
+          parking: listing.parking === "Yes",
+          electricity: listing.electricity === "Yes",
+          water: listing.water === "Yes",
+          estimatedMoveInCost: estimatedMoveInCostPesewas,
+        } : {},
         deposit_pesewas: depositPesewas,
         agency_fee_pesewas: agencyFeePesewas,
         other_charges_pesewas: otherChargesPesewas,

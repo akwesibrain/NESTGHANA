@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   },
   description: "Find available rooms and student hostels in Ghana. Clear pricing, current availability, and direct contact with owners.",
   referrer: "no-referrer",
+  icons: { icon: "/logo.png?v=2", apple: "/logo.png?v=2" },
 };
 
 export const viewport: Viewport = {

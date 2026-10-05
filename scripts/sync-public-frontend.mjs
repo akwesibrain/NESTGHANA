@@ -1,4 +1,4 @@
-import { mkdir, copyFile } from "node:fs/promises";
+import { mkdir, copyFile, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = process.cwd();
@@ -20,3 +20,11 @@ const assets = [
 await mkdir(publicDir, { recursive: true });
 await Promise.all(assets.map(([source, destination]) =>
   copyFile(resolve(root, source), resolve(publicDir, destination))));
+
+const locationCatalog = JSON.parse(
+  await readFile(resolve(root, "data/ghana-locations.json"), "utf8"),
+);
+await writeFile(
+  resolve(publicDir, "ghana-locations.js"),
+  `window.NESTGH_LOCATION_CATALOG=${JSON.stringify(locationCatalog)};\n`,
+);

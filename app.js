@@ -147,10 +147,15 @@ const $ = (id) => document.getElementById(id),
   stu = $("stu"),
   saved = new Set(),
   must = new Set(),
-  townSuggestions = $("town-suggestions");
-let selectedTown = null,
-  currentTownSuggestions = [];
+  commercialRegion = $("commercial-region"),
+  commercialTown = $("commercial-town");
+const regionOptions = REGIONS.map(
+  (name) => `<option value="${name}">${name}</option>`,
+).join("");
+region.insertAdjacentHTML("beforeend", regionOptions);
+commercialRegion.insertAdjacentHTML("beforeend", regionOptions);
 let savedOnly = false;
+let browseCategory = "";
 let listingFeePesewas = null;
 const supabaseClient =
   window.supabase?.createClient && window.NESTGH_SUPABASE_CONFIG?.publishableKey
@@ -213,39 +218,28 @@ const locationKey = (value) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLocaleLowerCase();
-function hideTownSuggestions() {
-  townSuggestions.hidden = true;
-  town.setAttribute("aria-expanded", "false");
-  currentTownSuggestions = [];
-}
-function showTownSuggestions(query) {
-  const prefix = locationKey(query);
-  if (!prefix) {
-    hideTownSuggestions();
-    return;
-  }
-  currentTownSuggestions = TOWN_RECORDS.filter(
-    (place) =>
-      (!region.value || place.region === region.value) &&
-      place.key.startsWith(prefix),
-  ).slice(0, 12);
-  townSuggestions.innerHTML = currentTownSuggestions
-    .map(
-      (place, index) =>
-        `<button type="button" role="option" aria-selected="false" data-town-index="${index}"><span>${htmlEsc(place.name)}</span><small>${htmlEsc(place.region)} Region</small></button>`,
-    )
-    .join("");
-  townSuggestions.hidden = currentTownSuggestions.length === 0;
-  town.setAttribute("aria-expanded", String(currentTownSuggestions.length > 0));
-}
 function chooseTown(place) {
-  town.value = place.name;
   region.value = place.region;
+  populateTownOptions(region, place.region, place.name);
+  town.value = place.name;
   area.value = "";
-  selectedTown = place;
-  hideTownSuggestions();
   fillAreas();
   render();
+}
+function populateTownOptions(select, regionName, selectedName = "") {
+  const places = TOWN_RECORDS.filter(
+    (place) => !regionName || place.region === regionName,
+  );
+  select.replaceChildren(
+    new Option(
+      regionName ? "All towns" : "Select a region first",
+      "",
+    ),
+    ...places.map((place) => new Option(place.name, place.name)),
+  );
+  select.disabled = !regionName;
+  if (selectedName && places.some((place) => place.name === selectedName))
+    select.value = selectedName;
 }
 function populateOwnerTownOptions(query = "", regionName = "") {
   const datalist = $("tl");
@@ -259,7 +253,7 @@ function populateOwnerTownOptions(query = "", regionName = "") {
     (place) =>
       (!regionName || place.region === regionName) &&
       (!prefix || place.key.startsWith(prefix)),
-  ).slice(0, 20);
+  );
   datalist.replaceChildren(
     ...options.map((place) => {
       const option = document.createElement("option");
@@ -270,17 +264,53 @@ function populateOwnerTownOptions(query = "", regionName = "") {
   );
 }
 async function loadLocationCatalog() {
-  const response = await fetch("/ghana-locations.json");
-  if (!response.ok)
-    throw new Error(
-      `Town directory request failed with HTTP ${response.status}.`,
-    );
-  const catalog = await response.json();
+  let catalog = window.NESTGH_LOCATION_CATALOG;
+  if (!catalog) {
+    const paths = [
+      new URL("ghana-locations.json", document.baseURI),
+      new URL("data/ghana-locations.json", document.baseURI),
+    ];
+    let lastError;
+    for (const path of paths) {
+      try {
+        const response = await fetch(path);
+        if (!response.ok)
+          throw new Error(`Town directory request failed with HTTP ${response.status}.`);
+        catalog = await response.json();
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (!catalog) throw lastError || new Error("Town directory is unavailable.");
+  }
   if (!Array.isArray(catalog.regions) || !Array.isArray(catalog.campuses))
     throw new Error("Town directory data is invalid.");
   const regionNames = catalog.regions.map((entry) => entry.name);
-  if (REGIONS.some((name) => !regionNames.includes(name)))
-    throw new Error("Town directory is missing a Ghana region.");
+  if (
+    regionNames.length !== REGIONS.length ||
+    REGIONS.some((name) => !regionNames.includes(name)) ||
+    catalog.regions.some(
+      (entry) =>
+        !entry ||
+        typeof entry.name !== "string" ||
+        !Array.isArray(entry.towns) ||
+        entry.towns.some((name) => typeof name !== "string"),
+    ) ||
+    catalog.campuses.some(
+      (entry) =>
+        !entry ||
+        typeof entry.institution !== "string" ||
+        typeof entry.campus !== "string" ||
+        typeof entry.town !== "string" ||
+        !catalog.regions.some(
+          (regionEntry) =>
+            regionEntry.name === entry.region &&
+            regionEntry.towns.includes(entry.town),
+        ),
+    )
+  )
+    throw new Error("Ghana location directory is incomplete or invalid.");
   TOWN_RECORDS = catalog.regions
     .flatMap((entry) =>
       entry.towns.map((name) => ({
@@ -298,15 +328,15 @@ async function loadLocationCatalog() {
       return [label, { r: entry.region, t: entry.town, m: {} }];
     }),
   );
+  populateTownOptions(town, region.value);
+  populateTownOptions(commercialTown, commercialRegion.value);
   camp.innerHTML =
     '<option value="">Choose your campus</option>' +
     Object.keys(CAMPUS)
       .map((name) => `<option>${htmlEsc(name)}</option>`)
       .join("");
-  populateOwnerTownOptions(
-    $("f_town")?.value || "",
-    $("f_region")?.value || "",
-  );
+  populateOwnerTownOptions($("f_town")?.value || "", $("f_region")?.value || "");
+  $("location-status").hidden = true;
 }
 function ensureLocationCatalog() {
   if (!locationCatalogPromise) {
@@ -319,7 +349,7 @@ function ensureLocationCatalog() {
         console.error("Could not load Ghana location directory:", error);
         const status = $("location-status");
         status.textContent =
-          "Town and campus suggestions could not be loaded. Please try again.";
+          "Town and campus lists could not be loaded. Please try again.";
         status.hidden = false;
         camp.innerHTML =
           '<option value="">Campus suggestions unavailable</option>';
@@ -331,6 +361,7 @@ function ensureLocationCatalog() {
 function requestLocationCatalog() {
   return ensureLocationCatalog().catch(() => {});
 }
+requestLocationCatalog();
 const st = (r) =>
   r.un
     ? ["r", "Unavailable"]
@@ -348,19 +379,6 @@ const st = (r) =>
             ? ["y", "Confirmed " + r.d + " days ago"]
             : ["w", "Needs confirmation"];
 const rank = (r) => (r.un ? 3 : r.d > 20 ? 2 : r.d > 7 ? 1 : 0);
-function sv(r) {
-  const f = r.f,
-    D = DEF[r.ty];
-  return {
-    Water: f.includes("Water") ? "Included" : "Separate",
-    Electricity: "Separate",
-    "Wi-Fi": f.includes("Wi-Fi") ? "Included" : "No",
-    Kitchen: D.kit,
-    Bathroom: D.bath,
-    Security: f.includes("Security") || f.includes("Gated") ? "Included" : "No",
-    Parking: f.includes("Parking") ? "Included" : "No",
-  };
-}
 const has = (r, k) =>
   k === "Kitchen"
     ? r.f.includes("Kitchen") || r.ty === "chamber" || r.ty === "self"
@@ -423,12 +441,12 @@ function nearby() {
   return `<div class="empty near"><b>No rooms found in ${htmlEsc(a)}.</b><p>${c.length ? "Try these nearby areas. Travel times are estimates and change with traffic." : "No matching rooms nearby either. Try a higher budget or another room type."}</p><div class="nl">${c.map((x) => `<button class="nb" data-t="${htmlEsc(x.nt)}" data-a="${htmlEsc(x.na)}"><b>${htmlEsc(x.na)}</b><span>${x.n} room${x.n > 1 ? "s" : ""} · usually ${x.lo}–${x.hi} min away · ${x.km} km</span></button>`).join("")}</div></div>`;
 }
 function render() {
-  document.querySelectorAll(".category-card").forEach((button) => {
-    button.setAttribute("aria-pressed", String(ty.value === button.dataset.categoryType));
-  });
   const cm = stu.checked && camp.value ? CAMPUS[camp.value] : null;
-  const res = ROOMS.filter((r) =>
-    savedOnly ? saved.has(r.id) : match(r, area.value, town.value),
+  const res = (browseCategory === "houses"
+    ? []
+    : ROOMS.filter((r) =>
+        savedOnly ? saved.has(r.id) : match(r, area.value, town.value),
+      )
   ).sort(
     (a, b) =>
       rank(a) - rank(b) ||
@@ -441,7 +459,9 @@ function render() {
   const live = res.filter((r) => !r.un).length;
   $("re").textContent = savedOnly
     ? "Your saved rooms"
-    : "Rooms in " +
+    : browseCategory === "houses"
+      ? "Family homes and apartments"
+      : "Rooms in " +
       ([region.value && `${region.value} Region`, area.value || town.value]
         .filter(Boolean)
         .join(" · ") || "Ghana");
@@ -449,7 +469,9 @@ function render() {
     ? live
       ? `${live} saved room${live > 1 ? "s" : ""}`
       : "No saved rooms yet"
-    : ROOMS.length
+    : browseCategory === "houses"
+      ? "Houses & apartments"
+      : ROOMS.length
       ? live
         ? `${live} room${live > 1 ? "s" : ""} available`
         : "No rooms found"
@@ -457,6 +479,8 @@ function render() {
   $("list").setAttribute("aria-busy", String(isLoadingListings));
   const emptyMessage = live
     ? ""
+    : browseCategory === "houses"
+      ? '<div class="empty"><b>House listings are not available yet.</b><p>Browse rooms or check back when house listings are available.</p></div>'
     : savedOnly
       ? '<div class="empty"><b>No saved rooms yet</b><p>Tap the heart on a room to save it here.</p></div>'
       : hasMoreListings
@@ -485,15 +509,29 @@ function render() {
         : "Load more rooms";
 }
 function openSheet(i) {
-  const r = ROOMS[i],
-    d = r.details || {},
-    m = d.m || {},
-    D = DEF[r.ty],
-    s = sv(r),
-    [k, l] = st(r),
-    h = r.ty === "hostel";
+  const   r = ROOMS[i],
+  d = r.details || {},
+  m = d.m || {},
+  D = DEF[r.ty],
+  monthlyRent = r.p,
+    estimatedMoveIn =
+      monthlyRent * (Number(r.adv) || 0) +
+      (Number(r.dep) || 0) +
+      (Number(r.fee) || 0) +
+      (Number(d.oth) || 0),
+    description = String(d.description || d.desc || "").trim(),
+    status = r.un
+      ? "Unavailable"
+      : r.availableFrom
+        ? `Available from ${r.availableFrom}`
+        : d.avail === "Yes, available now"
+          ? "Available now"
+          : d.avail === "No, available from a later date"
+            ? "Available from a later date"
+            : d.avail || "";
   const kv = (o) =>
     `<div class="kv">${Object.entries(o)
+      .filter(([, value]) => value !== null && value !== undefined && value !== "")
       .map(
         ([a, b]) => `<div><span>${htmlEsc(a)}</span><b>${htmlEsc(b)}</b></div>`,
       )
@@ -522,27 +560,78 @@ function openSheet(i) {
   ].filter(Boolean);
   const rules = {
     "Who can stay": Array.isArray(d.who) ? d.who.join(", ") : "",
-    "Maximum occupants": d.maxOcc || "Not specified",
-    Cooking: d.cooking || "Not specified",
-    Visitors: d.visitors || "Not specified",
-    Pets: d.pets || "Not specified",
-    Smoking: d.smoking || "Not specified",
-    Curfew: d.curfew === "Curfew applies" ? d.curfewTime : "No curfew",
-    Noise: d.noise || "Not specified",
+    "Maximum occupants": d.maxOcc,
+    Cooking: d.cooking,
+    Visitors: d.visitors,
+    Pets: d.pets,
+    Smoking: d.smoking,
+    Curfew: d.curfew === "Curfew applies" ? d.curfewTime : d.curfew,
+    Noise: d.noise,
   };
+  const roomFacts = {
+    Type: d.type || TYPE[r.ty],
+    ...(d.beds ? { Bedrooms: d.beds } : {}),
+    ...(d.bath ? { Bathroom: d.bath } : D.bath ? { Bathroom: D.bath } : {}),
+    ...(d.size ? { Size: d.size } : D.size ? { Size: D.size } : {}),
+    ...(d.furn ? { Furnished: d.furn } : {}),
+    ...(status ? { Availability: status } : {}),
+  };
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.a + " " + r.t + " Ghana")}`;
+  const featureList = [...new Set([...included, ...r.f])];
+  const availableRules = Object.fromEntries(
+    Object.entries(rules).filter(([, value]) => value !== null && value !== undefined && value !== ""),
+  );
+  const ownerContact = btns(r).replace(">WhatsApp</a>", ">Contact Owner</a>");
   $("sheet").innerHTML =
-    `<div class="sp" role="dialog" aria-modal="true" aria-label="${htmlEsc(r.n)}"><button class="x" id="cx" aria-label="Close">Close ✕</button><div class="pic sm">${photos || art(i)}</div>
-<h3 class="sn">${htmlEsc(r.n)}</h3><div class="loc">${ico("pin")}${htmlEsc(r.a)}, ${htmlEsc(r.t)}</div><div class="meta"><span class="st"><i class="${k}"></i>${l}</span>${r.v ? " · <b>✔ NestGH Verified</b>" : ""}</div>
-<h4>Room overview</h4>${kv({ Type: d.type || TYPE[r.ty], Condition: d.cond || "Not specified", Furnished: d.furn || "Not specified", "Approx. size": d.size || D.size, Bathroom: d.bath || D.bath, Kitchen: d.kit || D.kit, "Units available": d.aunits || "Not specified" })}
-<h4>Price and costs</h4>${kv({ Rent: ghs(r.rentAmount ?? r.p) + " / " + pl, Advance: (r.adv || 0) + " payment(s) upfront", "Security deposit": ghs(r.dep), "Agency or caretaker fee": ghs(r.fee), "Other mandatory charges": ghs(otherCost) })}<div class="tot"><span>Estimated initial payment</span><b>${ghs((r.rentAmount ?? r.p) * r.adv + r.dep + r.fee + otherCost)}</b></div>
-<h4>What is included</h4>${tg(included)}<h4>What you pay for separately</h4>${tg(separate.concat(extras), "sep")}<h4>Facilities</h4>${tg(r.f)}
-<h4>Rules</h4>${kv(rules)}
-<h4>Location</h4><p class="np">Landmark: ${htmlEsc(r.lm)}. The exact address is not shown publicly.</p><a class="mp" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.a + " " + r.t + " Ghana")}">Open area in Maps</a>
-<h4>Photos</h4><div class="listing-photos">${photos || "<p class=np>No photos provided.</p>"}</div>
-<h4>Availability</h4>${kv({ Status: r.un ? "Taken" : d.avail === "Yes, available now" ? "Available now" : "Available from " + (d.from || "a later date"), "Last confirmed": r.d === 0 ? "Today" : r.d + " days ago" })}
-<h4>Owner or caretaker</h4><p class="np">${htmlEsc(r.own || "Owner")}. Contact the listing owner directly.</p>
-<div class="acts big">${r.un ? '<span class="gone">Taken</span>' : btns(r)}</div>
-<h4>Report this listing</h4><div class="rep"><select id="rr" aria-label="Reason"><option>Room already taken</option><option>Wrong price</option><option>Fake photos</option><option>Wrong location</option><option>Suspicious or scam</option><option>Owner not responding</option></select><button class="btn" id="rp" data-id="${htmlEsc(r.id)}">Report</button></div></div>`;
+    `<div class="sp property-details" role="dialog" aria-modal="true" aria-label="${htmlEsc(`Property details: ${r.n}`)}">
+      <button class="x" id="cx" aria-label="Close">Close ✕</button>
+      <header class="property-details-heading"><span class="property-details-mark">${ico("user")}</span><div><h2>Property Details</h2><p>Everything you need to know before you contact.</p></div></header>
+      <section class="property-summary">
+        <div class="property-summary-image">${photos ? `<img src="${htmlEsc(r.photos[0])}" alt="${htmlEsc(r.n)}" width="400" height="300" decoding="async">` : art(i)}${r.photos.length > 1 ? `<span class="property-photo-count">${r.photos.length} photos</span>` : ""}</div>
+        <div class="property-summary-copy">
+          <span class="property-kind">${htmlEsc(d.type || TYPE[r.ty])}</span>
+          <h3 class="sn">${htmlEsc(r.n)}</h3>
+          <p class="property-summary-location">${ico("pin")}${htmlEsc([r.t, r.a].filter(Boolean).join(" · "))}</p>
+          <p class="property-summary-rent">${ghs(monthlyRent)} <span>/month</span></p>
+          ${estimatedMoveIn > 0 ? `<p class="property-move-in">Estimated move-in cost <b>${ghs(estimatedMoveIn)}</b></p>` : ""}
+          <div class="property-quick-facts">${d.beds ? `<span>${ico("home")} ${htmlEsc(d.beds)} bed</span>` : ""}${d.bath || D.bath ? `<span>${ico("home")} ${htmlEsc(d.bath || D.bath)} bath</span>` : ""}${status ? `<span class="property-availability">${htmlEsc(status)}</span>` : ""}</div>
+          ${r.v ? '<span class="property-verified">NestGH verified</span>' : ""}
+        </div>
+      </section>
+      <div class="property-tabs" role="tablist" aria-label="Property information">
+        <button type="button" class="property-tab is-active" id="property-tab-overview" role="tab" aria-selected="true" aria-controls="property-panel-overview" data-property-tab="overview">Overview</button>
+        <button type="button" class="property-tab" id="property-tab-facilities" role="tab" aria-selected="false" aria-controls="property-panel-facilities" data-property-tab="facilities">Facilities</button>
+        <button type="button" class="property-tab" id="property-tab-rules" role="tab" aria-selected="false" aria-controls="property-panel-rules" data-property-tab="rules">Rules</button>
+        <button type="button" class="property-tab" id="property-tab-location" role="tab" aria-selected="false" aria-controls="property-panel-location" data-property-tab="location">Location</button>
+      </div>
+      <section class="property-panel" id="property-panel-overview" role="tabpanel" aria-labelledby="property-tab-overview" data-property-panel="overview">
+        ${description ? `<h4>Description</h4><p class="property-description">${htmlEsc(description)}</p>` : ""}
+        <h4>Property details</h4>${kv(roomFacts)}
+        <h4>Price details</h4>${kv({ Rent: `${ghs(r.rentAmount ?? monthlyRent)} / ${pl}`, ...(r.adv ? { Advance: `${r.adv} payment(s) upfront` } : {}), ...(r.dep ? { "Security deposit": ghs(r.dep) } : {}), ...(r.fee ? { "Agency or caretaker fee": ghs(r.fee) } : {}), ...(otherCost ? { "Other mandatory charges": ghs(otherCost) } : {}) })}
+        ${estimatedMoveIn > 0 ? `<div class="tot"><span>Estimated move-in cost</span><b>${ghs(estimatedMoveIn)}</b></div>` : ""}
+      </section>
+      <section class="property-panel" id="property-panel-facilities" role="tabpanel" aria-labelledby="property-tab-facilities" data-property-panel="facilities" hidden>
+        ${featureList.length ? `<h4>Property features</h4>${tg(featureList)}` : ""}
+        ${separate.length || extras.length ? `<h4>Paid separately</h4>${tg(separate.concat(extras), "sep")}` : ""}
+        ${d.kit ? `<h4>Kitchen</h4><p class="property-description">${htmlEsc(d.kit)}</p>` : ""}
+        ${d.cond ? `<h4>Condition</h4><p class="property-description">${htmlEsc(d.cond)}</p>` : ""}
+        ${photos ? `<h4>Photos</h4><div class="listing-photos">${photos}</div>` : ""}
+      </section>
+      <section class="property-panel" id="property-panel-rules" role="tabpanel" aria-labelledby="property-tab-rules" data-property-panel="rules" hidden>
+        ${Object.keys(availableRules).length ? `<h4>Property rules</h4>${kv(availableRules)}` : '<p class="property-description">No rules have been provided.</p>'}
+      </section>
+      <section class="property-panel" id="property-panel-location" role="tabpanel" aria-labelledby="property-tab-location" data-property-panel="location" hidden>
+        ${kv({ Town: r.t, Area: r.a, Landmark: r.lm })}
+        <p class="np">The exact address is not shown publicly.</p>
+        <a class="mp" target="_blank" rel="noopener" href="${mapUrl}">Open area in Maps</a>
+        ${status ? `<h4>Availability</h4>${kv({ Status: status })}` : ""}
+      </section>
+      <section class="property-contact">
+        <div><b>${htmlEsc(r.own || "Property owner")}</b><span>Contact the listing owner directly.</span></div>
+        ${r.un ? '<span class="gone">Unavailable</span>' : `<div class="property-contact-actions">${ownerContact}</div>`}
+      </section>
+      <details class="property-report"><summary>Report this listing</summary><div class="rep"><select id="rr" aria-label="Reason"><option>Room already taken</option><option>Wrong price</option><option>Fake photos</option><option>Wrong location</option><option>Suspicious or scam</option><option>Owner not responding</option></select><button class="btn" id="rp" data-id="${htmlEsc(r.id)}">Report</button></div></details>
+    </div>`;
   $("sheet").classList.add("on");
   updateModalScroll();
   {
@@ -556,6 +645,20 @@ function closeSheet() {
   updateModalScroll();
 }
 $("sheet").onclick = async (e) => {
+  const propertyTab = e.target.closest("[data-property-tab]");
+  if (propertyTab) {
+    const sheet = $("sheet");
+    const selected = propertyTab.dataset.propertyTab;
+    sheet.querySelectorAll("[data-property-tab]").forEach((tab) => {
+      const active = tab === propertyTab;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+    });
+    sheet.querySelectorAll("[data-property-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.propertyPanel !== selected;
+    });
+  }
   if (e.target.id === "sheet" || e.target.closest("#cx")) closeSheet();
   const report = e.target.closest("#rp");
   if (report) {
@@ -611,74 +714,24 @@ $("list").onclick = (e) => {
   const c = e.target.closest(".card");
   if (c) openSheet(+c.dataset.o);
 };
-town.addEventListener("input", () => {
-  selectedTown = null;
+town.addEventListener("change", () => {
   area.value = "";
-  showTownSuggestions(town.value);
-  requestLocationCatalog().then(() => showTownSuggestions(town.value));
-});
-town.addEventListener("focus", () => {
-  showTownSuggestions(town.value);
-  requestLocationCatalog().then(() => showTownSuggestions(town.value));
-});
-town.addEventListener("keydown", (event) => {
-  if (event.key === "ArrowDown" && !townSuggestions.hidden) {
-    event.preventDefault();
-    townSuggestions.querySelector("button")?.focus();
-  } else if (event.key === "Escape") hideTownSuggestions();
-});
-townSuggestions.addEventListener("focusin", (event) => {
-  townSuggestions
-    .querySelectorAll("button")
-    .forEach((option) =>
-      option.setAttribute(
-        "aria-selected",
-        String(option === event.target.closest("button")),
-      ),
-    );
-});
-townSuggestions.addEventListener("click", (event) => {
-  const option = event.target.closest("[data-town-index]");
-  if (!option) return;
-  const place = currentTownSuggestions[Number(option.dataset.townIndex)];
-  if (place) chooseTown(place);
-});
-townSuggestions.addEventListener("keydown", (event) => {
-  const options = [...townSuggestions.querySelectorAll("button")],
-    index = options.indexOf(document.activeElement);
-  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-    event.preventDefault();
-    options[
-      Math.max(
-        0,
-        Math.min(
-          options.length - 1,
-          index + (event.key === "ArrowDown" ? 1 : -1),
-        ),
-      )
-    ]?.focus();
-  } else if (event.key === "Escape") {
-    hideTownSuggestions();
-    town.focus();
-  }
-});
-document.addEventListener("click", (event) => {
-  if (!townSuggestions.contains(event.target) && event.target !== town)
-    hideTownSuggestions();
-});
-region.onchange = () => {
-  selectedTown = null;
-  if (
-    town.value &&
-    !TOWN_RECORDS.some(
-      (place) => place.name === town.value && place.region === region.value,
-    )
-  )
-    town.value = "";
-  area.value = "";
-  if (town.value) showTownSuggestions(town.value);
   fillAreas();
   render();
+});
+region.onchange = () => {
+  populateTownOptions(town, region.value);
+  area.value = "";
+  fillAreas();
+  render();
+};
+town.onchange = () => {
+  area.value = "";
+  fillAreas();
+  render();
+};
+commercialRegion.onchange = () => {
+  populateTownOptions(commercialTown, commercialRegion.value);
 };
 document.querySelectorAll(".mh").forEach(
   (b) =>
@@ -699,10 +752,8 @@ camp.onchange = () => {
   if (camp.value) {
     const selected = CAMPUS[camp.value];
     region.value = selected.r;
-    town.value = selected.t;
+    populateTownOptions(town, selected.r, selected.t);
     area.value = "";
-    selectedTown = { name: selected.t, region: selected.r };
-    hideTownSuggestions();
     fillAreas();
   }
   render();
@@ -711,8 +762,7 @@ camp.onchange = () => {
 max.oninput = render;
 $("clr").onclick = () => {
   region.value = "";
-  town.value = "";
-  selectedTown = null;
+  populateTownOptions(town, "");
   ty.value = "";
   max.value = "";
   area.value = "";
@@ -723,25 +773,12 @@ $("clr").onclick = () => {
   stu.checked = false;
   camp.value = "";
   camp.classList.remove("open");
-  hideTownSuggestions();
+  browseCategory = "";
   fillAreas();
   render();
 };
 $("form").onsubmit = (e) => {
   e.preventDefault();
-  if (town.value) {
-    const candidates = TOWN_RECORDS.filter(
-      (place) =>
-        place.key === locationKey(town.value) &&
-        (!region.value || place.region === region.value),
-    );
-    if (candidates.length === 1) chooseTown(candidates[0]);
-    else if (!selectedTown) {
-      showTownSuggestions(town.value);
-      town.focus();
-      return;
-    }
-  }
   render();
   $("rooms").scrollIntoView({
     behavior: matchMedia("(prefers-reduced-motion:reduce)").matches
@@ -756,16 +793,26 @@ function toast(t) {
   setTimeout(() => e.classList.remove("on"), 2400);
 }
 ["l1", "l2"].forEach((i) => ($(i).onclick = openLF));
-document.querySelectorAll(".category-card").forEach((button) => {
-  button.addEventListener("click", () => {
-    ty.value = button.dataset.categoryType;
-    render();
-    $("rooms").scrollIntoView({
-      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-      block: "start",
-    });
+document.querySelectorAll(".category-card").forEach((link) => {
+  link.addEventListener("click", () => {
+    if (link.dataset.roomType !== undefined) {
+      browseCategory = "";
+      ty.value = link.dataset.roomType;
+      render();
+    }
+    if (link.dataset.commercialType) {
+      const form = $("commercial-filters");
+      form.reset();
+      populateTownOptions(commercialTown, "");
+      $("commercial-type").value = link.dataset.commercialType;
+      commercial.filters = window.NestGHCommercial.readFilters(form);
+      loadCommercialListings({ reset: true });
+    }
+    if (link.dataset.category === "houses") {
+      browseCategory = "houses";
+      ty.value = "";
+      render();
+    }
   });
 });
 $("sv").onclick = () => {
@@ -801,7 +848,6 @@ $("links").onclick = (e) => {
     $("mobile-more").setAttribute("aria-expanded", "false");
   }
 };
-camp.innerHTML = '<option value="">Select student to load campuses</option>';
 fillAreas();
 render();
 async function loadListingFee() {
@@ -1077,7 +1123,8 @@ function setupCommercialListings() {
   });
   $("commercial-clear").addEventListener("click", () => {
     form.reset();
-    commercial.filters = api.readFilters(form);
+      populateTownOptions(commercialTown, "");
+      commercial.filters = api.readFilters(form);
     loadCommercialListings({ reset: true });
   });
   $("commercial-retry").addEventListener("click", () => {
@@ -1149,6 +1196,7 @@ async function loadPublicListings() {
     ({ data, error } = await supabaseClient
       .from("public_listings")
       .select("id,public_data,created_at")
+      .eq("category", "ROOM")
       .order("created_at", { ascending: false })
       .order("id", { ascending: true })
       .range(listingOffset, listingOffset + LISTING_PAGE_SIZE - 1));
@@ -1175,7 +1223,12 @@ async function loadPublicListings() {
   const selectedArea = area.value;
   ROOMS.push(
     ...page
-      .map(mapPublicListing)
+    .filter(
+      (row) =>
+        row.category !== "COMMERCIAL" &&
+        row.public_data?.category !== "commercial",
+    )
+    .map(mapPublicListing)
       .filter((room) => room.t && room.a && room.p > 0 && room.c),
   );
   fillAreas();
@@ -1377,6 +1430,17 @@ const TYPES = [
     "4-in-a-Room",
     "Student Hostel",
   ],
+  COMMERCIAL_TYPES = [
+    "Shop",
+    "Store",
+    "Office",
+    "Showroom",
+    "Warehouse",
+    "Salon",
+    "Restaurant",
+    "Commercial Space",
+    "Other",
+  ],
   CONDS = ["New", "Newly Renovated", "Good Condition", "Fair Condition"],
   PERIODS = ["Monthly", "3 Months", "6 Months", "Yearly", "Semester", "Other"],
   INC = [
@@ -1422,6 +1486,13 @@ const TYPES = [
     "Kitchen",
     "Compound or common area",
   ],
+  COMMERCIAL_PHC = [
+    "Exterior",
+    "Interior",
+    "Frontage",
+    "Facilities",
+    "Surrounding area",
+  ],
   EXC = ["Hall", "Wardrobe", "Parking", "Balcony", "Surrounding area", "Other"],
   ROLES = [
     "Property Owner",
@@ -1432,7 +1503,7 @@ const TYPES = [
   CONS = [
     "I confirm that I am authorized to list this property.",
     "The information I have provided is accurate.",
-    "The room is genuinely available.",
+    "The property is genuinely available.",
     "I understand that NestGH may contact me to confirm availability.",
     "I consent to my profile photo and relevant contact information being displayed to people viewing my listing.",
     "I understand that NestGH may reject or remove inaccurate, misleading or fraudulent listings.",
@@ -1449,6 +1520,12 @@ const S = { m: {}, ph: {}, extra: [], who: [], cons: [] },
 let cur = 0,
   reach = 0;
 const done = new Set();
+const activeSteps = () =>
+  S.category === "commercial"
+    ? STEPS.filter((_, index) => [0, 1, 2, 6, 7, 8, 9].includes(index))
+    : STEPS;
+const photoCategories = () =>
+  S.category === "commercial" ? COMMERCIAL_PHC : PHC;
 const today = () => {
   const d = new Date();
   return (
@@ -1469,6 +1546,8 @@ const inp = (k, t = "text", a = "") =>
   `<input id="f_${k}" data-k="${k}" type="${t}" value="${esc(S[k])}" ${a}>`;
 const sel = (k, o) =>
   `<select id="f_${k}" data-k="${k}"><option value="">Select</option>${o.map((x) => `<option${S[k] === x ? " selected" : ""}>${x}</option>`).join("")}</select>`;
+const categorySelect = () =>
+  `<select id="f_category" data-k="category"><option value="">Select</option><option value="rooms"${S.category === "rooms" ? " selected" : ""}>Rooms &amp; Hostels</option><option value="commercial"${S.category === "commercial" ? " selected" : ""}>Shops &amp; Spaces to Let</option></select>`;
 const txt = (k, r, ph = "") =>
   `<textarea id="f_${k}" data-k="${k}" rows="${r}" placeholder="${ph}">${esc(S[k])}</textarea>`;
 const rad = (k, o) =>
@@ -1483,11 +1562,12 @@ const bd = () => {
     d = n("dep") || 0,
     f = n("fee") || 0,
     o = n("oth") || 0,
+    advance = S.category === "commercial" ? n("advanceAmount") || 0 : r * a,
     pl =
       S.period === "Other"
         ? S.periodOther || "period"
         : PL[S.period] || "period";
-  return `<div class="tot2"><div><span>Rent</span><b>${ghs(r)} / ${esc(pl)}</b></div><div><span>Advance</span><b>${a} × ${esc(pl)} (${ghs(r * a)})</b></div><div><span>Security deposit</span><b>${ghs(d)}</b></div><div><span>Agency or caretaker fee</span><b>${ghs(f)}</b></div><div><span>Other mandatory charges</span><b>${ghs(o)}</b></div><div class="g"><span>Estimated amount required to move in</span><b>${ghs(r * a + d + f + o)}</b></div></div>`;
+  return `<div class="tot2"><div><span>Rent</span><b>${ghs(r)} / ${esc(pl)}</b></div><div><span>Advance</span><b>${ghs(advance)}</b></div><div><span>Security deposit</span><b>${ghs(d)}</b></div><div><span>Agency or caretaker fee</span><b>${ghs(f)}</b></div><div><span>Other mandatory charges</span><b>${ghs(o)}</b></div><div class="g"><span>Estimated amount required to move in</span><b>${ghs(advance + d + f + o)}</b></div></div>`;
 };
 const slot = (c) =>
   `<div class="ps" data-f="ph_${c}"><b>${c}</b><div class="pv">${S.ph[c] ? `<img src="${S.ph[c]}" alt="${c} photo">` : "No photo yet"}</div><div class="pa"><label class="btn2 up">${S.ph[c] ? "Replace" : "Upload"}<input type="file" accept="image/jpeg,image/png,image/webp" data-ph="${c}"></label>${S.ph[c] ? `<button type="button" class="btn2" data-rm="${c}">Remove</button>` : ""}</div><em class="er"></em></div>`;
@@ -1503,7 +1583,7 @@ const KV = (o) =>
     .map(([a, b]) => `<div><span>${a}</span><b>${esc(b)}</b></div>`)
     .join("")}</div>`;
 const sec = (t, i, h) =>
-  `<section class="rv"><div class="rh"><b>${t}</b><button type="button" class="ed" data-go="${i}">Edit</button></div>${h}</section>`;
+  `<section class="rv"><div class="rh"><b>${t}</b><button type="button" class="ed" data-go="${activeSteps().indexOf(STEPS[i])}">Edit</button></div>${h}</section>`;
 const tags = (a) =>
   `<div class="vs">${a.map((x) => `<span>${esc(x)}</span>`).join("")}</div>`;
 const VAGUE = /^(nice|good|great|clean)?\s*room[.!]*$|^call me[.!]*$/i,
@@ -1511,8 +1591,26 @@ const VAGUE = /^(nice|good|great|clean)?\s*room[.!]*$|^call me[.!]*$/i,
     /^https?:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.)/i;
 const STEPS = [
   {
-    n: "Room",
-    r: () => `<h2>Room information</h2><p class="sub2">What are you listing? Tell seekers exactly what they will get.</p>
+    n: "Property",
+    r: () => !S.category
+      ? `<h2>Choose a listing type</h2><p class="sub2">Start by choosing what kind of property you want to list.</p>${F("category", "Property category", categorySelect())}`
+      : S.category === "commercial"
+      ? `<h2>Shop or space details</h2><p class="sub2">List a business property to rent with accurate details for prospective tenants.</p>
+${F("category", "What are you listing?", categorySelect())}
+${F("title", "Listing title", inp("title", "text", 'maxlength="80" placeholder="Describe the commercial property"'))}
+${F("type", "Business space type", sel("type", COMMERCIAL_TYPES))}
+${S.type === "Other" ? F("otherType", "Describe the space type", inp("otherType", "text", 'maxlength="60" placeholder="Describe the property type"')) : ""}
+${F("cond", "Property condition", sel("cond", CONDS))}
+${F("units", "Number of spaces available", inp("units", "number", 'min="1" inputmode="numeric"'))}
+${F("size", "Approximate floor area (m²)", inp("size", "number", 'min="1" step="0.1" inputmode="decimal"'))}
+<h3>Space features</h3>
+${F("roadVisibility", "Visible from the road?", rad("roadVisibility", ["Yes", "No"]))}
+${F("parking", "Parking available?", rad("parking", ["Yes", "No"]))}
+${F("electricity", "Electricity available?", rad("electricity", ["Yes", "No"]))}
+${F("water", "Water available?", rad("water", ["Yes", "No"]))}
+${F("desc", "Space description", txt("desc", 5, "Describe the space, its condition, location, facilities and anything a tenant should know."), 'Describe the property accurately. Write at least 100 characters. <span id="cc"></span>')}`
+      : `<h2>Room information</h2><p class="sub2">What are you listing? Tell seekers exactly what they will get.</p>
+${F("category", "What are you listing?", categorySelect())}
 ${F("title", "Listing title", inp("title", "text", 'maxlength="80" placeholder="e.g. Self-contained room near Community 20 market"'))}
 ${F("type", "Accommodation type", sel("type", TYPES))}${F("cond", "Property condition", sel("cond", CONDS))}
 ${F("furn", "Furnished or unfurnished", rad("furn", ["Furnished", "Unfurnished"]))}
@@ -1524,8 +1622,27 @@ ${F("store", "Wardrobe or storage", sel("store", ["Built-in wardrobe", "Space fo
     v: () => {
       const e = {},
         d = (S.desc || "").trim();
+      if (!S.category)
+        return { category: "Please choose what kind of property you want to list." };
       if ((S.title || "").trim().length < 8)
         e.title = "Please enter a listing title (at least 8 characters).";
+      if (S.category === "commercial") {
+        if (!COMMERCIAL_TYPES.includes(S.type))
+          e.type = "Please select the business space type.";
+        if (S.type === "Other" && blank("otherType"))
+          e.otherType = "Please describe the business space type.";
+        if (!S.cond) e.cond = "Please select the property condition.";
+        if (!(n("units") >= 1))
+          e.units = "Please enter how many spaces are available.";
+        if (!(n("size") > 0))
+          e.size = "Please enter the approximate floor area in square metres.";
+        if (d.length < 100 || d.split(/\s+/).length < 15 || VAGUE.test(d))
+          e.desc = "Please describe the space in at least 100 characters (about 15 words).";
+        ["roadVisibility", "parking", "electricity", "water"].forEach((key) => {
+          if (!S[key]) e[key] = "Please select Yes or No.";
+        });
+        return e;
+      }
       if (!S.type) e.type = "Please select the room type.";
       if (!S.cond) e.cond = "Please select the property condition.";
       if (!S.furn) e.furn = "Please choose furnished or unfurnished.";
@@ -1577,19 +1694,24 @@ ${F("addr", "Exact address or directions (private: only NestGH admin sees this)"
   {
     n: "Costs",
     r: () => `<h2>Price and costs</h2><p class="sub2">Show every mandatory charge. Nothing hidden.</p>
-${F("rent", "Rent amount (GH₵)", inp("rent", "number", 'min="1" inputmode="decimal"'))}${F("period", "Payment period", sel("period", PERIODS))}<div id="po" hidden>${F("periodOther", "Describe the payment period", inp("periodOther", "text", 'placeholder="e.g. every 2 months"'))}</div>
-${F("adv", "Advance required (number of payments upfront)", inp("adv", "number", 'min="0" step="1" inputmode="numeric"'), "Example: monthly rent with 12 means one year in advance. Enter 0 if none.")}
+${F("rent", S.category === "commercial" ? "Monthly rent (GH₵)" : "Rent amount (GH₵)", inp("rent", "number", 'min="1" inputmode="decimal"'))}${S.category === "commercial" ? '<p class="sub2">Commercial spaces are listed with monthly rent.</p>' : `${F("period", "Payment period", sel("period", PERIODS))}<div id="po" hidden>${F("periodOther", "Describe the payment period", inp("periodOther", "text", 'placeholder="e.g. every 2 months"'))}</div>`}
+${S.category === "commercial" ? F("advanceAmount", "Advance payment (GH₵, enter 0 if none)", inp("advanceAmount", "number", 'min="0" step="0.01" inputmode="decimal"')) : F("adv", "Advance required (number of payments upfront)", inp("adv", "number", 'min="0" step="1" inputmode="numeric"'), "Example: monthly rent with 12 means one year in advance. Enter 0 if none.")}
 ${F("dep", "Security deposit (GH₵, enter 0 if none)", inp("dep", "number", 'min="0" inputmode="decimal"'))}${F("fee", "Agency or caretaker fee (GH₵, enter 0 if none)", inp("fee", "number", 'min="0" inputmode="decimal"'))}
 ${F("oth", "Other mandatory charges (GH₵, enter 0 if none)", inp("oth", "number", 'min="0" inputmode="decimal"'))}<div id="on" hidden>${F("othNote", "Describe the other charges", inp("othNote"))}</div>
 <h3>What the seeker sees</h3><div id="bd"></div>`,
     v: () => {
       const e = {};
       if (!(n("rent") > 0)) e.rent = "Please enter the rent amount.";
-      if (!S.period) e.period = "Please select the payment period.";
-      if (S.period === "Other" && blank("periodOther"))
-        e.periodOther = "Please describe the payment period.";
-      if (blank("adv") || !(n("adv") >= 0) || n("adv") % 1)
-        e.adv = "Please enter the advance as a whole number (0 if none).";
+      if (S.category === "commercial") {
+        if (blank("advanceAmount") || !(n("advanceAmount") >= 0))
+          e.advanceAmount = "Please enter the advance amount (0 if none).";
+      } else {
+        if (!S.period) e.period = "Please select the payment period.";
+        if (S.period === "Other" && blank("periodOther"))
+          e.periodOther = "Please describe the payment period.";
+        if (blank("adv") || !(n("adv") >= 0) || n("adv") % 1)
+          e.adv = "Please enter the advance as a whole number (0 if none).";
+      }
       [
         "dep:security deposit",
         "fee:agency or caretaker fee",
@@ -1671,13 +1793,13 @@ ${F("otherRules", "Other rules (optional)", txt("otherRules", 6, "Any other hous
   {
     n: "Availability",
     r: () => `<h2>Availability</h2><p class="sub2">The date you submit is recorded automatically. Seekers see it as "Confirmed today" or "Confirmed 3 days ago".</p>
-${F("avail", "Is the room currently available?", rad("avail", ["Yes, available now", "No, available from a later date"]))}${F("from", "Available from", inp("from", "date"))}${F("aunits", "Number of units currently available", inp("aunits", "number", 'min="1" inputmode="numeric"'))}
-<div class="warn">You do not pay again to keep your listing live. If the room is taken, you or NestGH can mark it Unavailable.</div>`,
+${F("avail", S.category === "commercial" ? "Is the space currently available?" : "Is the room currently available?", rad("avail", ["Yes, available now", "No, available from a later date"]))}${F("from", "Available from", inp("from", "date"))}${F("aunits", S.category === "commercial" ? "Number of spaces currently available" : "Number of units currently available", inp("aunits", "number", 'min="1" inputmode="numeric"'))}
+<div class="warn">You do not pay again to keep your listing live. If the property is rented, you or NestGH can mark it Unavailable.</div>`,
     v: () => {
       const e = {},
         t = today();
       if (!S.avail)
-        e.avail = "Please say whether the room is currently available.";
+        e.avail = "Please say whether the property is currently available.";
       if (blank("from")) e.from = "Please enter the date it is available from.";
       else if (S.avail && S.avail.startsWith("Yes") && S.from > t)
         e.from = "If it is available now, the date cannot be in the future.";
@@ -1695,11 +1817,11 @@ ${F("avail", "Is the room currently available?", rad("avail", ["Yes, available n
   },
   {
     n: "Photos",
-    r: () => `<h2>Photos</h2><p class="sub2">Upload at least 5 clear photos. One photo for each category below is required.</p><div class="pg">${PHC.map(slot).join("")}</div><div class="fld" data-f="photos"><em class="er"></em></div>
+    r: () => `<h2>Photos</h2><p class="sub2">Upload one clear photo for each category below. JPG, PNG or WebP images are accepted.</p><div class="pg">${photoCategories().map(slot).join("")}</div><div class="fld" data-f="photos"><em class="er"></em></div>
 <h3>More photos (optional)</h3><label class="btn2 up">Add more photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple data-xph></label><div id="xl" style="margin-top:10px">${xl()}</div><small class="sub2">JPG, PNG or WebP. Photos are resized before upload. Use the arrows to reorder extra photos.</small>`,
     v: () => {
       const e = {},
-        miss = PHC.filter((c) => !S.ph[c]);
+        miss = photoCategories().filter((c) => !S.ph[c]);
       miss.forEach(
         (c) => (e["ph_" + c] = "Please upload a photo for: " + c + "."),
       );
@@ -1739,9 +1861,7 @@ ${F("role", "Your role", sel("role", ROLES))}${F("rel", "Relationship to the pro
   {
     n: "Review",
     r: () => {
-      const pl = S.period === "Other" ? S.periodOther : PL[S.period],
-        t = STEPS,
-        al = [...PHC.map((c) => S.ph[c]), ...S.extra.map((x) => x.src)].filter(
+      const al = [...photoCategories().map((c) => S.ph[c]), ...S.extra.map((x) => x.src)].filter(
           Boolean,
         );
       const fail = S.payMsg
@@ -1750,6 +1870,20 @@ ${F("role", "Your role", sel("role", ROLES))}${F("rel", "Relationship to the pro
       const feeNotice = S.feeChanged
         ? '<div class="warn" role="status">The listing fee changed while you were preparing this submission. Review the updated amount, then submit again.</div>'
         : "";
+      if (S.category === "commercial") {
+        const publicType = S.type === "Other" ? S.otherType : S.type;
+        return `<h2>Review and pay</h2><p class="sub2">Check everything. This is what seekers will see once NestGH approves your listing.</p>${feeNotice}${fail}
+${sec("Shop or space", 0, KV({ Title: S.title, Type: publicType, Condition: S.cond, "Spaces available": S.units, "Floor area": `${S.size} m²`, "Road visibility": S.roadVisibility, Parking: S.parking, Electricity: S.electricity, Water: S.water }) + `<p class="np">${esc(S.desc)}</p>`)}
+${sec("Location", 1, KV({ Region: S.region, "Town or city": S.town, Area: S.area, "Nearest landmark": S.lm, Map: S.lat ? "Saved from GPS" : "Google Maps link" }) + `<p class="np">Public: area and landmark only. Your exact address is private to NestGH admin.</p>`)}
+${sec("Price and costs", 2, bd())}
+${sec("Availability", 6, KV({ Available: S.avail, "Available from": S.from, "Spaces available": S.aunits, Confirmed: "Today (recorded automatically when you submit)" }))}
+${sec("Photos", 7, `<div class="rvp">${al.map((s) => `<img src="${s}" alt="Listing photo">`).join("")}</div>`)}
+${sec("Owner or representative", 8, `<div style="display:flex;gap:12px;align-items:center"><div class="av" style="margin:0;border-style:solid"><img src="${S.profile}" alt="Profile photo"></div><div><b>${esc(S.name)}</b><div class="np" style="margin:0">${esc(S.role)}. ${esc(S.rel)}</div></div></div>` + KV({ "Shown to seekers": "Profile photo, name, role, WhatsApp and Call buttons", Phone: S.phone, WhatsApp: S.wa }) + `<div class="vs"><span>Phone: not verified yet</span><span>Identity: not verified yet</span><span>Property: not verified yet</span></div>`)}
+<div class="warn">CHECK YOUR INFORMATION CAREFULLY</div><div class="fld" data-f="consent"><label class="ch line"><input type="checkbox" data-k="accurate"${S.accurate ? " checked" : ""}><span>I confirm that all information is accurate.</span></label>
+${CONS.map((c, i) => `<label class="ch line"><input type="checkbox" data-cons="${i}"${S.cons[i] ? " checked" : ""}><span>${c}</span></label>`).join("")}<em class="er"></em></div>
+<p class="pv2"><b>Privacy notice.</b> NestGH uses what you submit to review and publish your listing, contact you about availability, and prevent fraud. Your profile photo, name, role and contact buttons may be shown to people viewing your listing. Your exact address is only seen by NestGH admin, and identity documents are never shown publicly. You can ask to see, correct or delete your information under Ghana's Data Protection Act, 2012 (Act 843). Read our full <a href="#" data-pol="privacy">Privacy Policy</a>, <a href="#" data-pol="cookie">Cookie Policy</a> and <a href="#" data-pol="terms">Terms and Conditions</a>.</p>
+<div class="tot"><span>Standard listing (one-time)</span><b>${listingFeePesewas === null ? "Unavailable" : formatFeePesewas(listingFeePesewas)}</b></div>${listingFeePesewas === null ? '<p class="warn" role="alert">The current listing fee could not be loaded. Payment is unavailable until the site reconnects to its settings.</p>' : ""}<p class="pv2">There is one package only. Payment does not approve or verify your listing. NestGH reviews every listing first.</p>`;
+      }
       return `<h2>Review and pay</h2><p class="sub2">Check everything. This is what seekers will see once NestGH approves your listing.</p>${feeNotice}${fail}
 ${sec("Room", 0, KV({ Title: S.title, Type: S.type, Condition: S.cond, Furnished: S.furn, "Units available": S.units, Bedrooms: S.beds, Bathroom: S.bath, Kitchen: S.kit, Size: S.size, Floor: S.floor, Storage: S.store, Balcony: S.balc, ...(S.feat ? { Features: S.feat } : {}) }) + `<p class="np">${esc(S.desc)}</p>`)}
 ${sec("Location", 1, KV({ Region: S.region, "Town or city": S.town, Area: S.area, "Nearest landmark": S.lm, Map: S.lat ? "Saved from GPS" : "Google Maps link" }) + `<p class="np">Public: area and landmark only. Your exact address is private to NestGH admin.</p>`)}
@@ -1826,10 +1960,11 @@ function dyn() {
   if (ct) ct.hidden = S.curfew !== "Curfew applies";
 }
 function paint() {
-  const L = STEPS.length;
+  const steps = activeSteps(),
+    L = steps.length;
   $("pb").innerHTML =
-    `<div class="pt">Step ${cur + 1} of ${L}: <b>${STEPS[cur].n}</b></div><div class="seg">${STEPS.map((s, i) => `<i class="${i === cur ? "c" : i < cur ? "d" : ""}"></i>`).join("")}</div>`;
-  $("pn").innerHTML = STEPS.map(
+    `<div class="pt">Step ${cur + 1} of ${L}: <b>${steps[cur].n}</b></div><div class="seg">${steps.map((s, i) => `<i class="${i === cur ? "c" : i < cur ? "d" : ""}"></i>`).join("")}</div>`;
+  $("pn").innerHTML = steps.map(
     (s, i) =>
       `<button type="button" data-go="${i}" class="${i === cur ? "c" : done.has(i) ? "d" : ""}"${i > reach ? " disabled" : ""}${i === cur ? ' aria-current="step"' : ""}>${done.has(i) && i !== cur ? "✓ " : ""}${s.n}</button>`,
   ).join('<span aria-hidden="true">→</span>');
@@ -1848,7 +1983,7 @@ function paint() {
 }
 function draw() {
   $("lb").innerHTML =
-    '<div class="sum" id="sum" role="alert"></div>' + STEPS[cur].r();
+    '<div class="sum" id="sum" role="alert"></div><div class="listing-step-content">' + activeSteps()[cur].r() + "</div>";
   paint();
   dyn();
 }
@@ -1859,11 +1994,12 @@ function go(i) {
   $("lf").scrollTo(0, 0);
 }
 async function next() {
-  if (cur === STEPS.length - 1) {
+  const steps = activeSteps();
+  if (cur === steps.length - 1) {
     await submit();
     return;
   }
-  const e = STEPS[cur].v();
+  const e = steps[cur].v();
   if (Object.keys(e).length) {
     done.delete(cur);
     paint();
@@ -1883,14 +2019,15 @@ async function submit() {
   }
   S.feeChanged = false;
   draw();
-  for (let i = 0; i < STEPS.length; i++) {
-    const e = STEPS[i].v();
+  const steps = activeSteps();
+  for (let i = 0; i < steps.length; i++) {
+    const e = steps[i].v();
     if (Object.keys(e).length) {
       go(i);
       show(e);
-      if (i < STEPS.length - 1)
+      if (i < steps.length - 1)
         toast(
-          "Please fix step " + (i + 1) + " (" + STEPS[i].n + ") before paying.",
+          "Please fix step " + (i + 1) + " (" + steps[i].n + ") before paying.",
         );
       return;
     }
@@ -1910,7 +2047,7 @@ async function pay() {
   updateModalScroll();
   try {
     const images = [
-      ...PHC.map((category) => S.ph[category]),
+      ...photoCategories().map((category) => S.ph[category]),
       S.profile,
       ...S.extra.map((photo) => photo.src),
     ];
@@ -1933,7 +2070,7 @@ async function pay() {
     delete payload.ref;
     form.append("submission_id", S.submissionId);
     form.append("listing", JSON.stringify(payload));
-    for (const category of PHC) {
+    for (const category of photoCategories()) {
       const blob = await (await fetch(S.ph[category])).blob();
       form.append("photo:" + category, blob, category + ".jpg");
     }
@@ -1971,7 +2108,7 @@ async function openLF() {
   updateModalScroll();
   go(cur);
   await refreshListingFee();
-  if (cur === STEPS.length - 1) draw();
+  if (cur === activeSteps().length - 1) draw();
 }
 function closeLF() {
   $("lf").classList.remove("on");
@@ -2017,6 +2154,39 @@ function upd(e) {
   if (d.k !== undefined) {
     const k = d.k;
     S[k] = t.type === "checkbox" ? t.checked : t.value;
+    if (k === "category") {
+      for (const key of [
+        "type",
+        "otherType",
+        "furn",
+        "beds",
+        "bath",
+        "kit",
+        "floor",
+        "store",
+        "balc",
+        "feat",
+        "size",
+        "roadVisibility",
+        "parking",
+        "electricity",
+        "water",
+        "advanceAmount",
+        "adv",
+      ]) delete S[key];
+      S.ph = {};
+      S.extra = [];
+      done.clear();
+      reach = 0;
+      if (S.category === "commercial") S.period = "Monthly";
+      else delete S.period;
+      draw();
+      return;
+    }
+    if (k === "type" && S.category === "commercial") {
+      draw();
+      return;
+    }
     if (k === "region") {
       S.town = "";
       const city = $("f_town");

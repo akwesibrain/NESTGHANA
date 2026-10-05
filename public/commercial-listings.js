@@ -120,6 +120,8 @@
     const triState = (key) => optionalBoolean(values.get(key));
     return Object.freeze({
       location: optionalText(values.get("location")),
+      region: optionalText(values.get("region")),
+      town: optionalText(values.get("town")),
       minRent: number("minRent"),
       maxRent: number("maxRent"),
       type: optionalText(values.get("type")),
@@ -140,6 +142,12 @@
       .order("created_at", { ascending: false })
       .order("id", { ascending: true });
 
+    if (filters.region) {
+      query = query.eq("public_data->>region", filters.region);
+    }
+    if (filters.town) {
+      query = query.eq("public_data->>town", filters.town);
+    }
     if (filters.location) {
       query = query.ilike("public_data->>location", `%${filters.location}%`);
     }
@@ -269,21 +277,55 @@
       ["Estimated move-in cost", listing.estimatedMoveInCost === null ? null : formatCedi(listing.estimatedMoveInCost)],
       ["Availability", listing.availability],
     ].filter(([, value]) => value !== null);
+    const features = [
+      ["Road visibility", listing.roadVisibility],
+      ["Parking", listing.parking],
+      ["Electricity", listing.electricity],
+      ["Water", listing.water],
+    ].filter(([, value]) => value !== null);
+    const formatFeature = (value) =>
+      typeof value === "boolean" ? (value ? "Available" : "Not available") : value;
+    const location = listing.location
+      ? `<p class="property-summary-location">${icon}<span>${escapeHtml(listing.location)}</span></p>`
+      : "";
     const contact = interestUrl
-      ? `<a class="btn wa" href="${escapeHtml(interestUrl)}" target="_blank" rel="noopener">Contact about this space</a>`
+      ? `<a class="btn wa" href="${escapeHtml(interestUrl)}" target="_blank" rel="noopener">Contact Owner</a>`
       : "";
     const call = callUrl
       ? `<a class="btn2 commercial-call" href="${escapeHtml(callUrl)}">Call owner</a>`
       : "";
-    return `<div class="sp commercial-detail" role="dialog" aria-modal="true" aria-label="${escapeHtml(listing.title)}">
+    return `<div class="sp commercial-detail property-details" role="dialog" aria-modal="true" aria-label="${escapeHtml(`Property details: ${listing.title}`)}">
       <button class="x" id="cx" aria-label="Close">Close ✕</button>
-      ${images}
-      <h2 class="sn">${escapeHtml(listing.title)}</h2>
-      ${listing.location ? `<p class="commercial-location">${icon}<span>${escapeHtml(listing.location)}</span></p>` : ""}
-      ${listing.availability ? `<p class="commercial-availability"><span class="availability-dot" aria-hidden="true"></span>${escapeHtml(listing.availability)}</p>` : ""}
-      ${rows.length ? `<h3>Space details</h3><div class="kv">${rows.map(([label, value]) => `<div><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`).join("")}</div>` : ""}
-      ${listing.description ? `<h3>Description</h3><p class="commercial-description">${escapeHtml(listing.description)}</p>` : ""}
-      ${contact || call ? `<div class="commercial-contact">${contact}${call}</div>` : ""}
+      <header class="property-details-heading"><span class="property-details-mark">${icon}</span><div><h2>Property Details</h2><p>Everything you need to know before you contact.</p></div></header>
+      <section class="property-summary">
+        <div class="property-summary-image">${listing.images[0] ? `<img src="${escapeHtml(listing.images[0])}" alt="${escapeHtml(listing.title)}" decoding="async">` : `<div class="commercial-placeholder" role="img" aria-label="No property image provided">${icon}</div>`}${listing.images.length > 1 ? `<span class="property-photo-count">${listing.images.length} photos</span>` : ""}</div>
+        <div class="property-summary-copy">
+          <span class="property-kind">${escapeHtml(listing.type)}</span>
+          <h3 class="sn">${escapeHtml(listing.title)}</h3>
+          ${location}
+          ${listing.rent !== null ? `<p class="property-summary-rent">${formatCedi(listing.rent)} <span>/month</span></p>` : ""}
+          ${listing.estimatedMoveInCost !== null ? `<p class="property-move-in">Estimated move-in cost <b>${formatCedi(listing.estimatedMoveInCost)}</b></p>` : ""}
+          <div class="property-quick-facts">${listing.size !== null ? `<span>${escapeHtml(`${listing.size}${listing.sizeUnit ? ` ${listing.sizeUnit}` : ""}`)}</span>` : ""}${listing.availability ? `<span class="property-availability">${escapeHtml(listing.availability)}</span>` : ""}</div>
+        </div>
+      </section>
+      <div class="property-tabs" role="tablist" aria-label="Property information">
+        <button type="button" class="property-tab is-active" id="property-tab-overview" role="tab" aria-selected="true" aria-controls="property-panel-overview" data-property-tab="overview">Overview</button>
+        <button type="button" class="property-tab" id="property-tab-facilities" role="tab" aria-selected="false" aria-controls="property-panel-facilities" data-property-tab="facilities">Facilities</button>
+        <button type="button" class="property-tab" id="property-tab-location" role="tab" aria-selected="false" aria-controls="property-panel-location" data-property-tab="location">Location</button>
+      </div>
+      <section class="property-panel" id="property-panel-overview" role="tabpanel" aria-labelledby="property-tab-overview" data-property-panel="overview">
+        ${listing.description ? `<h4>Description</h4><p class="property-description">${escapeHtml(listing.description)}</p>` : ""}
+        ${rows.length ? `<h4>Property details</h4><div class="kv">${rows.map(([label, value]) => `<div><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`).join("")}</div>` : ""}
+      </section>
+      <section class="property-panel" id="property-panel-facilities" role="tabpanel" aria-labelledby="property-tab-facilities" data-property-panel="facilities" hidden>
+        ${features.length ? `<h4>Property features</h4><div class="property-feature-grid">${features.map(([label, value]) => `<div><span>${icon}</span><b>${escapeHtml(label)}</b><small>${escapeHtml(formatFeature(value))}</small></div>`).join("")}</div>` : '<p class="property-description">No facility details have been provided.</p>'}
+        ${listing.images.length > 1 ? `<h4>Photos</h4>${images}` : ""}
+      </section>
+      <section class="property-panel" id="property-panel-location" role="tabpanel" aria-labelledby="property-tab-location" data-property-panel="location" hidden>
+        ${location ? `<h4>Location</h4>${location}` : '<p class="property-description">No location details have been provided.</p>'}
+        ${listing.location ? `<a class="mp" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.location)}">Open area in Maps</a>` : ""}
+      </section>
+      ${contact || call ? `<section class="property-contact"><div><b>Property owner</b><span>Contact the listing owner directly.</span></div><div class="property-contact-actions">${contact}${call}</div></section>` : ""}
     </div>`;
   }
 

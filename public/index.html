@@ -10,13 +10,14 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap" data-font-stylesheet>
 <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="styles.css">
-<link rel="icon" href="./logo.png" type="image/png">
+<link rel="icon" href="./logo.png?v=2" type="image/png">
+<link rel="apple-touch-icon" href="./logo.png?v=2">
 </head>
 <body class="public-site">
 <nav>
   <div class="w">
     <div class="logo">
-      <i data-ic="home"></i>
+      <img class="logo-img" src="logo.png" alt="" width="40" height="40">
       <div>NestGH<small>FIND · LIST · RENT</small></div>
     </div>
     <div class="links" id="links">
@@ -24,13 +25,13 @@
       <a href="#rooms">Rooms</a>
       <a href="#shops-spaces">Shops &amp; Spaces</a>
       <a href="#how">About</a>
-      <a href="#listroom">List your property</a>
+      <a href="#listroom">List Your Property</a>
     </div>
     <div class="nr">
       <button class="ib" aria-label="Show saved rooms" aria-pressed="false" id="sv">
         <i data-ic="heart"></i>
       </button>
-      <button class="btn gold links-btn" id="l1">List your property</button>
+      <button class="btn gold links-btn" id="l1">List Your Property</button>
       <button class="ib m" aria-label="Menu" aria-expanded="false" aria-controls="links" id="mn">
         <i data-ic="menu"></i>
       </button>
@@ -52,46 +53,15 @@
       </label>
       <select id="region">
         <option value="">All regions</option>
-        <option>Ahafo</option>
-        <option>Ashanti</option>
-        <option>Bono</option>
-        <option>Bono East</option>
-        <option>Central</option>
-        <option>Eastern</option>
-        <option>Greater Accra</option>
-        <option>North East</option>
-        <option>Northern</option>
-        <option>Oti</option>
-        <option>Savannah</option>
-        <option>Upper East</option>
-        <option>Upper West</option>
-        <option>Volta</option>
-        <option>Western</option>
-        <option>Western North</option>
       </select>
     </div>
     <div class="f town-field">
       <label for="town">
         <i data-ic="pin"></i>Town
       </label>
-      <div class="town-control">
-        <input
-          id="town"
-          type="search"
-          autocomplete="off"
-          placeholder="Select town"
-          aria-autocomplete="list"
-          aria-controls="town-suggestions"
-          aria-expanded="false"
-        >
-        <div
-          id="town-suggestions"
-          class="town-suggestions"
-          role="listbox"
-          aria-label="Matching towns"
-          hidden
-        ></div>
-      </div>
+      <select id="town" aria-label="Town" disabled>
+        <option value="">Select a region first</option>
+      </select>
     </div>
     <div class="f">
       <label for="area">
@@ -148,15 +118,16 @@
     <label class="stu">
       <input type="checkbox" id="stu"> I'm a student
     </label>
-    <select id="camp" aria-label="Campus"></select>
+    <select id="camp" aria-label="Campus">
+      <option value="">Select student to load campuses</option>
+    </select>
   </div>
 </div>
 <section class="trust">
   <div class="w">
     <div class="tr">
       <i data-ic="home"></i>
-      <b>Listing details</b>
-      <span>See photos, pricing and availability shared by owners</span>
+      <b>Verified listings</b><span>Genuine listings from verified owners</span>
     </div>
     <div class="tr">
       <i data-ic="chat"></i>
@@ -165,13 +136,11 @@
     </div>
     <div class="tr">
       <i data-ic="heart"></i>
-      <b>Save rooms</b>
-      <span>Keep rooms handy in your browser for later</span>
+      <b>Better Living</b><span>Find a home that fits your lifestyle</span>
     </div>
     <div class="tr">
       <i data-ic="shield"></i>
-      <b>Costs at a glance</b>
-      <span>Review rent, advance, deposit and listed fees</span>
+      <b>Trusted &amp; Secure</b><span>Safe transactions with complete transparency</span>
     </div>
   </div>
 </section>
@@ -179,31 +148,35 @@
   <div class="w">
     <div class="head">
       <div>
-        <p class="eyebrow">Explore rooms</p>
+        <p class="eyebrow">Explore properties</p>
         <h2 id="categories-title">Popular Categories</h2>
       </div>
       <a class="section-link" href="#rooms">View all <span aria-hidden="true">→</span></a>
     </div>
     <div class="category-grid">
-      <button class="category-card" type="button" data-category-type="single" aria-pressed="false" data-reveal="fade-up">
+      <a class="category-card" href="#rooms" data-category="rooms" data-room-type="" data-reveal="fade-up">
         <span class="category-icon"><i data-ic="home"></i></span>
-        <span><b>Single Rooms</b><small>Simple, comfortable spaces</small></span>
-      </button>
-      <button class="category-card" type="button" data-category-type="chamber" aria-pressed="false" data-reveal="fade-up">
+        <span><b>Rooms</b><small>Affordable &amp; comfortable rooms</small></span>
+      </a>
+      <a class="category-card" href="#rooms" data-category="houses" data-reveal="fade-up">
         <span class="category-icon"><i data-ic="home"></i></span>
-        <span><b>Chamber &amp; Hall</b><small>Room with a separate hall</small></span>
-      </button>
-      <button class="category-card" type="button" data-category-type="self" aria-pressed="false" data-reveal="fade-up">
-        <span class="category-icon"><i data-ic="shield"></i></span>
-        <span><b>Self-Contained</b><small>Private living essentials</small></span>
-      </button>
-      <button class="category-card" type="button" data-category-type="hostel" aria-pressed="false" data-reveal="fade-up">
+        <span><b>Houses</b><small>Family homes &amp; apartments</small></span>
+      </a>
+      <a class="category-card" href="#rooms" data-category="hostels" data-room-type="hostel" data-reveal="fade-up">
         <span class="category-icon"><i data-ic="user"></i></span>
-        <span><b>Hostels</b><small>Student and shared rooms</small></span>
-      </button>
-      <a class="category-card" href="#shops-spaces" data-reveal="fade-up">
+        <span><b>Hostels</b><small>Student &amp; worker hostels</small></span>
+      </a>
+      <a class="category-card" href="#shops-spaces" data-category="shops" data-commercial-type="Shop" data-reveal="fade-up">
         <span class="category-icon"><i data-ic="tag"></i></span>
-        <span><b>Shops &amp; Spaces</b><small>Business spaces to let</small></span>
+        <span><b>Shops</b><small>Retail &amp; business spaces</small></span>
+      </a>
+      <a class="category-card" href="#shops-spaces" data-category="offices" data-commercial-type="Office" data-reveal="fade-up">
+        <span class="category-icon"><i data-ic="home"></i></span>
+        <span><b>Offices</b><small>Workspaces &amp; offices</small></span>
+      </a>
+      <a class="category-card" href="#shops-spaces" data-category="warehouses" data-commercial-type="Warehouse" data-reveal="fade-up">
+        <span class="category-icon"><i data-ic="home"></i></span>
+        <span><b>Warehouses</b><small>Storage &amp; industrial spaces</small></span>
       </a>
     </div>
   </div>
@@ -309,8 +282,12 @@
     </div>
     <form class="shops-filters" id="commercial-filters" aria-label="Filter shops and spaces">
       <div class="f">
-        <label for="commercial-location"><i data-ic="pin"></i>Location</label>
-        <input id="commercial-location" name="location" type="search" autocomplete="off" placeholder="Region, town or area">
+        <label for="commercial-region"><i data-ic="pin"></i>Region</label>
+        <select id="commercial-region" name="region"><option value="">All regions</option></select>
+      </div>
+      <div class="f">
+        <label for="commercial-town"><i data-ic="pin"></i>Town</label>
+        <select id="commercial-town" name="town" disabled><option value="">Select a region first</option></select>
       </div>
       <div class="f">
         <label for="commercial-type"><i data-ic="home"></i>Space type</label>
@@ -367,20 +344,21 @@
   </div>
 </section>
 <section class="sec" id="how">
-  <div class="w marketplace">
-    <div class="marketplace-intro">
-      <p class="eyebrow">A simpler way to search</p>
-      <h2>More Than Just Listings. Find a Room That Fits</h2>
-      <p>Search rooms and hostels, check the details shared by owners and get in touch directly.</p>
-      <p class="marketplace-steps">Search <span>·</span> Save <span>·</span> Contact <span>·</span> Report <span>·</span> List</p>
-    </div>
-    <div class="feature-grid">
-      <article class="feature-card" data-reveal="fade-up"><i data-ic="search"></i><div><h3>Smart Search &amp; Filters</h3><p>Explore rooms by location, type, budget and must-have features.</p></div></article>
-      <article class="feature-card" data-reveal="fade-up"><i data-ic="tag"></i><div><h3>Move-in Cost Estimate</h3><p>Review rent, advance, deposit and listed fees before contacting an owner.</p></div></article>
-      <article class="feature-card" data-reveal="fade-up"><i data-ic="chat"></i><div><h3>Direct Owner Contact</h3><p>Contact listing owners by WhatsApp or phone.</p></div></article>
-      <article class="feature-card" data-reveal="fade-up"><i data-ic="heart"></i><div><h3>Saved Listings</h3><p>Save rooms in your browser and come back to them later.</p></div></article>
-      <article class="feature-card" data-reveal="fade-up"><i data-ic="home"></i><div><h3>List Your Property</h3><p>Share your property details and photos using the listing form.</p></div></article>
-      <article class="feature-card" data-reveal="fade-up"><i data-ic="shield"></i><div><h3>Report a Listing</h3><p>Send a report if a listing looks inaccurate or suspicious.</p></div></article>
+  <div class="w why">
+    <figure class="why-media" data-reveal="fade-up">
+      <img src="hero.jpg" alt="A modern home" loading="lazy" decoding="async">
+      <figcaption>Rooms you can trust</figcaption>
+    </figure>
+    <div class="why-copy" data-reveal="fade-up">
+      <p class="why-eyebrow">Why NestGH</p>
+      <h2>More than listings.<br>We Help You Find What's Actually Available</h2>
+      <p>Finding a room in Ghana should be about more than seeing a photo and calling a number. NestGH helps you check where the room is, what it costs, what comes with it, and whether it is available before you make the trip.</p>
+      <dl class="why-stats">
+        <div><dt>12K+</dt><dd>Happy Clients</dd></div>
+        <div><dt>500+</dt><dd>Properties Listed</dd></div>
+        <div><dt>1000+</dt><dd>Areas Around Ghana</dd></div>
+        <div><dt>98%</dt><dd>Success Rate</dd></div>
+      </dl>
     </div>
   </div>
 </section>
@@ -389,11 +367,23 @@
   <div class="cta-icon"><i data-ic="home"></i></div>
   <div class="cta-copy">
     <h2>List Your Property</h2>
-    <p>Share your room or hostel listing with people searching for a place to stay.</p>
+    <p>Reach thousands of active seekers looking for rooms, homes, shops and spaces.</p>
   </div>
   <button class="btn gold" id="l2">
     Get Started <i data-ic="arrow"></i>
   </button>
+  <svg class="cta-art" viewBox="0 0 220 100" aria-hidden="true">
+    <circle cx="168" cy="36" r="31" fill="#ccebd8"/>
+    <path d="M125 87h87" stroke="#80c69b" stroke-width="5" stroke-linecap="round"/>
+    <path d="M135 48 172 18l36 30v38h-73z" fill="#fff" stroke="#13804f" stroke-width="4" stroke-linejoin="round"/>
+    <path d="m128 49 44-36 43 36" fill="none" stroke="#075f3a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M164 86V59h17v27M144 55h12v12h-12zM187 55h12v12h-12z" fill="#ccebd8" stroke="#13804f" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M20 77h45" stroke="#80c69b" stroke-width="4" stroke-linecap="round"/>
+    <path d="M31 54h39v24H31z" fill="#e9c96f" stroke="#c39b33" stroke-width="2"/>
+    <path d="M35 54V42h31v12" fill="#fff7df" stroke="#c39b33" stroke-width="2"/>
+    <path d="M38 64h25" stroke="#735c25" stroke-width="2" stroke-linecap="round"/>
+    <path d="M43 70h15" stroke="#735c25" stroke-width="2" stroke-linecap="round"/>
+  </svg>
   </section>
 </div>
 <footer>
@@ -406,7 +396,7 @@
   </div>
   <div class="fg">
     <div class="logo">
-      <i data-ic="home"></i>
+      <img class="logo-img" src="logo.png" alt="" width="40" height="40">
       <div>NestGH<small>FIND · LIST · RENT</small><span class="footer-tagline">Find Your Next Place</span></div>
     </div>
     <div>
@@ -414,7 +404,7 @@
       <a href="#top">Home</a>
       <a href="#rooms">Rooms</a>
       <a href="#how">How it works</a>
-      <a href="#listroom">List your room</a>
+      <a href="#listroom">List Your Property</a>
     </div>
     <div>
       <h4>Policies &amp; support</h4>
@@ -466,11 +456,11 @@
 </aside>
 <div class="sheet" id="sheet"></div>
 <div class="sheet" id="psheet"></div>
-<div class="lf" id="lf" role="dialog" aria-modal="true" aria-label="List a room">
+<div class="lf" id="lf" role="dialog" aria-modal="true" aria-label="List a property">
   <div class="lh">
     <div class="lw">
       <div class="lt">
-        <b>List a room</b>
+        <b>List a property</b>
         <button class="ib" id="lx" aria-label="Close form">✕</button>
       </div>
       <div id="pb"></div>
@@ -1167,6 +1157,7 @@
 <script defer src="font-loader.js"></script>
 <script defer src="supabase-config.js"></script>
 <script defer src="supabase.js"></script>
+<script defer src="ghana-locations.js"></script>
 <script defer src="commercial-listings.js"></script>
 <script defer src="app.js"></script>
 </body>
