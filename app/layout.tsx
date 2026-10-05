@@ -8,7 +8,9 @@ export const metadata: Metadata = {
     template: "%s | NestGH",
   },
   description: "Find available rooms and student hostels in Ghana. Clear pricing, current availability, and direct contact with owners.",
-  referrer: "no-referrer",
+  // same-origin (not no-referrer): browsers send "Origin: null" on form posts under no-referrer,
+  // which makes Next.js reject server actions such as the admin sign-in.
+  referrer: "same-origin",
   icons: { icon: "/logo-192.png", apple: "/logo-192.png" },
 };
 
