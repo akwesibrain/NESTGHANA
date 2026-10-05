@@ -15,7 +15,7 @@ async function mysql(sql) {
   try { await conn.query(sql); } finally { await conn.end(); }
 }
 
-const env = { ...process.env, DATABASE_URL: testUrl.href, DATABASE_APP_URL: testUrl.href, IP_HASH_SECRET: "test" };
+const env = { ...process.env, DATABASE_URL: testUrl.href, DATABASE_APP_URL: testUrl.href, IP_HASH_SECRET: "test", ADMIN_MFA_KEY: Buffer.alloc(32, 7).toString("base64") };
 await mysql(`DROP DATABASE IF EXISTS ${testDb}; CREATE DATABASE ${testDb} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
 let failed = false;
 try {

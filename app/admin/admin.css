@@ -923,3 +923,26 @@
     display: none;
   }
 }
+
+/* Review actions for listings awaiting approval */
+.admin-review-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.admin-review-form input[type="text"] {
+  flex: 1 1 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #ddd5c6;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.admin-review-form button {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}

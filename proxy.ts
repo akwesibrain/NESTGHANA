@@ -1,10 +1,9 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
+  // Supabase origins stay allowed until the legacy browser payment flow is replaced (workflow step 5).
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const secure = process.env.NODE_ENV === "production";
   const supabaseOrigin = url ? new URL(url).origin : "";
   const browserSupabaseOrigin = "https://plbtnltcocsuekifddat.supabase.co";
@@ -25,38 +24,7 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", policy);
-  let response = NextResponse.next({ request: { headers: requestHeaders } });
-
-  if (url && key) {
-    const supabase = createServerClient(url, key, {
-      cookieOptions: {
-        name: "nestgh-admin-auth",
-        path: "/",
-        sameSite: "strict",
-        secure,
-        httpOnly: true,
-        maxAge: 30 * 60,
-      },
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll(cookiesToSet) {
-          for (const { name, value, options } of cookiesToSet) {
-            request.cookies.set(name, value);
-            response = NextResponse.next({ request: { headers: requestHeaders } });
-            response.cookies.set(name, value, {
-              ...options,
-              path: "/",
-              sameSite: "strict",
-              secure,
-              httpOnly: true,
-              maxAge: 30 * 60,
-            });
-          }
-        },
-      },
-    });
-    await supabase.auth.getUser();
-  }
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", policy);
   return response;
 }
