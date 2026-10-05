@@ -72,13 +72,28 @@ enum RentPeriod {
 }
 
 enum RoomType {
-  SINGLE_ROOM    @map("Single Room")
-  CHAMBER_HALL   @map("Chamber & Hall")
-  SELF_CONTAINED @map("Self-Contained")
-  ONE_IN_ROOM    @map("1-in-a-Room")
-  TWO_IN_ROOM    @map("2-in-a-Room")
-  FOUR_IN_ROOM   @map("4-in-a-Room")
-  STUDENT_HOSTEL @map("Student Hostel")
+  SINGLE_ROOM      @map("Single Room")
+  CHAMBER_HALL     @map("Chamber & Hall")
+  SELF_CONTAINED   @map("Self-Contained")
+  ONE_IN_ROOM      @map("1-in-a-Room")
+  TWO_IN_ROOM      @map("2-in-a-Room")
+  FOUR_IN_ROOM     @map("4-in-a-Room")
+  STUDENT_HOSTEL   @map("Student Hostel")
+  // Commercial (Shops & Spaces)
+  SHOP             @map("Shop")
+  STORE            @map("Store")
+  OFFICE           @map("Office")
+  SHOWROOM         @map("Showroom")
+  WAREHOUSE        @map("Warehouse")
+  SALON            @map("Salon")
+  RESTAURANT       @map("Restaurant")
+  COMMERCIAL_SPACE @map("Commercial Space")
+  OTHER            @map("Other")
+}
+
+enum PropertyCategory {
+  ROOM
+  COMMERCIAL
 }
 
 enum ListingCondition {
@@ -89,18 +104,23 @@ enum ListingCondition {
 }
 
 enum Furnishing {
-  FURNISHED   @map("Furnished")
-  UNFURNISHED @map("Unfurnished")
+  FURNISHED      @map("Furnished")
+  UNFURNISHED    @map("Unfurnished")
+  NOT_APPLICABLE @map("Not Applicable")
 }
 
 enum ImageCategory {
-  EXTERIOR @map("Exterior")
-  BEDROOM  @map("Bedroom")
-  BATHROOM @map("Bathroom")
-  KITCHEN  @map("Kitchen")
-  COMPOUND @map("Compound or common area")
-  EXTRA    @map("Extra")
-  PROFILE  @map("Profile")
+  EXTERIOR    @map("Exterior")
+  BEDROOM     @map("Bedroom")
+  BATHROOM    @map("Bathroom")
+  KITCHEN     @map("Kitchen")
+  COMPOUND    @map("Compound or common area")
+  INTERIOR    @map("Interior")
+  FRONTAGE    @map("Frontage")
+  FACILITIES  @map("Facilities")
+  SURROUNDING @map("Surrounding area")
+  EXTRA       @map("Extra")
+  PROFILE     @map("Profile")
 }
 
 enum RevisionStatus {
@@ -210,8 +230,8 @@ model AdminActivityLog {
 
   adminUser AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
 
-  @@index([adminUserId, createdAt(sort: Desc)])
-  @@index([resourceType, resourceId, createdAt(sort: Desc)])
+  @@index([adminUserId, createdAt])
+  @@index([resourceType, resourceId, createdAt])
   @@map("admin_activity_logs")
 }
 
@@ -240,7 +260,7 @@ model SecurityEvent {
   createdAt    DateTime         @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt    DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
 
-  @@index([eventType, createdAt(sort: Desc)])
+  @@index([eventType, createdAt])
   @@map("security_events")
 }
 
@@ -356,38 +376,50 @@ model WebsiteSettingsHistory {
 // ───────────────────────── Listings ─────────────────────────
 
 model Listing {
-  id                  String           @id @default(uuid()) @db.Char(36)
+  id                         String           @id @default(uuid()) @db.Char(36)
   /// Client-generated idempotency key for the submission form.
-  submissionId        String           @unique @map("submission_id") @db.Char(36)
-  status              ListingStatus    @default(DRAFT)
-  ownerId             String           @map("owner_id") @db.Char(36)
-  areaId              String           @map("area_id") @db.Char(36)
-  title               String           @db.VarChar(100)
-  description         String           @db.Text
-  roomType            RoomType         @map("room_type")
-  condition           ListingCondition
-  furnished           Furnishing
-  unitsTotal          Int              @map("units_total") @db.UnsignedSmallInt
-  bedrooms            Int              @db.UnsignedSmallInt
-  rentAmountPesewas   Int              @map("rent_amount_pesewas") @db.UnsignedInt
-  rentPeriod          RentPeriod       @map("rent_period")
-  rentPeriodOther     String?          @map("rent_period_other") @db.VarChar(80)
-  advancePayments     Int              @map("advance_payments") @db.UnsignedSmallInt
-  depositPesewas      Int              @default(0) @map("deposit_pesewas") @db.UnsignedInt
-  agencyFeePesewas    Int              @default(0) @map("agency_fee_pesewas") @db.UnsignedInt
-  otherChargesPesewas Int              @default(0) @map("other_charges_pesewas") @db.UnsignedInt
+  submissionId               String           @unique @map("submission_id") @db.Char(36)
+  status                     ListingStatus    @default(DRAFT)
+  propertyCategory           PropertyCategory @default(ROOM) @map("property_category")
+  ownerId                    String           @map("owner_id") @db.Char(36)
+  areaId                     String           @map("area_id") @db.Char(36)
+  title                      String           @db.VarChar(100)
+  description                String           @db.Text
+  roomType                   RoomType         @map("room_type")
+  condition                  ListingCondition
+  furnished                  Furnishing
+  unitsTotal                 Int              @map("units_total") @db.UnsignedSmallInt
+  /// Required for rooms; NULL for commercial listings.
+  bedrooms                   Int?             @db.UnsignedSmallInt
+  rentAmountPesewas          Int              @map("rent_amount_pesewas") @db.UnsignedInt
+  rentPeriod                 RentPeriod       @map("rent_period")
+  rentPeriodOther            String?          @map("rent_period_other") @db.VarChar(80)
+  advancePayments            Int              @map("advance_payments") @db.UnsignedSmallInt
+  depositPesewas             Int              @default(0) @map("deposit_pesewas") @db.UnsignedInt
+  agencyFeePesewas           Int              @default(0) @map("agency_fee_pesewas") @db.UnsignedInt
+  otherChargesPesewas        Int              @default(0) @map("other_charges_pesewas") @db.UnsignedInt
   /// Facility name → "Included" | "Private" | "Shared" | "Not available" etc.
-  facilities          Json
-  rules               Json
+  facilities                 Json
+  rules                      Json
   /// Public landmark shown to renters (the exact address stays in listing_private).
-  landmark            String           @default("") @db.VarChar(200)
-  availabilityDate    DateTime         @map("availability_date") @db.Date
-  unitsAvailable      Int              @map("units_available") @db.UnsignedSmallInt
-  approvedById        String?          @map("approved_by") @db.Char(36)
-  approvedAt          DateTime?        @map("approved_at") @db.DateTime(3)
-  lastConfirmedAt     DateTime?        @map("last_confirmed_at") @db.DateTime(3)
-  createdAt           DateTime         @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt           DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+  landmark                   String           @default("") @db.VarChar(200)
+  // Commercial-only fields: all set for COMMERCIAL, all NULL for ROOM (enforced by CHECK).
+  /// Upfront advance in pesewas (commercial listings quote an amount, rooms a number of months).
+  advanceAmountPesewas       Int?             @map("advance_amount_pesewas") @db.UnsignedInt
+  commercialTypeOther        String?          @map("commercial_type_other") @db.VarChar(80)
+  sizeSqm                    Decimal?         @map("size_sqm") @db.Decimal(10, 2)
+  roadVisibility             Boolean?         @map("road_visibility")
+  parking                    Boolean?
+  electricity                Boolean?
+  water                      Boolean?
+  estimatedMoveInCostPesewas Int?             @map("estimated_move_in_cost_pesewas") @db.UnsignedInt
+  availabilityDate           DateTime         @map("availability_date") @db.Date
+  unitsAvailable             Int              @map("units_available") @db.UnsignedSmallInt
+  approvedById               String?          @map("approved_by") @db.Char(36)
+  approvedAt                 DateTime?        @map("approved_at") @db.DateTime(3)
+  lastConfirmedAt            DateTime?        @map("last_confirmed_at") @db.DateTime(3)
+  createdAt                  DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                  DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
 
   owner         Owner                  @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   area          Location               @relation(fields: [areaId], references: [id], onDelete: Restrict)
@@ -405,7 +437,8 @@ model Listing {
   manageTokens  ManageLinkToken[]
   manageUsage   ManageLinkUsage[]
 
-  @@index([status, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@index([propertyCategory, status, createdAt])
   @@index([areaId, status])
   @@index([ownerId])
   @@map("listings")
@@ -479,7 +512,7 @@ model ListingRevision {
   listing    Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
   reviewedBy AdminUser? @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  @@index([listingId, status, createdAt(sort: Desc)])
+  @@index([listingId, status, createdAt])
   @@map("listing_revisions")
 }
 
@@ -498,7 +531,7 @@ model ListingStatusHistory {
 
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
 
-  @@index([listingId, createdAt(sort: Desc)])
+  @@index([listingId, createdAt])
   @@map("listing_status_history")
 }
 
@@ -534,7 +567,7 @@ model Payment {
 
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
 
-  @@index([listingId, createdAt(sort: Desc)])
+  @@index([listingId, createdAt])
   @@index([status, createdAt])
   @@map("payments")
 }
@@ -550,7 +583,7 @@ model PaymentEvent {
   updatedAt        DateTime @updatedAt @map("updated_at") @db.DateTime(3)
 
   @@unique([paymentReference, eventType, bodySha256])
-  @@index([paymentReference, createdAt(sort: Desc)])
+  @@index([paymentReference, createdAt])
   @@map("payment_events")
 }
 
@@ -570,8 +603,8 @@ model Report {
   listing    Listing    @relation(fields: [listingId], references: [id], onDelete: Restrict)
   reviewedBy AdminUser? @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  @@index([status, createdAt(sort: Desc)])
-  @@index([listingId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@index([listingId, createdAt])
   @@map("reports")
 }
 
@@ -585,7 +618,7 @@ model Inquiry {
 
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  @@index([listingId, createdAt(sort: Desc)])
+  @@index([listingId, createdAt])
   @@map("inquiries")
 }
 
@@ -621,7 +654,7 @@ model ManageLinkToken {
   listing Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
   usage   ManageLinkUsage[]
 
-  @@index([listingId, expiresAt(sort: Desc)])
+  @@index([listingId, expiresAt])
   @@map("manage_link_tokens")
 }
 
@@ -638,6 +671,6 @@ model ManageLinkUsage {
   token   ManageLinkToken? @relation(fields: [tokenId], references: [id], onDelete: SetNull)
   listing Listing?         @relation(fields: [listingId], references: [id], onDelete: SetNull)
 
-  @@index([tokenId, createdAt(sort: Desc)])
+  @@index([tokenId, createdAt])
   @@map("manage_link_usage")
 }
