@@ -4380,6 +4380,89 @@ body.public-site .cookie-reject {
 .why-media { max-height: 360px; }
 @media (min-width: 900px) { .why-media { max-height: 440px; } }
 
+.listing-badge {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.availability-badge {
+  border-color: var(--green-600);
+}
+
+.contact-type-badge {
+  border-style: dashed;
+}
+
+.listing-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.card .meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.last-verified {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.last-verified.is-stale {
+  color: var(--muted);
+}
+
+.property-trust-badges {
+  margin-top: 8px;
+}
+
+.verification-explainer {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.verification-explainer summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--brand);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.verification-explainer p {
+  margin: 10px 0 6px;
+}
+
+.verification-explainer ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+
+.verification-explainer li + li {
+  margin-top: 4px;
+}
+
 .logo-img {
   flex: none;
   width: 40px;
