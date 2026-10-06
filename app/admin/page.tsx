@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { reviewListing, signInAdmin } from "@/app/admin/actions";
 import { AdminFrame, Card, cedis, count, ghanaDate, Icon, StatusBadge, Thumb, timeAgo, Trend } from "@/app/admin/admin-ui";
 import { hasRole } from "@/lib/server/admin-auth";
 import { getDashboardData } from "@/lib/server/admin-dashboard";
 import { getAdminContext, requireAdmin } from "@/lib/server/admin-session";
 import { ROOM_TYPE_LABEL } from "@/lib/server/public-listings";
+import { turnstileEnabled, turnstileSiteKey } from "@/lib/server/turnstile";
 import "./admin.css";
 
 type SearchParams = Promise<{ error?: string; review?: string }>;
@@ -14,6 +16,7 @@ const signInErrors: Record<string, string> = {
   credentials: "Sign-in failed. Check your details and try again.",
   locked: "Too many failed attempts. This account is locked for 15 minutes.",
   rate_limited: "Too many sign-in attempts from this network. Try again in 15 minutes.",
+  bot_check: "Please complete the security check, then sign in.",
 };
 const reviewMessages: Record<string, { kind: "success" | "error"; text: string }> = {
   approve: { kind: "success", text: "Listing approved. It is now live on the website." },
@@ -39,7 +42,10 @@ const project = ([lat, lng]: [number, number]) => [((lng + 3.45) / 4.85) * 300, 
 export default async function AdminPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const session = await getAdminContext();
-  if (!session) return <SignIn error={signInErrors[params.error || ""]} />;
+  if (!session) {
+    const nonce = (await headers()).get("x-nonce") ?? undefined;
+    return <SignIn error={signInErrors[params.error || ""]} siteKey={turnstileEnabled() ? turnstileSiteKey() : null} nonce={nonce} />;
+  }
   const admin = await requireAdmin();
   const canReview = hasRole(admin, ["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
   const d = await getDashboardData();
@@ -331,7 +337,7 @@ function BarList({ rows, total, max, showPct = false }: { rows: { name: string; 
   );
 }
 
-function SignIn({ error }: { error?: string }) {
+function SignIn({ error, siteKey, nonce }: { error?: string; siteKey: string | null; nonce?: string }) {
   return (
     <main className="auth-panel">
       <form className="auth-card" action={signInAdmin}>
@@ -344,6 +350,13 @@ function SignIn({ error }: { error?: string }) {
         <input id="email" name="email" type="email" autoComplete="username" maxLength={254} required />
         <label htmlFor="password">Password</label>
         <input id="password" name="password" type="password" autoComplete="current-password" maxLength={256} required />
+        {siteKey ? (
+          <>
+            {/* Cloudflare Turnstile adds a hidden cf-turnstile-response field to this form. */}
+            <div className="cf-turnstile" data-sitekey={siteKey} />
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce={nonce} />
+          </>
+        ) : null}
         <button className="primary-button" type="submit">Sign in</button>
       </form>
     </main>

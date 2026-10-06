@@ -226,6 +226,7 @@ async function remove() {
         await conn.query("DELETE FROM payment_events WHERE payment_reference IN (SELECT reference FROM payments WHERE listing_id IN (?))", [ids]);
         await conn.query("DELETE FROM payments WHERE listing_id IN (?)", [ids]);
         await conn.query("DELETE FROM reports WHERE listing_id IN (?)", [ids]);
+        await conn.query("DELETE FROM notifications WHERE listing_id IN (?)", [ids]);
         await conn.query("DELETE FROM listing_status_history WHERE listing_id IN (?)", [ids]);
         await conn.query("DELETE FROM admin_activity_logs WHERE resource_type = 'LISTING' AND resource_id IN (?)", [ids]);
         await conn.query("DELETE FROM listings WHERE id IN (?)", [ids]); // images, private, consents… cascade

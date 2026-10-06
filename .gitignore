@@ -10,3 +10,4 @@ reports/evidence/*.tmp
 /generated/
 /storage/
 /.next-e2e/
+/backups/

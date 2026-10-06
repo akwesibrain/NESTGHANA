@@ -144,6 +144,18 @@ enum ManageLinkPurpose {
   MANAGE_LISTING
 }
 
+enum NotificationChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  DISMISSED
+}
+
 enum SecuritySeverity {
   INFO
   WARN
@@ -181,6 +193,7 @@ model AdminUser {
   propertyVerified  ListingVerification[]    @relation("PropertyVerifier")
   revisionsReviewed ListingRevision[]
   activityLogs      AdminActivityLog[]
+  notificationsSent Notification[]
   reportsReviewed   Report[]
 
   @@map("admin_users")
@@ -448,6 +461,7 @@ model Listing {
   inquiries     Inquiry[]
   consents      Consent[]
   manageTokens  ManageLinkToken[]
+  notifications Notification[]
   manageUsage   ManageLinkUsage[]
 
   @@index([status, createdAt])
@@ -688,4 +702,30 @@ model ManageLinkUsage {
 
   @@index([tokenId, createdAt])
   @@map("manage_link_usage")
+}
+
+// ───────────────────────── Notifications ─────────────────────────
+
+/// Outbox of messages to owners. Until a WhatsApp/email provider is configured, admins send them
+/// from the dashboard (one-click WhatsApp). Message text that contains a manage link is redacted
+/// once the message is sent or dismissed, so live links do not linger in the database.
+model Notification {
+  id        String              @id @default(uuid()) @db.Char(36)
+  listingId String?             @map("listing_id") @db.Char(36)
+  channel   NotificationChannel
+  recipient String              @db.VarChar(254)
+  template  String              @db.VarChar(60)
+  message   String              @db.Text
+  status    NotificationStatus  @default(PENDING)
+  sentById  String?             @map("sent_by") @db.Char(36)
+  sentAt    DateTime?           @map("sent_at") @db.DateTime(3)
+  createdAt DateTime            @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing?   @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  sentBy  AdminUser? @relation(fields: [sentById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([listingId, createdAt])
+  @@map("notifications")
 }

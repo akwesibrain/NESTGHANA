@@ -5,6 +5,7 @@ import { getDb } from "./db";
 import { CONTACT_CONSENT_KEY, ROOM_TYPE_LABEL } from "./public-listings";
 import { transitionListingInTransaction } from "./listing-status";
 import { deleteImages, detectImageKind, MAX_IMAGE_BYTES, saveImage } from "./image-storage";
+import { ImageMetadataError, stripImageMetadata } from "./image-metadata";
 
 // Owner listing submission (payment is started separately in payments.ts).
 // Validates the "List your property" form, stores photos privately, and creates the owner,
@@ -182,7 +183,15 @@ export function checkPhotos(photos: PhotoFile[], commercial: boolean): CheckedPh
     else if (field.startsWith("photo:Extra ")) category = "EXTRA";
     else if (field.startsWith("photo:") && required.includes(field.slice(6))) category = PHOTO_CATEGORY[field.slice(6)];
     if (!category) throw new SubmissionError("The photo category is invalid.");
-    return { category, bytes, kind };
+    // Remove EXIF/GPS and other embedded metadata so photos cannot reveal the exact location.
+    let clean: Uint8Array;
+    try {
+      clean = stripImageMetadata(bytes, kind.mime);
+    } catch (error) {
+      if (error instanceof ImageMetadataError) throw new SubmissionError("One of the photos could not be read. Please choose a different image.");
+      throw error;
+    }
+    return { category, bytes: clean, kind };
   });
   if (total > MAX_TOTAL_PHOTO_BYTES) throw new SubmissionError("The compressed photos are too large to upload together.", 413);
   const received = new Set(checked.map(p => p.category));

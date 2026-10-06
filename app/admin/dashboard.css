@@ -366,3 +366,20 @@
 .ngd-map-pin text { font-size: 15px; }
 .ngd-map-pin .ngd-map-label { font-size: 12px; }
 .ngd-table code { word-break: break-all; }
+
+/* Messages outbox */
+.ngd-messages { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.ngd-messages > li { display: grid; gap: 8px; border: 1px solid var(--ngd-line); border-radius: 12px; padding: 14px; }
+.ngd-message-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ngd-message-head a { text-decoration: none; }
+.ngd-message-body { margin: 0; border-radius: 10px; padding: 10px 12px; background: #f6f8fb; font: inherit; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ngd-message-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ngd-message-actions form { display: flex; gap: 8px; margin: 0; }
+/* Listing management panel on the review page */
+.ngd-manage { display: grid; gap: 14px; }
+.ngd-manage-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ngd-manage-row form { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.ngd-manage-row input[type="text"] { min-height: 32px; min-width: 240px; border: 1px solid #d3dae5; border-radius: 8px; padding: 0 10px; font: inherit; font-size: 12px; }
+.ngd-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.ngd-checks form { margin: 0; }
+.ngd-check { display: inline-flex; align-items: center; gap: 6px; }

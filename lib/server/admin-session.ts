@@ -46,3 +46,13 @@ export async function requireAdmin(roles?: AdminRole[]): Promise<AdminContext> {
   if (roles && !hasRole(context, roles)) redirect("/admin?error=forbidden");
   return context;
 }
+
+/** Public base URL for links sent to owners (PUBLIC_SITE_URL, else this request's host). */
+export async function siteBase(): Promise<string> {
+  const configured = process.env.PUBLIC_SITE_URL;
+  if (configured) return configured.replace(/\/+$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
+  return `${proto}://${host}`;
+}

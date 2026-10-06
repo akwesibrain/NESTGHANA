@@ -2,7 +2,9 @@ import { json, isSameOrigin, siteBaseUrl } from "@/lib/server/http";
 import { createSubmission, type PhotoFile, SubmissionError } from "@/lib/server/listing-submission";
 import { paystackConfigured } from "@/lib/server/paystack";
 import { PaymentError, startCheckout } from "@/lib/server/payments";
+import { createManageLink, manageUrl } from "@/lib/server/manage-links";
 import { clientIp, consumeRateLimit, hashIp } from "@/lib/server/rate-limit";
+import { verifyTurnstile } from "@/lib/server/turnstile";
 
 const MAX_BODY_BYTES = 6 * 1024 * 1024;
 
@@ -30,6 +32,9 @@ export async function POST(request: Request) {
     } catch {
       return json({ error: "The submission could not be read. Please try again." }, 400);
     }
+    if (!(await verifyTurnstile(form.get("turnstile_token"), clientIp(request)))) {
+      return json({ error: "Please complete the security check and try again." }, 403);
+    }
     const listingText = form.get("listing");
     if (typeof listingText !== "string" || listingText.length > 100_000) {
       return json({ error: "Listing details are incomplete. Please review and submit again." }, 400);
@@ -55,7 +60,9 @@ export async function POST(request: Request) {
       expectedFeePesewas: Number(form.get("expected_fee_pesewas")),
       callbackUrl: `${siteBaseUrl(request)}/index.html`,
     });
-    return json({ authorization_url: checkout.authorizationUrl, reference: checkout.reference });
+    // The owner's private manage link, shown once after payment (only its hash is stored).
+    const manage = submission.created ? manageUrl(siteBaseUrl(request), await createManageLink(submission.listingId)) : undefined;
+    return json({ authorization_url: checkout.authorizationUrl, reference: checkout.reference, manage_url: manage });
   } catch (error) {
     if (error instanceof SubmissionError || error instanceof PaymentError) return json({ error: error.message }, error.status);
     console.error("listing_submit_failed", error instanceof Error ? error.message : "unknown");

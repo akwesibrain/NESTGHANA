@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const secure = process.env.NODE_ENV === "production";
+  // Cloudflare Turnstile (bot protection) loads a script and an iframe when it is configured.
+  const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? " https://challenges.cloudflare.com" : "";
   const policy = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -11,7 +13,9 @@ export function proxy(request: NextRequest) {
     "object-src 'none'",
     "img-src 'self' data: blob:",
     `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
-    `script-src 'self' 'nonce-${nonce}'`,
+    // React's development build needs eval() for its error overlay; production never allows it.
+    `script-src 'self' 'nonce-${nonce}'${turnstile}${secure ? "" : " 'unsafe-eval'"}`,
+    `frame-src 'self'${turnstile}`,
     "connect-src 'self'",
     "font-src 'self' https://fonts.gstatic.com",
     // Only upgrade in production: the dev server is plain HTTP, so upgrading breaks every asset when opened via a LAN IP.

@@ -4,6 +4,7 @@ import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac, randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
+import { readFileSync } from "node:fs";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -68,7 +69,9 @@ const database = async () => (await import("@/lib/server/db")).getDb();
 const submissions = () => import("@/lib/server/listing-submission");
 const payments = () => import("@/lib/server/payments");
 
-const jpeg = () => new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...Array.from({ length: 200 }, (_, i) => i % 256)]);
+// A real JPEG (the site hero image): photos are parsed to strip metadata, so they must be valid.
+const HERO_JPEG = new Uint8Array(readFileSync("public/hero.jpg"));
+const jpeg = () => HERO_JPEG;
 const ROOM_PHOTOS = ["Exterior", "Bedroom", "Bathroom", "Kitchen", "Compound or common area"];
 const SPACE_PHOTOS = ["Exterior", "Interior", "Frontage", "Facilities", "Surrounding area"];
 const photosFor = (names: string[]) => [

@@ -1346,3 +1346,5 @@
 .admin-dashboard-grid .settings-card {
   max-width: 560px;
 }
+
+.admin-facts dt { overflow-wrap: anywhere; }

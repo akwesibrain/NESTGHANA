@@ -5,5 +5,7 @@ import nextTypescript from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
-  globalIgnores([".next/**", ".next-e2e/**", "node_modules/**", "NestGH-admin/**", "public/**", "brag-output-*/**", "docs/**", "load-test.js"]),
+  globalIgnores([".next/**", ".next-e2e/**", "node_modules/**", "NestGH-admin/**", "public/**", "brag-output-*/**", "docs/**", "load-test.js", "generated/**", "backups/**", "storage/**", ".agents/**"]),
+  // CommonJS files (node --test suites, UMD browser modules) use require() by design.
+  { files: ["**/*.cjs"], rules: { "@typescript-eslint/no-require-imports": "off" } },
 ]);

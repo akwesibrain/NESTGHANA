@@ -3,6 +3,7 @@ import type { Furnishing, ListingCondition, Prisma, RentPeriod, RoomType } from 
 import { getDb } from "./db";
 import { getListingFees } from "./listing-fees";
 import { paystackConfigured } from "./paystack";
+import { turnstileEnabled, turnstileSiteKey } from "./turnstile";
 
 // Builds the `public_data` shape that the public site renders (app.js → mapPublicListing for rooms,
 // commercial-listings.js → normalize for Shops & Spaces).
@@ -260,6 +261,8 @@ export async function getPublicSiteSettings() {
     /** Fees by listing type in pesewas (keys match listing-pricing.js). */
     listing_fees_pesewas: { room: fees.room, hostel: fees.hostel, space: fees.space },
     payments_enabled: paystackConfigured(),
+    /** Cloudflare Turnstile site key when bot protection is on, else null. */
+    turnstile_site_key: turnstileEnabled() ? turnstileSiteKey() : null,
     privacy_policy_version: versions.privacyPolicyVersion,
     terms_version: versions.termsVersion,
   };

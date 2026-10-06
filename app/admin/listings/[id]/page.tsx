@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { reviewListing } from "@/app/admin/actions";
+import { changeListingStatus, ownerLinkAction, reviewListing, setVerification } from "@/app/admin/actions";
 import { hasRole } from "@/lib/server/admin-auth";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
@@ -17,6 +17,13 @@ const reviewMessages: Record<string, { kind: "success" | "error"; text: string }
   reason_required: { kind: "error", text: "Give a reason (at least 3 characters) when requesting changes or rejecting." },
   not_allowed: { kind: "error", text: "That action is not allowed for this listing in its current status." },
   failed: { kind: "error", text: "The review could not be saved. Please try again." },
+  status_unavailable: { kind: "success", text: "Listing unpublished (shows as unavailable)." },
+  status_live: { kind: "success", text: "Listing is live again." },
+  status_removed: { kind: "success", text: "Listing removed from the website." },
+  status_restore: { kind: "success", text: "Listing restored to its previous status." },
+  verification_saved: { kind: "success", text: "Verification updated." },
+  links_revoked: { kind: "success", text: "All manage links for this listing were revoked." },
+  invalid: { kind: "error", text: "That request was not valid." },
 };
 
 const money = (pesewas: number | null | undefined) =>
@@ -102,6 +109,69 @@ export default async function AdminListingPage({ params, searchParams }: Props) 
                 <button className="secondary-button" type="submit" name="decision" value="changes">Request changes</button>
                 <button className="secondary-button" type="submit" name="decision" value="reject">Reject</button>
               </form>
+            </section>
+          ) : null}
+
+          {canReview ? (
+            <section className="admin-panel ngd-manage" aria-labelledby="manage-heading">
+              <h2 id="manage-heading">Manage this listing</h2>
+              <div className="ngd-manage-row">
+                {listing.status === "LIVE" || listing.status === "NEEDS_CONFIRMATION" ? (
+                  <form action={changeListingStatus}>
+                    <input type="hidden" name="listingId" value={listing.id} />
+                    <button className="ngd-btn" name="to" value="UNAVAILABLE">Unpublish (mark unavailable)</button>
+                  </form>
+                ) : null}
+                {listing.status === "UNAVAILABLE" || listing.status === "NEEDS_CONFIRMATION" ? (
+                  <form action={changeListingStatus}>
+                    <input type="hidden" name="listingId" value={listing.id} />
+                    <button className="ngd-btn is-primary" name="to" value="LIVE">Make live again</button>
+                  </form>
+                ) : null}
+                {["LIVE", "NEEDS_CONFIRMATION", "UNAVAILABLE", "REJECTED", "PAYMENT_PENDING"].includes(listing.status) ? (
+                  <form action={changeListingStatus}>
+                    <input type="hidden" name="listingId" value={listing.id} />
+                    <input type="text" name="reason" placeholder="Reason for removal (required)" maxLength={1000} aria-label="Reason for removal" />
+                    <button className="ngd-btn is-danger" name="to" value="REMOVED">Remove from website</button>
+                  </form>
+                ) : null}
+                {listing.status === "REMOVED" && admin.roles.includes("SUPER_ADMIN") ? (
+                  <form action={changeListingStatus}>
+                    <input type="hidden" name="listingId" value={listing.id} />
+                    <button className="ngd-btn" name="to" value="RESTORE">Restore (super admin)</button>
+                  </form>
+                ) : null}
+              </div>
+              <div>
+                <h3>Verification checks</h3>
+                <p className="ngd-note">All three together show the “Verified” badge to renters.</p>
+                <div className="ngd-checks">
+                  {([
+                    ["phone", "Phone confirmed", listing.verification?.phoneVerifiedAt],
+                    ["identity", "Identity checked", listing.verification?.identityVerifiedAt],
+                    ["property", "Property inspected", listing.verification?.propertyVerifiedAt],
+                  ] as const).map(([check, label, at]) => (
+                    <form key={check} action={setVerification}>
+                      <input type="hidden" name="listingId" value={listing.id} />
+                      <input type="hidden" name="check" value={check} />
+                      <button className={`ngd-btn ngd-check${at ? " is-primary" : ""}`} name="value" value={at ? "off" : "on"} aria-pressed={Boolean(at)}>
+                        {at ? "✓ " : ""}{label}
+                      </button>
+                    </form>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3>Owner manage link</h3>
+                <p className="ngd-note">Owners use a private link to confirm availability, mark the listing taken, or fix and resubmit it.</p>
+                <div className="ngd-manage-row">
+                  <form action={ownerLinkAction}>
+                    <input type="hidden" name="listingId" value={listing.id} />
+                    <button className="ngd-btn" name="action" value="send">Send a new link on WhatsApp</button>
+                    <button className="ngd-btn is-danger" name="action" value="revoke">Revoke all links</button>
+                  </form>
+                </div>
+              </div>
             </section>
           ) : null}
 

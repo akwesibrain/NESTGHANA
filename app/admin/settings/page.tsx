@@ -1,10 +1,10 @@
-import { updateListingFees } from "@/app/admin/actions";
+import { createAdminAccount, updateAdminAccount, updateListingFees } from "@/app/admin/actions";
 import { AdminFrame, Card, cedis, ghanaDate } from "@/app/admin/admin-ui";
 import { hasRole } from "@/lib/server/admin-auth";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
 
-type SearchParams = Promise<{ fee?: string }>;
+type SearchParams = Promise<{ fee?: string; team?: string }>;
 
 const feeMessages: Record<string, { kind: "success" | "error"; text: string }> = {
   saved: { kind: "success", text: "Listing fees updated. New checkouts use these amounts." },
@@ -12,10 +12,21 @@ const feeMessages: Record<string, { kind: "success" | "error"; text: string }> =
   save_failed: { kind: "error", text: "The listing fees could not be saved. Please try again." },
 };
 
+const teamMessages: Record<string, { kind: "success" | "error"; text: string }> = {
+  created: { kind: "success", text: "Admin created. Give them the temporary password; they set up their authenticator at first sign-in." },
+  disable: { kind: "success", text: "Admin disabled and signed out everywhere." },
+  enable: { kind: "success", text: "Admin re-enabled." },
+  reset_mfa: { kind: "success", text: "Authenticator reset. They will scan a new QR code at their next sign-in." },
+  exists: { kind: "error", text: "An admin with that email already exists." },
+  self: { kind: "error", text: "You cannot change your own account here." },
+  invalid: { kind: "error", text: "Check the form: name, a valid email, a role, and a password of at least 12 characters." },
+};
+
 export default async function AdminSettingsPage({ searchParams }: { searchParams: SearchParams }) {
   const admin = await requireAdmin();
   const params = await searchParams;
   const canManage = hasRole(admin, ["SUPER_ADMIN", "ADMIN"]);
+  const isSuper = hasRole(admin, ["SUPER_ADMIN"]);
   const db = getDb();
   const [settings, history, admins, openReports] = await Promise.all([
     db.websiteSettings.findUnique({ where: { id: 1 } }),
@@ -26,7 +37,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     }),
     db.report.count({ where: { status: { in: ["OPEN", "REVIEWING"] } } }),
   ]);
-  const message = params.fee ? feeMessages[params.fee] : undefined;
+  const message = params.fee ? feeMessages[params.fee] : params.team ? teamMessages[params.team] : undefined;
 
   return (
     <AdminFrame admin={admin} active="/admin/settings" alerts={openReports}>
@@ -77,11 +88,35 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
                   <span>{a.displayName || a.email}{a.id === admin.user.id ? " (you)" : ""}</span>
                   <small>{a.email} · {a.roles.map(r => r.role.replace("_", " ").toLowerCase()).join(", ") || "no role"}</small>
                   <small>{a.isActive ? "Active" : "Disabled"} · authenticator {a.mfaEnabledAt ? "set up" : "not set up"} · last sign-in {a.lastLoginAt ? ghanaDate(a.lastLoginAt) : "never"}</small>
+                  {isSuper && a.id !== admin.user.id ? (
+                    <form className="ngd-manage-row" action={updateAdminAccount}>
+                      <input type="hidden" name="userId" value={a.id} />
+                      <button className="ngd-btn" name="action" value={a.isActive ? "disable" : "enable"}>{a.isActive ? "Disable" : "Enable"}</button>
+                      {a.mfaEnabledAt ? <button className="ngd-btn" name="action" value="reset_mfa">Reset authenticator</button> : null}
+                    </form>
+                  ) : null}
                 </div>
               </li>
             ))}
           </ul>
-          <p className="ngd-note">Add or reset admins with <code>npm run admin:create</code> on the server.</p>
+          {isSuper ? (
+            <form className="ngd-fee-form" action={createAdminAccount}>
+              <h3 className="ngd-fee-reason">Add an admin</h3>
+              <label className="ngd-field">Name<input name="name" required minLength={2} maxLength={120} /></label>
+              <label className="ngd-field">Email<input name="email" type="email" required maxLength={254} /></label>
+              <label className="ngd-field">Role
+                <select name="role" defaultValue="MODERATOR">
+                  <option value="MODERATOR">Moderator (review listings)</option>
+                  <option value="SUPPORT">Support (read-only, messages)</option>
+                  <option value="ADMIN">Admin (also payments, fees)</option>
+                  <option value="SUPER_ADMIN">Super admin (also manages admins)</option>
+                </select>
+              </label>
+              <label className="ngd-field ngd-fee-reason">Temporary password (at least 12 characters)<input name="password" type="password" required minLength={12} maxLength={256} autoComplete="new-password" /></label>
+              <button className="ngd-btn is-primary" type="submit">Create admin</button>
+            </form>
+          ) : null}
+          <p className="ngd-note">Passwords can also be reset on the server with <code>npm run admin:create -- --email … --reset</code>.</p>
         </Card>
       </div>
     </AdminFrame>

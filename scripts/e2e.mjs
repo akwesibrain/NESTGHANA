@@ -5,7 +5,7 @@ import "dotenv/config";
 import { spawn, execSync } from "node:child_process";
 import { createHmac, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
@@ -66,6 +66,8 @@ try {
     shell: true,
     env: { ...process.env, DATABASE_APP_URL: dbUrl.href, PAYSTACK_SECRET_KEY: SECRET, PAYSTACK_API_BASE: `http://127.0.0.1:${fake.address().port}`, IMAGE_STORAGE_DIR: storage, PUBLIC_SITE_URL: BASE, NEXT_DIST_DIR: ".next-e2e" },
     stdio: ["ignore", "pipe", "pipe"],
+    // Own process group on Linux/macOS so the whole tree (shell + next) can be stopped together.
+    detached: process.platform !== "win32",
   });
   let log = "";
   server.stdout.on("data", d => (log += d));
@@ -89,7 +91,8 @@ try {
   step("public site assets load (MySQL API only)");
 
   // ── Submission over multipart ──
-  const jpeg = () => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...Array.from({ length: 300 }, (_, i) => i % 256)])], { type: "image/jpeg" });
+  const heroJpeg = readFileSync("public/hero.jpg");
+  const jpeg = () => new Blob([heroJpeg], { type: "image/jpeg" });
   const submissionId = randomUUID();
   const listing = {
     category: "rooms", title: "E2E single room in Ho", type: "Single Room", cond: "Good Condition", furn: "Furnished",
@@ -115,7 +118,8 @@ try {
   assert.equal(submit.status, 200, JSON.stringify(checkout));
   assert.match(checkout.reference, /^NGH-[0-9A-F]{32}$/);
   assert.ok(checkout.authorization_url.includes(checkout.reference));
-  step("submission accepted, Paystack checkout started (GH₵30)");
+  assert.match(checkout.manage_url ?? "", /\/manage\/[A-Za-z0-9_-]{43}$/, "owner gets a manage link");
+  step("submission accepted, Paystack checkout started (GH₵30), owner manage link issued");
 
   const [row] = await sql("SELECT l.id, l.status, (SELECT COUNT(*) FROM listing_images i WHERE i.listing_id = l.id) AS images FROM listings l WHERE submission_id = ?", [submissionId], "nestghana_e2e");
   assert.equal(row.status, "PAYMENT_PENDING");
@@ -142,6 +146,11 @@ try {
   assert.deepEqual({ ...afterPay }, { status: "PENDING_APPROVAL", payment: "PAID" });
   step("signed webhook records the payment once; listing awaits review");
 
+  const ownerPage = await (await fetch(checkout.manage_url)).text();
+  assert.ok(ownerPage.includes("E2E single room in Ho") && ownerPage.includes("Being reviewed"), "owner manage page shows the listing status");
+  assert.ok((await (await fetch(`${BASE}/manage/${"x".repeat(43)}`)).text()).includes("This link is not valid"));
+  step("owner manage link opens their listing; a fake link is refused");
+
   // ── Admin review page (signed-in, MFA-verified session) ──
   const adminId = randomUUID();
   const token = randomUUID() + randomUUID();
@@ -152,7 +161,7 @@ try {
   const cookie = { Cookie: `nestgh-admin=${token}` };
   const dashboard = await (await fetch(`${BASE}/admin`, { headers: cookie })).text();
   assert.ok(dashboard.includes("E2E single room in Ho") && dashboard.includes("Overview"), "dashboard lists the submission");
-  for (const page of ["/admin/listings", "/admin/payments", "/admin/reports", "/admin/settings"]) {
+  for (const page of ["/admin/listings", "/admin/payments", "/admin/reports", "/admin/messages", "/admin/settings"]) {
     const res = await fetch(`${BASE}${page}`, { headers: cookie });
     assert.equal(res.status, 200, page);
     assert.ok((await res.text()).includes("ngd-tabs"), `${page} renders the admin frame`);
@@ -192,7 +201,7 @@ try {
 } finally {
   if (server) {
     if (process.platform === "win32") { try { execSync(`taskkill /pid ${server.pid} /T /F`, { stdio: "ignore" }); } catch {} }
-    else server.kill();
+    else { try { process.kill(-server.pid, "SIGTERM"); } catch { server.kill(); } }
   }
   fake.close();
   rmSync(storage, { recursive: true, force: true });

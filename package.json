@@ -20,13 +20,15 @@
     "admin:create": "tsx scripts/create-admin.ts",
     "test:e2e": "node scripts/e2e.mjs",
     "demo:add": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/demo-data.ts add",
-    "demo:remove": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/demo-data.ts remove"
+    "demo:remove": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/demo-data.ts remove",
+    "db:backup": "node scripts/db-backup.mjs",
+    "jobs:availability": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/availability-job.ts"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "7.10.0",
     "@prisma/client": "7.10.0",
     "dotenv": "18.0.5",
-    "mariadb": "3.4.5",
+    "mariadb": "3.5.4",
     "next": "16.3.8",
     "qrcode": "1.5.4",
     "react": "19.3.0",
@@ -47,5 +49,8 @@
     "prisma": "7.10.0",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
+  },
+  "overrides": {
+    "mariadb": "3.5.4"
   }
 }

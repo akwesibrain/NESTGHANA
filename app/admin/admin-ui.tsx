@@ -14,6 +14,7 @@ const TABS = [
   { href: "/admin/listings", label: "Listings", icon: "list" },
   { href: "/admin/payments", label: "Payments", icon: "card" },
   { href: "/admin/reports", label: "Reports", icon: "flag" },
+  { href: "/admin/messages", label: "Messages", icon: "chat" },
   { href: "/admin/settings", label: "Settings", icon: "settings" },
 ] as const;
 
@@ -47,6 +48,7 @@ const ICONS: Record<string, ReactNode> = {
   activity: <path d="M3 12h4l3-8 4 16 3-8h4" />,
   external: <><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></>,
   arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
+  chat: <><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12Z" /><path d="M8.5 11h7M8.5 14h4" /></>,
 };
 
 export function Icon({ name, size = 18 }: { name: keyof typeof ICONS | string; size?: number }) {

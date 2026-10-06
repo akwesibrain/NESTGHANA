@@ -172,6 +172,7 @@ const postJson = (path, body) =>
   });
 // Listing fees by type and whether online payment is configured, from /api/settings.
 let paymentsEnabled = false;
+let turnstileSiteKey = null;
 async function loadSiteSettings() {
   try {
     const data = await apiJson("/api/settings");
@@ -183,6 +184,8 @@ async function loadSiteSettings() {
         space: fees.space / 100,
       });
     paymentsEnabled = data?.payments_enabled === true;
+    turnstileSiteKey =
+      typeof data?.turnstile_site_key === "string" ? data.turnstile_site_key : null;
   } catch (error) {
     console.warn("Could not load listing fees:", error);
     paymentsEnabled = false;
@@ -1283,9 +1286,22 @@ async function verifyPaymentReturn() {
     toast("Payment verification is pending. Reference: " + reference);
     return;
   }
+  const manageUrl = getPendingSubmission(reference)?.manageUrl;
   clearPendingSubmission();
   resultStatus.textContent =
     "Payment verified. Your listing is now waiting for NestGH review.";
+  // The owner's private manage link (confirm availability, mark taken, fix and resubmit).
+  if (typeof manageUrl === "string" && manageUrl.startsWith(location.origin + "/manage/")) {
+    const note = document.createElement("span");
+    note.append(
+      " Save your private link to manage this listing later (do not share it): ",
+    );
+    const link = document.createElement("a");
+    link.href = manageUrl;
+    link.textContent = manageUrl;
+    note.append(link);
+    resultStatus.append(note);
+  }
   resultStatus.hidden = false;
   toast("Payment verified. Your listing is now waiting for NestGH review.");
 }
@@ -1317,6 +1333,39 @@ function clearPendingSubmission() {
   } catch (error) {
     console.error("Could not clear saved payment retry details:", error);
   }
+}
+// Cloudflare Turnstile: loads the widget into the payment sheet and resolves with its token.
+let turnstileScript = null;
+function loadTurnstile() {
+  turnstileScript ??= new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.async = true;
+    script.onload = () => resolve(window.turnstile);
+    script.onerror = () => {
+      turnstileScript = null;
+      reject(new Error("The security check could not load. Check your connection and try again."));
+    };
+    document.head.append(script);
+  });
+  return turnstileScript;
+}
+async function getTurnstileToken() {
+  if (!turnstileSiteKey) return null;
+  const turnstile = await loadTurnstile();
+  const box = document.getElementById("ts-box");
+  if (!box) throw new Error("The security check could not be shown.");
+  box.hidden = false;
+  return new Promise((resolve, reject) => {
+    turnstile.render(box, {
+      sitekey: turnstileSiteKey,
+      callback: (token) => resolve(token),
+      "error-callback": () =>
+        reject(new Error("The security check failed. Please try again.")),
+      "expired-callback": () =>
+        reject(new Error("The security check expired. Please try again.")),
+    });
+  });
 }
 async function beginCheckout(form, pricing) {
   if (!isListingPricingBackendReady())
@@ -1354,6 +1403,7 @@ async function beginCheckout(form, pricing) {
         listingType: pricing.listingType,
         listingFee: pricing.listingFee,
         currency: pricing.currency,
+        manageUrl: result.manage_url,
       }),
     );
   } catch (error) {
@@ -2049,7 +2099,7 @@ async function pay() {
   }
   if (!S.submissionId) S.submissionId = crypto.randomUUID();
   $("psheet").innerHTML =
-    `<div class="sp" role="dialog" aria-modal="true" aria-label="Secure payment"><h3 class="sn">Listing fee</h3><p class="np">Your listing details will be sent securely for review. Payment is processed by Paystack.</p><div class="tot"><span>${window.NestGHListingPricing.LISTING_LABELS[pricing.listingType]} listing fee</span><b>${window.NestGHListingPricing.formatListingPrice(pricing)}</b></div><p class="np" role="status">Preparing secure checkout…</p></div>`;
+    `<div class="sp" role="dialog" aria-modal="true" aria-label="Secure payment"><h3 class="sn">Listing fee</h3><p class="np">Your listing details will be sent securely for review. Payment is processed by Paystack.</p><div id="ts-box" hidden></div><div class="tot"><span>${window.NestGHListingPricing.LISTING_LABELS[pricing.listingType]} listing fee</span><b>${window.NestGHListingPricing.formatListingPrice(pricing)}</b></div><p class="np" role="status">Preparing secure checkout…</p></div>`;
   $("psheet").classList.add("on");
   updateModalScroll();
   try {
@@ -2088,6 +2138,8 @@ async function pay() {
       const blob = await (await fetch(S.extra[i].src)).blob();
       form.append("photo:Extra " + (i + 1), blob, "extra-" + (i + 1) + ".jpg");
     }
+    const turnstileToken = await getTurnstileToken();
+    if (turnstileToken) form.append("turnstile_token", turnstileToken);
     await beginCheckout(form, pricing);
   } catch (error) {
     console.error("Could not start listing payment:", error);
