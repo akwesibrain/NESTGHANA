@@ -8,6 +8,8 @@
     hostel: 35,
     space: 40,
   });
+  // Defaults; the live fees are loaded from /api/settings (admin-editable) via setListingPrices.
+  let currentPrices = { ...LISTING_PRICES };
   const LISTING_LABELS = Object.freeze({
     room: "Room",
     hostel: "Hostel",
@@ -81,7 +83,7 @@
 
   function getListingPrice(value) {
     const listingType = getListingType(value);
-    return listingType ? LISTING_PRICES[listingType] : null;
+    return listingType ? currentPrices[listingType] : null;
   }
 
   function getListingPricing(value) {
@@ -89,7 +91,7 @@
     if (!listingType) return null;
     return Object.freeze({
       listingType,
-      listingFee: LISTING_PRICES[listingType],
+      listingFee: currentPrices[listingType],
       currency: "GHS",
     });
   }
@@ -106,8 +108,22 @@
     return `GH₵${amount}`;
   }
 
+  /** Replaces the fees (in cedis) with the server's current values; invalid input is ignored. */
+  function setListingPrices(prices) {
+    if (!prices || typeof prices !== "object") return false;
+    const next = {};
+    for (const type of Object.keys(LISTING_PRICES)) {
+      const fee = Number(prices[type]);
+      if (!Number.isFinite(fee) || fee <= 0) return false;
+      next[type] = fee;
+    }
+    currentPrices = next;
+    return true;
+  }
+
   return Object.freeze({
     LISTING_PRICES,
+    setListingPrices,
     LISTING_LABELS,
     formatListingPrice,
     getListingPrice,

@@ -1,6 +1,6 @@
 ﻿import autocannon from 'autocannon';
 const base='http://127.0.0.1:'+(process.env.PORT||3100);
-const paths=['/','/app.js','/styles.css','/hero-480.webp','/logo-80.webp','/ghana-locations.js','/supabase.js'];
+const paths=['/','/app.js','/styles.css','/hero-480.webp','/logo-80.webp','/ghana-locations.js','/listing-pricing.js'];
 const stages=[100,500,1000,2000,3000];
 const out=[];
 for(const c of stages){

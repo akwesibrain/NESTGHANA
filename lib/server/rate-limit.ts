@@ -20,17 +20,18 @@ export function clientIp(request: Request): string {
 
 /**
  * Fixed-window counter (port of consume_rate_limit). Atomic: a single upsert statement both
- * resets an expired window and increments the count.
+ * resets an expired window and increments the count. Uses UTC_TIMESTAMP, not NOW(): Prisma stores
+ * UTC while the MySQL server runs on local time.
  */
 export async function consumeRateLimit(endpoint: string, key: Uint8Array<ArrayBuffer>, maxRequests: number, windowSeconds: number) {
   const db = getDb();
   await db.$executeRaw`
     INSERT INTO rate_limit_counters (endpoint, key_sha256, window_started_at, request_count, created_at, updated_at)
-    VALUES (${endpoint}, ${key}, NOW(3), 1, NOW(3), NOW(3))
+    VALUES (${endpoint}, ${key}, UTC_TIMESTAMP(3), 1, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))
     ON DUPLICATE KEY UPDATE
-      request_count = IF(window_started_at <= NOW(3) - INTERVAL ${windowSeconds} SECOND, 1, request_count + 1),
-      window_started_at = IF(window_started_at <= NOW(3) - INTERVAL ${windowSeconds} SECOND, NOW(3), window_started_at),
-      updated_at = NOW(3)`;
+      request_count = IF(window_started_at <= UTC_TIMESTAMP(3) - INTERVAL ${windowSeconds} SECOND, 1, request_count + 1),
+      window_started_at = IF(window_started_at <= UTC_TIMESTAMP(3) - INTERVAL ${windowSeconds} SECOND, UTC_TIMESTAMP(3), window_started_at),
+      updated_at = UTC_TIMESTAMP(3)`;
   const counter = await db.rateLimitCounter.findUniqueOrThrow({
     where: { endpoint_keySha256: { endpoint, keySha256: key } },
     select: { requestCount: true, windowStartedAt: true },

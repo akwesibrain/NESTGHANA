@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { ListingStatus } from "@/generated/prisma/client";
-import { reviewListing, signInAdmin, signOutAdmin, updateListingFee } from "@/app/admin/actions";
+import { reviewListing, signInAdmin, signOutAdmin, updateListingFees } from "@/app/admin/actions";
 import { hasRole } from "@/lib/server/admin-auth";
 import { getAdminContext, requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
@@ -19,8 +19,8 @@ const signInErrors: Record<string, string> = {
 };
 
 const feeMessages: Record<string, { kind: "success" | "error"; text: string }> = {
-  saved: { kind: "success", text: "The listing fee was updated. New payments will use this amount." },
-  invalid: { kind: "error", text: "Enter a positive fee with no more than two decimal places and a reason." },
+  saved: { kind: "success", text: "Listing fees updated. New checkouts use these amounts." },
+  invalid: { kind: "error", text: "Enter three positive fees (up to two decimal places) and a reason." },
   save_failed: { kind: "error", text: "The listing fee could not be saved. Please try again." },
 };
 
@@ -47,7 +47,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
   const statusFilter = listingStatuses.find(status => status === params.status) ?? "";
 
   const [settings, statusCounts, listings] = await Promise.all([
-    db.websiteSettings.findUnique({ where: { id: 1 }, select: { listingFeePesewas: true, currency: true } }),
+    db.websiteSettings.findUnique({ where: { id: 1 }, select: { roomFeePesewas: true, hostelFeePesewas: true, spaceFeePesewas: true, currency: true } }),
     db.listing.groupBy({ by: ["status"], _count: { _all: true } }),
     db.listing.findMany({
       where: {
@@ -120,7 +120,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
             <article className="admin-stat-card"><span className="admin-stat-icon gold" aria-hidden="true">▤</span><small>All listings</small><strong>{totalCount}</strong><span>Every submission, any status</span></article>
             <article className="admin-stat-card"><span className="admin-stat-icon blue" aria-hidden="true">◷</span><small>Awaiting review</small><strong>{pendingCount}</strong><a href="/admin?status=PENDING_APPROVAL#listings">Review now →</a></article>
             <article className="admin-stat-card"><span className="admin-stat-icon green" aria-hidden="true">✓</span><small>Live listings</small><strong>{liveCount}</strong><span>Visible on the website</span></article>
-            <article className="admin-stat-card"><span className="admin-stat-icon lilac" aria-hidden="true">GH₵</span><small>Listing fee</small><strong>{settings ? formatMoney(settings.listingFeePesewas) : "—"}</strong>{canManageSettings ? <a href="#website-settings">Manage fee →</a> : <span>Admin access only</span>}</article>
+            <article className="admin-stat-card"><span className="admin-stat-icon lilac" aria-hidden="true">GH₵</span><small>Listing fees</small><strong>{settings ? `${formatMoney(settings.roomFeePesewas)} / ${formatMoney(settings.hostelFeePesewas)} / ${formatMoney(settings.spaceFeePesewas)}` : "—"}</strong>{canManageSettings ? <a href="#website-settings">Manage fee →</a> : <span>Admin access only</span>}</article>
           </div>
 
           <section className="admin-property-section" aria-labelledby="properties-heading">
@@ -133,7 +133,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
                     <span aria-label="No listing photo" role="img">⌂</span>
                     <span className={`admin-status status-${listing.status.toLowerCase()}`}>{listing.status.replaceAll("_", " ")}</span>
                   </div>
-                  <div className="admin-property-details"><h3>{listing.title}</h3><p>{place(listing) || "Ghana"}</p><div><span>{ROOM_TYPE_LABEL[listing.roomType]}</span><strong>{formatMoney(listing.rentAmountPesewas)} <small>/ period</small></strong></div></div>
+                  <div className="admin-property-details"><h3><Link href={`/admin/listings/${listing.id}`}>{listing.title}</Link></h3><p>{place(listing) || "Ghana"}</p><div><span>{ROOM_TYPE_LABEL[listing.roomType]}</span><strong>{formatMoney(listing.rentAmountPesewas)} <small>/ period</small></strong></div></div>
                 </article>
               ))}
               {!totalCount ? <p className="admin-empty">No listings have been submitted yet.</p> : null}
@@ -157,16 +157,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
                   <tbody>
                     {listings.map(listing => (
                       <tr key={listing.id}>
-                        <td data-label="Property"><span className="admin-table-property"><span aria-hidden="true">⌂</span><span><strong>{listing.title}</strong><small>{place(listing) || "Ghana"} · {listing.id.slice(0, 8)}</small></span></span></td>
+                        <td data-label="Property"><span className="admin-table-property"><span aria-hidden="true">⌂</span><span><strong><Link href={`/admin/listings/${listing.id}`}>{listing.title}</Link></strong><small>{place(listing) || "Ghana"} · {listing.id.slice(0, 8)}</small></span></span></td>
                         <td data-label="Type">{ROOM_TYPE_LABEL[listing.roomType]}{listing.propertyCategory === "COMMERCIAL" ? " (commercial)" : ""}</td>
                         <td data-label="Rent">{formatMoney(listing.rentAmountPesewas)}</td>
                         <td data-label="Status"><span className={`admin-status status-${listing.status.toLowerCase()}`}>{listing.status.replaceAll("_", " ")}</span></td>
-                        <td data-label="Submitted">{listing.createdAt.toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}</td>
+                        <td data-label="Submitted">{listing.createdAt.toLocaleDateString("en-GH", { timeZone: "Africa/Accra", day: "numeric", month: "short", year: "numeric" })}</td>
                         {canReview ? (
                           <td data-label="Review">
                             {listing.status === "PENDING_APPROVAL" ? (
                               <form className="admin-review-form" action={reviewListing}>
                                 <input type="hidden" name="listingId" value={listing.id} />
+                                <input type="hidden" name="from" value="dashboard" />
                                 <input type="text" name="reason" aria-label={`Reason for ${listing.title}`} placeholder="Reason (for changes / reject)" maxLength={1000} />
                                 <button className="primary-button" type="submit" name="decision" value="approve">Approve</button>
                                 <button className="secondary-button" type="submit" name="decision" value="changes">Request changes</button>
@@ -184,24 +185,27 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
             </section>
             {canManageSettings ? (
               <section className="settings-card" id="website-settings" aria-labelledby="listing-fee-heading">
-                <div className="admin-panel-heading"><div><p className="eyebrow">WEBSITE SETTINGS</p><h2 id="listing-fee-heading">Listing fee</h2></div><span className="admin-stat-icon lilac" aria-hidden="true">GH₵</span></div>
-                <p>Set the one-time fee owners pay to submit a listing. New and retried checkouts use the saved amount.</p>
+                <div className="admin-panel-heading"><div><p className="eyebrow">WEBSITE SETTINGS</p><h2 id="listing-fee-heading">Listing fees</h2></div><span className="admin-stat-icon lilac" aria-hidden="true">GH₵</span></div>
+                <p>One-time fee an owner pays to submit a listing, by listing type. Student hostels pay the hostel fee; shops and spaces pay the space fee.</p>
                 {params.fee && feeMessages[params.fee] ? (
                   <p className="status-banner" data-kind={feeMessages[params.fee].kind} role={feeMessages[params.fee].kind === "error" ? "alert" : "status"}>
                     {feeMessages[params.fee].text}
                   </p>
                 ) : null}
                 {!settings ? (
-                  <p className="status-banner" data-kind="error" role="alert">Could not load the current listing fee. Check that the database migrations have been applied.</p>
+                  <p className="status-banner" data-kind="error" role="alert">Could not load the current listing fees. Check that the database migrations have been applied.</p>
                 ) : (
                   <>
-                    <p className="current-fee"><span>Current fee</span><strong>{new Intl.NumberFormat("en-GH", { style: "currency", currency: settings.currency }).format(settings.listingFeePesewas / 100)}</strong></p>
-                    <form className="fee-form" action={updateListingFee}>
-                      <label htmlFor="feeGhs">New fee (GH₵)</label>
-                      <input id="feeGhs" name="feeGhs" type="number" min="0.01" max="21474836.47" step="0.01" defaultValue={(settings.listingFeePesewas / 100).toFixed(2)} required />
+                    <form className="fee-form" action={updateListingFees}>
+                      <label htmlFor="roomFee">Room fee (GH₵)</label>
+                      <input id="roomFee" name="roomFee" type="number" min="0.01" max="21474836.47" step="0.01" defaultValue={(settings.roomFeePesewas / 100).toFixed(2)} required />
+                      <label htmlFor="hostelFee">Hostel fee (GH₵)</label>
+                      <input id="hostelFee" name="hostelFee" type="number" min="0.01" max="21474836.47" step="0.01" defaultValue={(settings.hostelFeePesewas / 100).toFixed(2)} required />
+                      <label htmlFor="spaceFee">Shop / space fee (GH₵)</label>
+                      <input id="spaceFee" name="spaceFee" type="number" min="0.01" max="21474836.47" step="0.01" defaultValue={(settings.spaceFeePesewas / 100).toFixed(2)} required />
                       <label htmlFor="fee-reason">Reason for change</label>
                       <input id="fee-reason" name="reason" type="text" minLength={3} maxLength={1000} required />
-                      <button className="primary-button" type="submit">Save listing fee <span aria-hidden="true">→</span></button>
+                      <button className="primary-button" type="submit">Save listing fees <span aria-hidden="true">→</span></button>
                     </form>
                     <p className="settings-note">Changes are audited and apply to new checkouts. Payments already started keep their original amount.</p>
                   </>

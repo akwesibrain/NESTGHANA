@@ -12,6 +12,8 @@ const staticCache = (value: string) => [{ key: "Cache-Control", value }];
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // scripts/e2e.mjs builds into its own folder so it can run next to a normal `npm run dev`.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   compress: true,
   async rewrites() {
     return { beforeFiles: [{ source: "/", destination: "/index.html" }], afterFiles: [], fallback: [] };
@@ -24,7 +26,7 @@ const nextConfig: NextConfig = {
         headers: staticCache("public, max-age=86400, stale-while-revalidate=604800"),
       },
       {
-        source: "/:file(app|commercial-listings|font-loader|supabase|supabase-config|ghana-locations).js",
+        source: "/:file(app|commercial-listings|font-loader|listing-pricing|ghana-locations).js",
         headers: staticCache("public, max-age=3600, stale-while-revalidate=86400"),
       },
       { source: "/styles.css", headers: staticCache("public, max-age=3600, stale-while-revalidate=86400") },

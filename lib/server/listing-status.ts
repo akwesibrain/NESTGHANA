@@ -1,5 +1,5 @@
 import "server-only";
-import type { ActorType, AdminRole, ListingStatus } from "@/generated/prisma/client";
+import type { ActorType, AdminRole, ListingStatus, Prisma } from "@/generated/prisma/client";
 import { getDb } from "./db";
 
 // The only way a listing's status may change (port of the Supabase transition_listing function).
@@ -53,10 +53,14 @@ function isAllowed(from: ListingStatus, t: Transition, adminRoles: AdminRole[]):
 }
 
 export async function transitionListing(t: Transition) {
+  return getDb().$transaction(tx => transitionListingInTransaction(tx, t));
+}
+
+/** Same as transitionListing, inside a caller-owned transaction (e.g. payment finalization). */
+export async function transitionListingInTransaction(tx: Prisma.TransactionClient, t: Transition) {
   if (t.source.length < 1 || t.source.length > 100) throw new TransitionError("Invalid transition source.");
   const reason = t.reason?.trim() || null;
-
-  return getDb().$transaction(async tx => {
+  {
     let adminRoles: AdminRole[] = [];
     if (t.actorType === "ADMIN") {
       if (!t.actorId) throw new TransitionError("Admin identity is required.");
@@ -132,5 +136,5 @@ export async function transitionListing(t: Transition) {
       });
     }
     return { from, to };
-  });
+  }
 }

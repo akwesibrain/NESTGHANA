@@ -9,7 +9,6 @@ const minified = [
   ["commercial-listings.js", "js"],
   ["font-loader.js", "js"],
   ["styles.css", "css"],
-  ["supabase-config.js", "js"],
 ];
 const assets = [
   ["index.html", "index.html"],
@@ -21,8 +20,6 @@ const assets = [
   ["logo-192.png", "logo-192.png"],
   ["listing-pricing.js", "listing-pricing.js"],
   ["data/ghana-locations.json", "ghana-locations.json"],
-  ["node_modules/@supabase/supabase-js/dist/umd/supabase.js", "supabase.js"],
-  ["node_modules/@supabase/supabase-js/LICENSE", "supabase.LICENSE.txt"],
 ];
 
 await mkdir(publicDir, { recursive: true });

@@ -116,6 +116,7 @@ async function payFor(listingId: string) {
     data: {
       listingId,
       paidListingId: listingId,
+      listingType: "ROOM",
       reference: `NGH-${randomUUID().replace(/-/g, "").toUpperCase()}`,
       amountPesewas: 3000,
       currency: "GHS",
@@ -253,7 +254,7 @@ test("PAID marker must match status", async () => {
   const listing = await newListing();
   await assert.rejects(
     db.payment.create({
-      data: { listingId: listing.id, reference: `NGH-${"A".repeat(24)}`, amountPesewas: 3000, currency: "GHS", status: "PAID", paidAt: new Date() },
+      data: { listingId: listing.id, listingType: "ROOM", reference: `NGH-${"A".repeat(24)}`, amountPesewas: 3000, currency: "GHS", status: "PAID", paidAt: new Date() },
     }),
   );
 });

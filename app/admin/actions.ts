@@ -56,17 +56,23 @@ export async function signOutAdmin() {
   redirect("/admin");
 }
 
-export async function updateListingFee(formData: FormData) {
-  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN"]);
-  const amount = String(formData.get("feeGhs") || "").trim();
-  const reason = String(formData.get("reason") || "").trim();
-  if (!/^\d{1,8}(?:\.\d{1,2})?$/.test(amount) || reason.length < 3 || reason.length > 1000) {
-    redirect("/admin?fee=invalid");
-  }
+function parseCedis(value: FormDataEntryValue | null): number | null {
+  const amount = String(value || "").trim();
+  if (!/^d{1,8}(?:.d{1,2})?$/.test(amount)) return null;
   const [whole, fraction = ""] = amount.split(".");
-  const listingFeePesewas = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
-  if (!Number.isSafeInteger(listingFeePesewas) || listingFeePesewas <= 0 || listingFeePesewas > 2_147_483_647) {
-    redirect("/admin?fee=invalid");
+  const pesewas = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  return Number.isSafeInteger(pesewas) && pesewas > 0 && pesewas <= 2_147_483_647 ? pesewas : null;
+}
+
+/** Updates the Room / Hostel / Space listing fees (audited). New checkouts use the new amounts. */
+export async function updateListingFees(formData: FormData) {
+  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN"]);
+  const roomFeePesewas = parseCedis(formData.get("roomFee"));
+  const hostelFeePesewas = parseCedis(formData.get("hostelFee"));
+  const spaceFeePesewas = parseCedis(formData.get("spaceFee"));
+  const reason = String(formData.get("reason") || "").trim();
+  if (!roomFeePesewas || !hostelFeePesewas || !spaceFeePesewas || reason.length < 3 || reason.length > 1000) {
+    redirect("/admin?fee=invalid#website-settings");
   }
 
   try {
@@ -74,25 +80,28 @@ export async function updateListingFee(formData: FormData) {
       const previous = await tx.websiteSettings.findUniqueOrThrow({ where: { id: 1 } });
       const updated = await tx.websiteSettings.update({
         where: { id: 1 },
-        data: { listingFeePesewas, updatedById: admin.user.id },
+        data: { roomFeePesewas, hostelFeePesewas, spaceFeePesewas, updatedById: admin.user.id },
       });
       await tx.websiteSettingsHistory.create({
         data: {
           settingId: 1,
-          listingFeePesewas: updated.listingFeePesewas,
+          roomFeePesewas: updated.roomFeePesewas,
+          hostelFeePesewas: updated.hostelFeePesewas,
+          spaceFeePesewas: updated.spaceFeePesewas,
           currency: updated.currency,
           confirmationDays: updated.confirmationDays,
           changedById: admin.user.id,
           reason,
         },
       });
+      const fees = (row: typeof previous) => ({ room: row.roomFeePesewas, hostel: row.hostelFeePesewas, space: row.spaceFeePesewas });
       await tx.adminActivityLog.create({
         data: {
           adminUserId: admin.user.id,
-          action: "LISTING_FEE_UPDATED",
+          action: "LISTING_FEES_UPDATED",
           resourceType: "WEBSITE_SETTINGS",
-          previousState: { listingFeePesewas: previous.listingFeePesewas },
-          newState: { listingFeePesewas: updated.listingFeePesewas },
+          previousState: fees(previous),
+          newState: fees(updated),
           reason,
           source: "admin_dashboard",
           metadata: {},
@@ -101,7 +110,7 @@ export async function updateListingFee(formData: FormData) {
     });
   } catch (error) {
     console.error("admin_listing_fee_update_failed", error instanceof Error ? error.message : "unknown");
-    redirect("/admin?fee=save_failed");
+    redirect("/admin?fee=save_failed#website-settings");
   }
   revalidatePath("/admin");
   redirect("/admin?fee=saved#website-settings");
@@ -111,6 +120,7 @@ const reviewInput = z.object({
   listingId: z.uuid(),
   decision: z.enum(["approve", "changes", "reject"]),
   reason: z.string().trim().max(1000).optional(),
+  from: z.enum(["dashboard", "detail"]).optional(),
 });
 const DECISION_STATUS = { approve: "LIVE", changes: "CHANGES_REQUESTED", reject: "REJECTED" } as const;
 
@@ -120,11 +130,12 @@ export async function reviewListing(formData: FormData) {
     listingId: formData.get("listingId"),
     decision: formData.get("decision"),
     reason: formData.get("reason") || undefined,
+    from: formData.get("from") || undefined,
   });
   if (!parsed.success) redirect("/admin?review=invalid#listings");
-  if (parsed.data.decision !== "approve" && (parsed.data.reason?.length ?? 0) < 3) {
-    redirect("/admin?review=reason_required#listings");
-  }
+  const back = (code: string) =>
+    parsed.data.from === "detail" ? `/admin/listings/${parsed.data.listingId}?review=${code}` : `/admin?review=${code}#listings`;
+  if (parsed.data.decision !== "approve" && (parsed.data.reason?.length ?? 0) < 3) redirect(back("reason_required"));
 
   try {
     await transitionListing({
@@ -135,11 +146,18 @@ export async function reviewListing(formData: FormData) {
       reason: parsed.data.reason,
       source: "admin_dashboard",
     });
+    if (parsed.data.decision === "approve") {
+      // The reviewer has seen the photos: publish them with the listing (profile photos stay private).
+      await getDb().listingImage.updateMany({
+        where: { listingId: parsed.data.listingId, category: { not: "PROFILE" } },
+        data: { approvedForPublic: true },
+      });
+    }
   } catch (error) {
-    if (error instanceof TransitionError) redirect("/admin?review=not_allowed#listings");
+    if (error instanceof TransitionError) redirect(back("not_allowed"));
     console.error("admin_review_failed", error instanceof Error ? error.message : "unknown");
-    redirect("/admin?review=failed#listings");
+    redirect(back("failed"));
   }
   revalidatePath("/admin");
-  redirect(`/admin?review=${parsed.data.decision}#listings`);
+  redirect(back(parsed.data.decision));
 }

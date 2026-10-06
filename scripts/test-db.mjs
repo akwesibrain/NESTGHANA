@@ -21,7 +21,7 @@ let failed = false;
 try {
   execSync("npx prisma migrate deploy", { env, stdio: "inherit" });
   // "react-server" lets server-only modules load outside Next.js.
-  execSync("npx tsx --conditions=react-server --tsconfig tsconfig.json --test tests/db/*.test.ts", { env, stdio: "inherit" });
+  execSync("npx tsx --conditions=react-server --tsconfig tsconfig.json --test --test-concurrency=1 tests/db/*.test.ts", { env, stdio: "inherit" });
 } catch {
   failed = true;
 } finally {

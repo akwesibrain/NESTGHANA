@@ -5,5 +5,5 @@ import nextTypescript from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
-  globalIgnores([".next/**", "node_modules/**", "supabase/functions/**", "NestGH-admin/**", "public/**", "brag-output-*/**", "docs/**", "load-test.js"]),
+  globalIgnores([".next/**", ".next-e2e/**", "node_modules/**", "supabase/functions/**", "NestGH-admin/**", "public/**", "brag-output-*/**", "docs/**", "load-test.js"]),
 ]);

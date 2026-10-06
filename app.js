@@ -156,14 +156,7 @@ region.insertAdjacentHTML("beforeend", regionOptions);
 commercialRegion.insertAdjacentHTML("beforeend", regionOptions);
 let savedOnly = false;
 let browseCategory = "";
-const supabaseClient =
-  window.supabase?.createClient && window.NESTGH_SUPABASE_CONFIG?.publishableKey
-    ? window.supabase.createClient(
-        window.NESTGH_SUPABASE_CONFIG.url,
-        window.NESTGH_SUPABASE_CONFIG.publishableKey,
-      )
-    : null;
-// Public reads and reports go to the NestGH MySQL API (app/api/*); supabaseClient is only used by the legacy payment flow.
+// All data goes through the NestGH API (app/api/*, backed by MySQL).
 async function apiJson(path, options) {
   const response = await fetch(path, { credentials: "same-origin", ...options });
   const body = await response.json().catch(() => null);
@@ -171,6 +164,31 @@ async function apiJson(path, options) {
     throw new Error(body?.error || "Request failed (" + response.status + ").");
   return body;
 }
+const postJson = (path, body) =>
+  apiJson(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+// Listing fees by type and whether online payment is configured, from /api/settings.
+let paymentsEnabled = false;
+async function loadSiteSettings() {
+  try {
+    const data = await apiJson("/api/settings");
+    const fees = data?.listing_fees_pesewas;
+    if (fees)
+      window.NestGHListingPricing?.setListingPrices({
+        room: fees.room / 100,
+        hostel: fees.hostel / 100,
+        space: fees.space / 100,
+      });
+    paymentsEnabled = data?.payments_enabled === true;
+  } catch (error) {
+    console.warn("Could not load listing fees:", error);
+    paymentsEnabled = false;
+  }
+}
+const siteSettingsReady = loadSiteSettings();
 let listingLoadFailed = false;
 const commercial = {
   listings: [],
@@ -950,7 +968,9 @@ function mapPublicListing(row) {
       d.avail === "No, available from a later date" ? String(d.from || "") : "",
     photos: Array.isArray(d.photos)
       ? d.photos.filter(
-          (photo) => typeof photo === "string" && photo.startsWith("https://"),
+          (photo) =>
+            typeof photo === "string" &&
+            (photo.startsWith("https://") || /^\/api\/images\/[0-9a-f-]{36}$/.test(photo)),
         )
       : [],
     details: d,
@@ -1245,27 +1265,16 @@ async function verifyPaymentReturn() {
   if (!reference) return;
   url.searchParams.delete("payment_reference");
   history.replaceState(null, "", url.pathname + url.search + url.hash);
-  if (!supabaseClient) {
-    toast(
-      "Payment returned, but payment verification is unavailable. Contact NestGH with reference " +
-        reference +
-        ".",
-    );
-    return;
-  }
   const resultStatus = $("payment-return-status"),
     retryButton = $("retry-payment");
-  let data, error;
+  let error = null;
   try {
-    ({ data, error } = await supabaseClient.functions.invoke(
-      "verify-listing-payment",
-      { body: { reference } },
-    ));
+    await postJson("/api/payments/verify", { reference });
   } catch (requestError) {
     error = requestError;
   }
-  if (error || data?.error) {
-    console.error("Listing payment verification failed:", error || data.error);
+  if (error) {
+    console.error("Listing payment verification failed:", error);
     resultStatus.textContent =
       "We could not verify payment yet. Do not pay again until you check the payment status. If Paystack marked the attempt failed or cancelled, you can retry. Reference: " +
       reference;
@@ -1324,17 +1333,9 @@ async function beginCheckout(form, pricing) {
   const submission = JSON.parse(form.get("listing"));
   Object.assign(submission, pricing);
   form.set("listing", JSON.stringify(submission));
-  const response = await fetch(
-    window.NESTGH_SUPABASE_CONFIG.url + "/functions/v1/start-listing-payment",
-    {
-      method: "POST",
-      headers: { apikey: window.NESTGH_SUPABASE_CONFIG.publishableKey },
-      body: form,
-    },
-  );
-  const result = await response.json();
-  if (!response.ok || !result.authorization_url)
-    throw new Error(result.error || "Secure checkout could not be started.");
+  const result = await apiJson("/api/listings/submit", { method: "POST", body: form });
+  if (!result?.authorization_url)
+    throw new Error("Secure checkout could not be started.");
   const checkout = new URL(result.authorization_url);
   if (
     checkout.protocol !== "https:" ||
@@ -1362,9 +1363,43 @@ async function beginCheckout(form, pricing) {
   window.location.assign(checkout.toString());
 }
 async function retrySecurePayment() {
-  $("payment-return-status").textContent =
-    "Payment retry is unavailable until the backend can validate type-based listing fees. No new payment has been started.";
-  $("payment-return-status").hidden = false;
+  const status = $("payment-return-status"),
+    pending = readPendingSubmission();
+  if (!pending?.submission_id || !pending.email) {
+    status.textContent =
+      "We could not find your earlier submission in this browser. Contact NestGH for help.";
+    status.hidden = false;
+    return;
+  }
+  $("retry-payment").disabled = true;
+  try {
+    await siteSettingsReady;
+    const fee = window.NestGHListingPricing?.getListingPricing({
+      listingType: pending.listingType,
+    });
+    const result = await postJson("/api/payments/retry", {
+      submission_id: pending.submission_id,
+      email: pending.email,
+      expected_fee_pesewas: Math.round((fee?.listingFee ?? 0) * 100),
+    });
+    const checkout = new URL(result.authorization_url);
+    if (
+      checkout.protocol !== "https:" ||
+      (checkout.hostname !== "paystack.com" &&
+        !checkout.hostname.endsWith(".paystack.com"))
+    )
+      throw new Error("The payment provider returned an invalid checkout link.");
+    sessionStorage.setItem(
+      "nestgh_pending_payment",
+      JSON.stringify({ ...pending, reference: result.reference }),
+    );
+    window.location.assign(checkout.toString());
+  } catch (error) {
+    status.textContent =
+      error instanceof Error ? error.message : "Secure checkout could not be started.";
+    status.hidden = false;
+    $("retry-payment").disabled = false;
+  }
 }
 $("retry-payment").onclick = retrySecurePayment;
 /* ===== LIST A ROOM ===== */
@@ -1474,11 +1509,7 @@ const currentListingPricing = () =>
     type: S.type,
     otherType: S.otherType,
   }) || null;
-const isListingPricingBackendReady = () =>
-  !!(
-    supabaseClient &&
-    window.NESTGH_SUPABASE_CONFIG?.listingPricingVersion === 1
-  );
+const isListingPricingBackendReady = () => paymentsEnabled;
 const listingFeeSummary = () => {
   const pricing = currentListingPricing();
   if (!pricing)
@@ -2001,6 +2032,7 @@ async function submit() {
   await pay();
 }
 async function pay() {
+  await siteSettingsReady;
   const pricing = currentListingPricing();
   if (!pricing) {
     go(0);

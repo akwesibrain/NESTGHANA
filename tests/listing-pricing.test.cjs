@@ -83,3 +83,13 @@ test("formats owner-facing fees as Ghana cedi amounts", () => {
   assert.equal(pricing.formatListingPrice("hostel"), "GH₵35");
   assert.equal(pricing.formatListingPrice("space"), "GH₵40");
 });
+
+test("uses the server's current fees once loaded, ignoring invalid input", () => {
+  assert.equal(pricing.setListingPrices({ room: 30 }), false);
+  assert.equal(pricing.setListingPrices({ room: 25, hostel: -1, space: 40 }), false);
+  assert.equal(pricing.getListingPrice("room"), 30);
+  assert.equal(pricing.setListingPrices({ room: 25, hostel: 36.5, space: 50 }), true);
+  assert.deepEqual(pricing.getListingPricing("Student Hostel"), { listingType: "hostel", listingFee: 36.5, currency: "GHS" });
+  assert.equal(pricing.formatListingPrice("space"), "GH₵50");
+  pricing.setListingPrices(pricing.LISTING_PRICES);
+});

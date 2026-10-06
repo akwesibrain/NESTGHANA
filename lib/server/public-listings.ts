@@ -1,6 +1,8 @@
 import "server-only";
 import type { Furnishing, ListingCondition, Prisma, RentPeriod, RoomType } from "@/generated/prisma/client";
 import { getDb } from "./db";
+import { getListingFees } from "./listing-fees";
+import { paystackConfigured } from "./paystack";
 
 // Builds the `public_data` shape that the public site renders (app.js → mapPublicListing for rooms,
 // commercial-listings.js → normalize for Shops & Spaces). Mirrors the Supabase public_listings view.
@@ -158,6 +160,11 @@ export async function listPublicListings(
       owner: { select: { phoneE164: true, whatsappE164: true, relationship: true } },
       area: { select: { name: true, parent: { select: { name: true, parent: { select: { name: true } } } } } },
       verification: { select: { phoneVerifiedAt: true, identityVerifiedAt: true, propertyVerifiedAt: true } },
+      images: {
+        where: { approvedForPublic: true, category: { not: "PROFILE" } },
+        orderBy: { displayOrder: "asc" },
+        select: { id: true },
+      },
     },
   });
 
@@ -166,6 +173,7 @@ export async function listPublicListings(
     const availableFrom = isoDate(row.availabilityDate);
     const town = row.area.parent?.name ?? "";
     const region = row.area.parent?.parent?.name ?? "";
+    const photoUrls = row.images.map(image => `/api/images/${image.id}`);
     const base = { id: row.id, status: "available" as const, created_at: row.createdAt.toISOString() };
 
     if (category === "commercial") {
@@ -192,8 +200,7 @@ export async function listPublicListings(
           water: row.water,
           estimatedMoveInCost: row.estimatedMoveInCostPesewas === null ? null : cedis(row.estimatedMoveInCostPesewas),
           availability: availableFrom,
-          // Approved photos are served once image storage (workflow step 4) is in place.
-          images: [] as string[],
+          images: photoUrls,
           phone: row.owner.phoneE164,
           whatsapp: row.owner.whatsappE164,
         },
@@ -237,23 +244,23 @@ export async function listPublicListings(
         confirmed_at: (row.lastConfirmedAt ?? row.createdAt).toISOString(),
         avail: availableFrom > today ? "No, available from a later date" : "Yes, available now",
         from: availableFrom,
-        // Approved photos are served once image storage (workflow step 4) is in place.
-        photos: [] as string[],
+        photos: photoUrls,
       },
     };
   });
 }
 
 export async function getPublicSiteSettings() {
-  const settings = await getDb().websiteSettings.findUnique({
-    where: { id: 1 },
-    select: { listingFeePesewas: true, currency: true, privacyPolicyVersion: true, termsVersion: true },
-  });
-  if (!settings) return null;
+  const [fees, versions] = await Promise.all([
+    getListingFees(),
+    getDb().websiteSettings.findUniqueOrThrow({ where: { id: 1 }, select: { privacyPolicyVersion: true, termsVersion: true } }),
+  ]);
   return {
-    listing_fee_pesewas: settings.listingFeePesewas,
-    currency: settings.currency,
-    privacy_policy_version: settings.privacyPolicyVersion,
-    terms_version: settings.termsVersion,
+    currency: fees.currency,
+    /** Fees by listing type in pesewas (keys match listing-pricing.js). */
+    listing_fees_pesewas: { room: fees.room, hostel: fees.hostel, space: fees.space },
+    payments_enabled: paystackConfigured(),
+    privacy_policy_version: versions.privacyPolicyVersion,
+    terms_version: versions.termsVersion,
   };
 }

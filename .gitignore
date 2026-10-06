@@ -8,3 +8,5 @@ coverage/
 reports/evidence/*.tmp
 .netlify/
 /generated/
+/storage/
+/.next-e2e/

@@ -134,7 +134,7 @@ async function main() {
     await prisma.websiteSettings.upsert({
       where: { id: 1 },
       update: {},
-      create: { id: 1, listingFeePesewas: 3000, currency: "GHS", confirmationDays: 30, privacyPolicyVersion: "2026-10-01", termsVersion: "2026-10-01" },
+      create: { id: 1, currency: "GHS", confirmationDays: 30, privacyPolicyVersion: "2026-10-01", termsVersion: "2026-10-01" },
     });
 
     console.log(
