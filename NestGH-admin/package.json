@@ -1,6 +1,12 @@
 {
-  "name": "nestgh-admin-dashboard",
+  "name": "nestgh-admin-preview",
   "version": "1.0.0",
   "private": true,
-  "description": "Standalone frontend preview for the NestGH admin dashboard"
+  "description": "Static preview of the NestGH admin dashboard (HTML, CSS, JS) using sample data.",
+  "scripts": {
+    "start": "npx --yes serve . -l 3000",
+    "dev": "npx --yes serve . -l 3000"
+  },
+  "keywords": ["nestgh", "admin", "dashboard", "ghana"],
+  "license": "UNLICENSED"
 }

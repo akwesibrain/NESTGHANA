@@ -42,9 +42,9 @@
 </nav>
 <header class="hero" id="top">
   <div class="w">
-    <p class="eyebrow"><i data-ic="shield"></i> Ghana's Trusted Property Marketplace</p>
+    <p class="eyebrow"><i data-ic="pin"></i> Find rooms and spaces across Ghana</p>
     <h1>Find Your Next Place</h1>
-    <p class="d">Discover modern homes and rooms,<br>prime locations and lifestyle-driven communities — all in one place</p>
+    <p class="d">Rooms and hostels across Ghana, with clear details and direct owner contact.</p>
   </div>
 </header>
 <div class="w">
@@ -129,20 +129,20 @@
   <div class="w">
     <div class="tr">
       <i data-ic="home"></i>
-      <b>Verified listings</b><span>100% genuine listings with verified owners</span>
+      <b>Clear costs</b><span>Compare rent, advance and other costs where provided</span>
     </div>
     <div class="tr">
       <i data-ic="chat"></i>
       <b>Direct contact</b>
-      <span>WhatsApp or call the owner</span>
+      <span>Contact the owner by WhatsApp or phone</span>
     </div>
     <div class="tr">
       <i data-ic="heart"></i>
-      <b>Better Living</b><span>Find a home that fits your lifestyle</span>
+      <b>Check availability</b><span>Contact the owner to confirm before you travel</span>
     </div>
     <div class="tr">
       <i data-ic="shield"></i>
-      <b>Trusted &amp; Secure</b><span>Safe transactions with complete transparency</span>
+      <b>Save favourites</b><span>Keep rooms you like saved on this device</span>
     </div>
   </div>
 </section>
@@ -349,17 +349,17 @@
   <div class="w why">
     <figure class="why-media" data-reveal="fade-up">
       <img src="hero-480.webp" srcset="hero-480.webp 480w, hero.webp 800w" sizes="(min-width: 900px) 520px, 92vw" alt="A modern home" width="480" height="720" loading="lazy" decoding="async">
-      <figcaption>Rooms you can trust</figcaption>
+      <figcaption>A place to call home</figcaption>
     </figure>
     <div class="why-copy" data-reveal="fade-up">
       <p class="why-eyebrow">Why NestGH</p>
-      <h2>More than listings.<br>We Help You Find What's Actually Available</h2>
-      <p>Finding a room in Ghana should be about more than seeing a photo and calling a number. NestGH helps you check where the room is, what it costs, what comes with it, and whether it is available before you make the trip.</p>
+      <h2>Find the details before you travel</h2>
+      <p>Room hunting takes enough time already. Compare rent, advance and what is included, then contact the owner to confirm the room is still available before making the trip.</p>
       <dl class="why-stats">
-        <div><dt>12K+</dt><dd>Happy Clients</dd></div>
-        <div><dt>500+</dt><dd>Properties Listed</dd></div>
-        <div><dt>1000+</dt><dd>Areas Around Ghana</dd></div>
-        <div><dt>98%</dt><dd>Success Rate</dd></div>
+        <div><dt>Compare</dt><dd>Rent and advance</dd></div>
+        <div><dt>Contact</dt><dd>Owners directly</dd></div>
+        <div><dt>Shortlist</dt><dd>Save rooms you like</dd></div>
+        <div><dt>Confirm</dt><dd>Before you travel</dd></div>
       </dl>
     </div>
   </div>
@@ -458,11 +458,11 @@
 </aside>
 <div class="sheet" id="sheet"></div>
 <div class="sheet" id="psheet"></div>
-<div class="lf" id="lf" role="dialog" aria-modal="true" aria-label="List a property">
+<div class="lf" id="lf" role="dialog" aria-modal="true" aria-labelledby="lf-title">
   <div class="lh">
     <div class="lw">
       <div class="lt">
-        <b>List a property</b>
+        <b id="lf-title">List a property</b>
         <button class="ib" id="lx" aria-label="Close form">✕</button>
       </div>
       <div id="pb"></div>
@@ -477,7 +477,7 @@
     </div>
   </div>
 </div>
-<div class="pol" id="pol" role="dialog" aria-modal="true" aria-label="Policy">
+<div class="pol" id="pol" role="dialog" aria-modal="true" aria-labelledby="pt2">
   <div class="ph">
     <div class="lw">
       <b id="pt2"></b>
@@ -1160,6 +1160,7 @@
 <script defer src="supabase-config.js"></script>
 <script defer src="supabase.js"></script>
 <script defer src="ghana-locations.js"></script>
+<script defer src="listing-pricing.js"></script>
 <script defer src="commercial-listings.js"></script>
 <script defer src="app.js"></script>
 </body>

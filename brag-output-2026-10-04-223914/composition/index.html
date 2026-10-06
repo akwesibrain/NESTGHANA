@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <meta name="color-scheme" content="light" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --bg: #f5f8f6;
+        --card: #ffffff;
+        --ink: #10201a;
+        --muted: #53655b;
+        --line: #e3ebe6;
+        --green: #0f7a4b;
+        --green-dark: #0b633d;
+        --green-pale: #eaf5ee;
+        --gold: #e3b83f;
+        --shadow: 0 28px 90px rgb(16 32 26 / 12%);
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        isolation: isolate;
+        background:
+          radial-gradient(ellipse at 78% 5%, rgb(15 122 75 / 7%), transparent 29%),
+          var(--bg);
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        opacity: 0;
+        visibility: hidden;
+      }
+      .screen {
+        position: relative;
+        width: 930px;
+        height: 1680px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 40px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+      }
+      .topbar {
+        position: relative;
+        z-index: 2;
+        height: 112px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 52px;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .brand-icon {
+        width: 45px;
+        height: 45px;
+        color: var(--green);
+      }
+      .brand-name {
+        font-size: 32px;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -1.4px;
+      }
+      .brand-caption {
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 2.8px;
+      }
+      .topbar-action {
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        color: var(--green-dark);
+      }
+      .topbar-action svg {
+        width: 24px;
+        height: 24px;
+      }
+      .content {
+        padding: 60px 54px;
+      }
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 24px;
+        color: var(--green-dark);
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .eyebrow-dot {
+        width: 11px;
+        height: 11px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--gold);
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+      .home-title {
+        max-width: 790px;
+        margin: 0 0 28px;
+        font-size: 99px;
+        line-height: 0.98;
+        font-weight: 800;
+        letter-spacing: -5.6px;
+      }
+      .lead {
+        max-width: 765px;
+        margin: 0 0 34px;
+        color: var(--muted);
+        font-size: 28px;
+        line-height: 1.42;
+        font-weight: 500;
+      }
+      .search-pill {
+        min-height: 86px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 15px 19px 15px 25px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: #fff;
+        box-shadow: 0 14px 35px rgb(16 32 26 / 6%);
+      }
+      .location-icon {
+        width: 31px;
+        height: 31px;
+        flex: 0 0 auto;
+        color: var(--green);
+      }
+      .search-copy {
+        flex: 1;
+        min-width: 0;
+      }
+      .search-copy strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 19px;
+        font-weight: 800;
+      }
+      .search-copy span {
+        color: var(--muted);
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .search-arrow {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        background: var(--green);
+        color: #fff;
+      }
+      .search-arrow svg {
+        width: 24px;
+        height: 24px;
+      }
+      .section-title {
+        margin: 62px 0 20px;
+        font-size: 29px;
+        font-weight: 800;
+        letter-spacing: -0.7px;
+      }
+      .category-list {
+        display: grid;
+        gap: 15px;
+      }
+      .category-row {
+        min-height: 88px;
+        display: flex;
+        align-items: center;
+        gap: 19px;
+        padding: 15px 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #fff;
+      }
+      .category-row.highlight {
+        border-color: #a7d4b9;
+        background: #f2f8f3;
+      }
+      .category-icon {
+        width: 52px;
+        height: 52px;
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        border-radius: 15px;
+        background: var(--green-pale);
+        color: var(--green);
+      }
+      .category-icon svg {
+        width: 26px;
+        height: 26px;
+      }
+      .category-row.highlight .category-icon {
+        background: var(--green);
+        color: #fff;
+      }
+      .category-name {
+        margin-bottom: 3px;
+        font-size: 21px;
+        font-weight: 800;
+      }
+      .category-note {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .page-title {
+        margin: 0 0 14px;
+        font-size: 51px;
+        line-height: 1.03;
+        letter-spacing: -2.2px;
+        font-weight: 800;
+      }
+      .page-subtitle {
+        margin: 0;
+        color: var(--muted);
+        font-size: 21px;
+        line-height: 1.45;
+        font-weight: 500;
+      }
+      .demo-banner {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin: 28px 0 25px;
+        padding: 17px 20px;
+        border: 1px solid #e6d28c;
+        border-radius: 15px;
+        background: #fffaf0;
+        color: #514019;
+        font-size: 16px;
+        line-height: 1.25;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+      .demo-dot {
+        width: 11px;
+        height: 11px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: #b78612;
+      }
+      .filter-card {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: #fff;
+        box-shadow: 0 12px 35px rgb(16 32 26 / 5%);
+      }
+      .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 19px 16px;
+      }
+      .field {
+        min-width: 0;
+      }
+      .field label {
+        display: block;
+        margin: 0 0 8px;
+        color: #34453d;
+        font-size: 16px;
+        font-weight: 800;
+      }
+      .control {
+        height: 61px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 0 16px;
+        overflow: hidden;
+        border: 1px solid #dfe7e2;
+        border-radius: 14px;
+        background: #f8faf8;
+        color: #293d32;
+        font-size: 17px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .control.muted {
+        color: #53655b;
+        font-weight: 600;
+      }
+      .control.selected {
+        border-color: #99c8aa;
+        background: #f1f8f3;
+        color: var(--green-dark);
+      }
+      .chevron {
+        width: 17px;
+        height: 17px;
+        flex: 0 0 auto;
+        color: #53655b;
+      }
+      .form-actions {
+        display: grid;
+        grid-template-columns: 1fr 1.15fr;
+        gap: 13px;
+        margin-top: 23px;
+      }
+      .button {
+        min-height: 68px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px 18px;
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        background: #fff;
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 18px;
+        font-weight: 800;
+      }
+      .button.primary {
+        border-color: var(--green);
+        background: var(--green);
+        color: #fff;
+      }
+      .button svg {
+        width: 23px;
+        height: 23px;
+        flex: 0 0 auto;
+      }
+      .helper-copy {
+        margin: 24px 5px 0;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.45;
+      }
+      .result-count {
+        margin: 23px 2px 16px;
+        color: var(--muted);
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .listing-stack {
+        display: grid;
+        gap: 17px;
+      }
+      .listing-card {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: #fff;
+        box-shadow: 0 12px 32px rgb(16 32 26 / 5%);
+      }
+      .listing-topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 17px;
+      }
+      .listing-badge {
+        padding: 9px 12px;
+        border: 1px solid #e6d28c;
+        border-radius: 999px;
+        background: #fffaf0;
+        color: #514019;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+      .listing-type {
+        color: var(--green-dark);
+        font-size: 14px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+      .listing-main {
+        display: grid;
+        grid-template-columns: 168px 1fr;
+        gap: 19px;
+        align-items: center;
+      }
+      .listing-art {
+        width: 168px;
+        height: 168px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #d9e9de;
+        border-radius: 19px;
+        background:
+          linear-gradient(135deg, rgb(15 122 75 / 7%), rgb(15 122 75 / 2%)),
+          #f3f8f4;
+        color: var(--green);
+      }
+      .listing-art svg {
+        width: 64px;
+        height: 64px;
+      }
+      .listing-title {
+        margin: 0 0 9px;
+        font-size: 29px;
+        line-height: 1.08;
+        font-weight: 800;
+        letter-spacing: -0.8px;
+      }
+      .listing-location {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0 0 15px;
+        color: var(--muted);
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .listing-location svg {
+        width: 19px;
+        height: 19px;
+        flex: 0 0 auto;
+        color: var(--green);
+      }
+      .listing-price {
+        margin: 0 0 6px;
+        font-size: 26px;
+        line-height: 1.1;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      .listing-price small {
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .listing-size {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .listing-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 17px;
+        padding-top: 15px;
+        border-top: 1px solid var(--line);
+      }
+      .demo-note {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .details-link {
+        color: var(--green-dark);
+        font-size: 16px;
+        font-weight: 800;
+      }
+      .detail-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: #fff;
+        box-shadow: 0 14px 38px rgb(16 32 26 / 6%);
+      }
+      .detail-visual {
+        height: 245px;
+        display: grid;
+        place-items: center;
+        border-bottom: 1px solid var(--line);
+        background:
+          radial-gradient(ellipse at 50% 90%, rgb(15 122 75 / 10%), transparent 55%),
+          #f3f8f4;
+        color: var(--green);
+      }
+      .detail-visual svg {
+        width: 102px;
+        height: 102px;
+      }
+      .detail-body {
+        padding: 27px;
+      }
+      .detail-label {
+        margin-bottom: 12px;
+        color: var(--green-dark);
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .detail-title {
+        margin: 0 0 10px;
+        font-size: 42px;
+        line-height: 1.04;
+        letter-spacing: -1.7px;
+        font-weight: 800;
+      }
+      .detail-location {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0 0 22px;
+        color: var(--muted);
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .detail-location svg {
+        width: 22px;
+        height: 22px;
+        color: var(--green);
+      }
+      .detail-price {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        margin-bottom: 22px;
+        font-size: 37px;
+        font-weight: 800;
+        letter-spacing: -1.1px;
+      }
+      .detail-price span {
+        color: var(--muted);
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+      .detail-facts {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .fact {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #f9fbf9;
+      }
+      .fact span {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .fact strong {
+        font-size: 18px;
+        font-weight: 800;
+      }
+      .detail-description {
+        margin: 0 0 22px;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.45;
+      }
+      .contact-button {
+        width: 100%;
+        min-height: 75px;
+        border: 0;
+        border-radius: 17px;
+        background: var(--green);
+        color: #fff;
+        font-family: inherit;
+        font-size: 21px;
+        font-weight: 800;
+      }
+      .contact-button svg {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+        vertical-align: -6px;
+      }
+      .detail-disclaimer {
+        margin: 15px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+        text-align: center;
+      }
+      .outro {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+      }
+      .outro-glow {
+        position: absolute;
+        right: 152px;
+        bottom: 465px;
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        background: rgb(15 122 75 / 9%);
+        filter: blur(44px);
+        opacity: 0.2;
+        pointer-events: none;
+      }
+      .outro-logo {
+        width: 390px;
+        height: 390px;
+        overflow: hidden;
+        border-radius: 42px;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+      .outro-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .outro-line {
+        margin: 45px 0 0;
+        color: var(--green-dark);
+        font-size: 32px;
+        font-weight: 800;
+        letter-spacing: -0.8px;
+      }
+      .outro-subline {
+        margin: 15px 0 0;
+        color: var(--muted);
+        font-size: 22px;
+        font-weight: 600;
+      }
+      .outro-rule {
+        width: 70px;
+        height: 5px;
+        margin-top: 30px;
+        border-radius: 99px;
+        background: var(--gold);
+      }
+      .corner-glow {
+        position: absolute;
+        right: 22px;
+        bottom: 28px;
+        width: 230px;
+        height: 230px;
+        border-radius: 50%;
+        background: rgb(15 122 75 / 8%);
+        filter: blur(35px);
+        opacity: 0.18;
+        pointer-events: none;
+      }
+      .cursor {
+        position: absolute;
+        z-index: 8;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 40px;
+        opacity: 0;
+        filter: drop-shadow(0 4px 6px rgb(16 32 26 / 30%));
+        pointer-events: none;
+      }
+      .cursor svg {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1080"
+      data-height="1920"
+      aria-label="NestGH mobile property search walkthrough"
+    >
+      <section class="scene" id="scene-home">
+        <article class="screen">
+          <header class="topbar">
+            <div class="brand">
+              <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M4 16.5 18 5l14 11.5v14H4v-14Z" stroke="currentColor" stroke-width="2.7" stroke-linejoin="round" /><path d="M13 30.5V20h10v10.5" stroke="currentColor" stroke-width="2.7" stroke-linejoin="round" /></svg>
+              <div><div class="brand-name">NestGH</div><div class="brand-caption">FIND · LIST · RENT</div></div>
+            </div>
+            <div class="topbar-action" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5v9H4v-9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="M9.5 19.5v-6h5v6" stroke="currentColor" stroke-width="1.8" /></svg></div>
+          </header>
+          <div class="content">
+            <p class="eyebrow"><span class="eyebrow-dot"></span> Ghana's property marketplace</p>
+            <h1 class="home-title">Find Your<br />Next Place</h1>
+            <p class="lead">Rooms and hostels across Ghana, with clear details and direct owner contact.</p>
+            <div class="search-pill">
+              <svg class="location-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" stroke="currentColor" stroke-width="1.8" /><circle cx="12" cy="10" r="2.3" stroke="currentColor" stroke-width="1.8" /></svg>
+              <div class="search-copy"><strong>Start your search</strong><span>Search by location and property type</span></div>
+              <span class="search-arrow"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+            </div>
+            <h2 class="section-title">Popular Categories</h2>
+            <div class="category-list">
+              <div class="category-row"><span class="category-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11 12 4l9 7v9H3v-9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="M9 20v-6h6v6" stroke="currentColor" stroke-width="1.8" /></svg></span><div><div class="category-name">Single Rooms</div><div class="category-note">Simple, comfortable spaces</div></div></div>
+              <div class="category-row"><span class="category-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11 12 4l9 7v9H3v-9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="M9 20v-6h6v6" stroke="currentColor" stroke-width="1.8" /></svg></span><div><div class="category-name">Hostels</div><div class="category-note">Student and shared rooms</div></div></div>
+              <div class="category-row highlight"><span class="category-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10h16v10H4V10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m3 10 2-6h14l2 6M8 20v-6h8v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg></span><div><div class="category-name">Shops &amp; Spaces</div><div class="category-note">Business spaces to let</div></div></div>
+            </div>
+            <div class="corner-glow" id="home-glow" aria-hidden="true"></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="scene" id="scene-search">
+        <article class="screen">
+          <header class="topbar">
+            <div class="brand">
+              <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M4 16.5 18 5l14 11.5v14H4v-14Z" stroke="currentColor" stroke-width="2.7" stroke-linejoin="round" /><path d="M13 30.5V20h10v10.5" stroke="currentColor" stroke-width="2.7" stroke-linejoin="round" /></svg>
+              <div><div class="brand-name">NestGH</div><div class="brand-caption">FIND · LIST · RENT</div></div>
+            </div>
+            <div class="topbar-action" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m20.5 20.5-4.2-4.2M10.9 18a7.1 7.1 0 1 0 0-14.2 7.1 7.1 0 0 0 0 14.2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div>
+          </header>
+          <div class="content">
+            <p class="eyebrow"><span class="eyebrow-dot"></span> Commercial property</p>
+            <h2 class="page-title">Shops &amp; Spaces<br />to Let</h2>
+            <p class="page-subtitle">Find a business space using details provided by property owners.</p>
+            <div class="demo-banner"><span class="demo-dot"></span> ILLUSTRATIVE DEMO · SAMPLE SEARCH</div>
+            <div class="filter-card">
+              <div class="filter-grid">
+                <div class="field"><label>Location</label><div class="control selected">Greater Accra <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div></div>
+                <div class="field"><label>Space type</label><div class="control muted">Any type <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div></div>
+                <div class="field"><label>Minimum monthly rent</label><div class="control muted">No minimum</div></div>
+                <div class="field"><label>Maximum monthly rent</label><div class="control muted">No maximum</div></div>
+                <div class="field"><label>Minimum size</label><div class="control muted">Any size</div></div>
+                <div class="field"><label>Maximum size</label><div class="control muted">Any size</div></div>
+                <div class="field"><label>Road visibility</label><div class="control muted">Any <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div></div>
+                <div class="field"><label>Parking</label><div class="control muted">Any <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div></div>
+                <div class="field"><label>Electricity</label><div class="control muted">Any <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div></div>
+                <div class="field"><label>Water</label><div class="control muted">Any <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div></div>
+              </div>
+              <div class="form-actions">
+                <div class="button">Clear Filters</div>
+                <div class="button primary" id="search-button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="2" /><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>Search spaces</div>
+              </div>
+            </div>
+            <p class="helper-copy">Sample location shown for this video only. Listing data is illustrative, not live.</p>
+          </div>
+          <div class="corner-glow" id="search-glow" aria-hidden="true"></div>
+        </article>
+        <div class="cursor" id="search-cursor" aria-hidden="true"><svg viewBox="0 0 24 30" fill="none"><path d="M3 2.5v20l5.3-5.1 3.5 8.2 3.3-1.4-3.4-8.2 7.3-.3L3 2.5Z" fill="#10201a" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" /></svg></div>
+      </section>
+
+      <section class="scene" id="scene-results">
+        <article class="screen">
+          <header class="topbar">
+            <div class="brand">
+              <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M4 16.5 18 5l14 11.5v14H4v-14Z" stroke="currentColor" stroke-width="2.7" stroke-linejoin="round" /><path d="M13 30.5V20h10v10.5" stroke="currentColor" stroke-width="2.7" stroke-linejoin="round" /></svg>
+              <div><div class="brand-name">NestGH</div><div class="brand-caption">FIND · LIST · RENT</div></div>
+            </div>
+            <div class="topbar-action" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7h12M6 12h12M6 17h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div>
+          </header>
+          <div class="content">
+            <p class="eyebrow"><span class="eyebrow-dot"></span> Greater Accra · Sample search</p>
+            <h2 class="page-title">Compare spaces</h2>
+            <p class="page-subtitle">Review type, location, monthly rent and size.</p>
+            <div class="demo-banner"><span class="demo-dot"></span> ILLUSTRATIVE DEMO · NOT LIVE LISTINGS</div>
+            <p class="result-count">2 sample spaces</p>
+            <div class="listing-stack">
+              <article class="listing-card" id="shop-card">
+                <div class="listing-topline"><span class="listing-badge">ILLUSTRATIVE · NOT LIVE</span><span class="listing-type">Shop</span></div>
+                <div class="listing-main">
+                  <div class="listing-art"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M8 20h32v21H8V20Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /><path d="m6 20 4-13h28l4 13M15 41V28h18v13" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /><path d="M6 20c0 2 1.6 3.5 3.5 3.5S13 22 13 20c0 2 1.6 3.5 3.5 3.5S20 22 20 20c0 2 1.6 3.5 3.5 3.5S27 22 27 20c0 2 1.6 3.5 3.5 3.5S34 22 34 20c0 2 1.6 3.5 3.5 3.5S41 22 41 20" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg></div>
+                  <div><h3 class="listing-title">Retail space</h3><p class="listing-location"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" stroke="currentColor" stroke-width="1.8" /><circle cx="12" cy="10" r="2.3" stroke="currentColor" stroke-width="1.8" /></svg>Osu, Accra</p><p class="listing-price">GH₵ 4,500 <small>/ month</small></p><p class="listing-size">120 m²</p></div>
+                </div>
+                <div class="listing-foot"><span class="demo-note">Video-only sample details</span><span class="details-link">View details&nbsp; →</span></div>
+              </article>
+              <article class="listing-card" id="office-card">
+                <div class="listing-topline"><span class="listing-badge">ILLUSTRATIVE · NOT LIVE</span><span class="listing-type">Office</span></div>
+                <div class="listing-main">
+                  <div class="listing-art"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M10 41V8h28v33M6 41h36M17 15h4m6 0h4m-14 7h4m6 0h4m-14 7h4m6 0h4M21 41V34h6v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
+                  <div><h3 class="listing-title">Office space</h3><p class="listing-location"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" stroke="currentColor" stroke-width="1.8" /><circle cx="12" cy="10" r="2.3" stroke="currentColor" stroke-width="1.8" /></svg>Tema</p><p class="listing-price">GH₵ 3,200 <small>/ month</small></p><p class="listing-size">85 m²</p></div>
+                </div>
+                <div class="listing-foot"><span class="demo-note">Video-only sample details</span><span class="details-link">View details&nbsp; →</span></div>
+              </article>
+            </div>
+          </div>
+          <div class="corner-glow" id="results-glow" aria-hidden="true"></div>
+        </article>
+      </section>
+
+      <section class="scene" id="scene-details">
+        <article class="screen">
+          <header class="topbar">
+            <div class="brand">
+              <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M4 16.5 18 5l14 11.5v14H4v-14Z" stroke="currentColor" stroke-width="2.7" stroke-linejoin="round" /><path d="M13 30.5V20h10v10.5" stroke="currentColor" stroke-width="2.7" stroke-linejoin="round" /></svg>
+              <div><div class="brand-name">NestGH</div><div class="brand-caption">FIND · LIST · RENT</div></div>
+            </div>
+            <div class="topbar-action" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m20.5 20.5-4.2-4.2M10.9 18a7.1 7.1 0 1 0 0-14.2 7.1 7.1 0 0 0 0 14.2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></div>
+          </header>
+          <div class="content">
+            <p class="eyebrow"><span class="eyebrow-dot"></span> Space details</p>
+            <div class="detail-card">
+              <div class="detail-visual"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M8 20h32v21H8V20Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /><path d="m6 20 4-13h28l4 13M15 41V28h18v13" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /><path d="M6 20c0 2 1.6 3.5 3.5 3.5S13 22 13 20c0 2 1.6 3.5 3.5 3.5S20 22 20 20c0 2 1.6 3.5 3.5 3.5S27 22 27 20c0 2 1.6 3.5 3.5 3.5S34 22 34 20c0 2 1.6 3.5 3.5 3.5S41 22 41 20" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg></div>
+              <div class="detail-body">
+                <div class="detail-label">ILLUSTRATIVE · NOT A LIVE LISTING</div>
+                <h2 class="detail-title">Retail space</h2>
+                <p class="detail-location"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" stroke="currentColor" stroke-width="1.8" /><circle cx="12" cy="10" r="2.3" stroke="currentColor" stroke-width="1.8" /></svg>Osu, Accra</p>
+                <div class="detail-price">GH₵ 4,500 <span>/ month</span></div>
+                <div class="detail-facts">
+                  <div class="fact"><span>Space type</span><strong>Shop</strong></div>
+                  <div class="fact"><span>Size</span><strong>120 m²</strong></div>
+                </div>
+                <p class="detail-description">Find a business space using details provided by property owners.</p>
+                <button class="contact-button" id="contact-button" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.6L4 20l1.9-4.5A7.5 7.5 0 1 1 20 11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="M9 9c.6 1.7 1.6 2.7 3.4 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>Contact owner</button>
+                <p class="detail-disclaimer">Illustrative video data only. No owner or contact details are shown.</p>
+              </div>
+            </div>
+          </div>
+          <div class="corner-glow" id="detail-glow" aria-hidden="true"></div>
+        </article>
+        <div class="cursor" id="contact-cursor" aria-hidden="true"><svg viewBox="0 0 24 30" fill="none"><path d="M3 2.5v20l5.3-5.1 3.5 8.2 3.3-1.4-3.4-8.2 7.3-.3L3 2.5Z" fill="#10201a" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" /></svg></div>
+      </section>
+
+      <section class="scene" id="scene-outro">
+        <div class="outro">
+          <div class="outro-glow" id="outro-glow" aria-hidden="true"></div>
+          <div class="outro-logo"><img src="assets/images/logo.png" alt="NestGH — Find, List, Rent" /></div>
+          <p class="outro-line">Search. Compare. Contact.</p>
+          <p class="outro-subline">Find Your Next Place</p>
+          <span class="outro-rule"></span>
+        </div>
+      </section>
+
+      <audio id="bg-music" data-start="0" data-duration="20" data-track-index="10" data-volume="0.28" data-fade-in="0.7" data-fade-out="1.1" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio>
+      <audio id="search-click" data-start="5.34" data-duration="0.1" data-track-index="11" data-volume="0.55" src="assets/sfx/interface/click_001.ogg"></audio>
+      <audio id="results-click" data-start="8.74" data-duration="0.19" data-track-index="11" data-volume="0.52" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="contact-click" data-start="15.29" data-duration="0.1" data-track-index="11" data-volume="0.58" src="assets/sfx/interface/click_001.ogg"></audio>
+    </main>
+    <script>
+      const timeline = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      const enter = (selector, start) => {
+        timeline.fromTo(selector, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.52 }, start);
+      };
+      const leave = (selector, start) => {
+        timeline.to(selector, { autoAlpha: 0, y: -9, duration: 0.35 }, start);
+      };
+
+      enter("#scene-home", 0);
+      timeline.fromTo(".home-title", { autoAlpha: 0, x: -18 }, { autoAlpha: 1, x: 0, duration: 0.65 }, 0.18);
+      timeline.fromTo(".search-pill", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4 }, 0.55);
+      timeline.fromTo(".category-row", { autoAlpha: 0, x: -12 }, { autoAlpha: 1, x: 0, duration: 0.35, stagger: 0.12 }, 1.1);
+      timeline.to("#home-glow", { opacity: 0.3, duration: 0.26, ease: "sine.out" }, 1.637);
+      timeline.to("#home-glow", { opacity: 0.18, duration: 0.38, ease: "sine.inOut" }, 1.897);
+      leave("#scene-home", 2.65);
+
+      enter("#scene-search", 3);
+      timeline.fromTo(".filter-card", { autoAlpha: 0, y: 13 }, { autoAlpha: 1, y: 0, duration: 0.45 }, 3.2);
+      timeline.fromTo(".demo-banner", { autoAlpha: 0, scale: 0.98 }, { autoAlpha: 1, scale: 1, duration: 0.35 }, 3.35);
+      timeline.to("#search-glow", { opacity: 0.3, duration: 0.25, ease: "sine.out" }, 4.3886);
+      timeline.to("#search-glow", { opacity: 0.18, duration: 0.38, ease: "sine.inOut" }, 4.6386);
+      timeline.set("#search-cursor", { x: 420, y: 1320, autoAlpha: 0 }, 4.55);
+      timeline.to("#search-cursor", { x: 772, y: 1512, autoAlpha: 1, duration: 0.55 }, 4.7);
+      timeline.to("#search-cursor", { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, 5.18);
+      timeline.to("#search-cursor", { autoAlpha: 0, duration: 0.18 }, 5.42);
+      leave("#scene-search", 5.65);
+
+      enter("#scene-results", 6);
+      timeline.fromTo("#shop-card", { autoAlpha: 0, y: 15 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 6.25);
+      timeline.fromTo("#office-card", { autoAlpha: 0, y: 15 }, { autoAlpha: 1, y: 0, duration: 0.42 }, 6.72);
+      timeline.to("#results-glow", { opacity: 0.3, duration: 0.25, ease: "sine.out" }, 8.7423);
+      timeline.to("#results-glow", { opacity: 0.18, duration: 0.42, ease: "sine.inOut" }, 8.9923);
+      leave("#scene-results", 11.15);
+
+      enter("#scene-details", 11.5);
+      timeline.fromTo(".detail-card", { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.48 }, 11.75);
+      timeline.to("#detail-glow", { opacity: 0.3, duration: 0.25, ease: "sine.out" }, 13.1077);
+      timeline.to("#detail-glow", { opacity: 0.18, duration: 0.42, ease: "sine.inOut" }, 13.3577);
+      timeline.set("#contact-cursor", { x: 415, y: 1400, autoAlpha: 0 }, 14.05);
+      timeline.to("#contact-cursor", { x: 775, y: 1545, autoAlpha: 1, duration: 0.68 }, 14.2);
+      timeline.to("#contact-cursor", { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, 14.95);
+      timeline.to("#contact-cursor", { autoAlpha: 0, duration: 0.18 }, 15.22);
+      timeline.fromTo("#contact-button", { backgroundColor: "#0f7a4b" }, { backgroundColor: "#0b633d", duration: 0.18, yoyo: true, repeat: 1 }, 15.29);
+      leave("#scene-details", 16.15);
+
+      enter("#scene-outro", 16.5);
+      timeline.fromTo(".outro-logo", { autoAlpha: 0, scale: 0.96 }, { autoAlpha: 1, scale: 1, duration: 0.68 }, 16.8);
+      timeline.fromTo(".outro-line", { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.45 }, 17.25);
+      timeline.fromTo(".outro-subline", { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.4 }, 17.55);
+      timeline.to("#outro-glow", { opacity: 0.31, duration: 0.25, ease: "sine.out" }, 17.473);
+      timeline.to("#outro-glow", { opacity: 0.2, duration: 0.42, ease: "sine.inOut" }, 17.723);
+      timeline.to("#outro-glow", { opacity: 0.31, duration: 0.25, ease: "sine.out" }, 18.5644);
+      timeline.to("#outro-glow", { opacity: 0.2, duration: 0.42, ease: "sine.inOut" }, 18.8144);
+
+      window.__timelines["main"] = timeline;
+      timeline.seek(0);
+    </script>
+  </body>
+</html>
