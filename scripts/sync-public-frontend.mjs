@@ -19,6 +19,7 @@ const assets = [
   ["logo.png", "logo.png"],
   ["logo-80.webp", "logo-80.webp"],
   ["logo-192.png", "logo-192.png"],
+  ["listing-pricing.js", "listing-pricing.js"],
   ["data/ghana-locations.json", "ghana-locations.json"],
   ["node_modules/@supabase/supabase-js/dist/umd/supabase.js", "supabase.js"],
   ["node_modules/@supabase/supabase-js/LICENSE", "supabase.LICENSE.txt"],

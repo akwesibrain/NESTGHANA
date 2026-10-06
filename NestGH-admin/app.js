@@ -1,547 +1,77 @@
-const icons = {
-  home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
-  building: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 21v-4h6v4M8 7h1m6 0h1M8 11h1m6 0h1"/>',
-  shield: '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/>',
-  listings: '<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 5V3h8v2m-9 5h10m-10 4h10"/>',
-  wallet: '<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 9h18m-5 5h1"/>',
-  card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-13 4h4"/>',
-  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
-  help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.4 1.6c-1.1 1.2-2 1.4-2 3.1M12 17h.01"/>',
-  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12h4"/>',
-  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
-  pin: '<path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
-  'chevron-right': '<path d="m9 18 6-6-6-6"/>',
-};
+const USE_DEMO_DATA=true,N=Date.now(),Dy=864e5,$=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cedi=n=>'GH₵ '+new Intl.NumberFormat('en-GH',{maximumFractionDigits:0}).format(n);
+const listingPricingInfo=l=>{const pricing=window.NestGHListingPricing?.getListingPricing({listingType:l.listingType,category:l.category,type:l.type});return pricing?{type:window.NestGHListingPricing.LISTING_LABELS[pricing.listingType],fee:window.NestGHListingPricing.formatListingPrice(pricing)}:{type:"Not available",fee:"Not available"}};
+const fd=t=>new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+const rel=t=>{const m=Math.round((N-t)/6e4);return m<60?m+' min ago':m<1440?Math.round(m/60)+' hours ago':Math.round(m/1440)+' days ago'};
+const P={menu:'M4 6h16M4 12h16M4 18h16',home:'M3 11l9-8 9 8M5 10v10h14V10',building:'M4 21V5l8-3v19M20 21V10l-8-2M8 8h1M8 12h1M8 16h1M16 13h1M16 17h1',users:'M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M21 20v-1a4 4 0 0 0-3-3.9M16 4.1a3.5 3.5 0 0 1 0 6.8',card:'M2 6h20v12H2zM2 10h20',flag:'M5 21V4M5 4h13l-2 4 2 4H5',more:'M12 6h.01M12 12h.01M12 18h.01',search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14M21 21l-4-4',bell:'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',plus:'M12 5v14M5 12h14',check:'M5 12l5 5L20 7',x:'M6 6l12 12M18 6L6 18',clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5l3 2',alert:'M12 3l10 18H2zM12 10v4M12 18h.01',shield:'M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z',copy:'M8 8h12v12H8zM4 16V4h12',msg:'M4 5h16v11H9l-5 4z',help:'M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H4zM17 14h3v5h-3z',store:'M4 9l1-5h14l1 5M4 9v11h16V9M9 20v-6h6v6',bed:'M3 18V6M3 14h18v4M21 14v-3a3 3 0 0 0-3-3h-7v6',briefcase:'M3 8h18v12H3zM8 8V5h8v3',chev:'M6 9l6 6 6-6',cal:'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4'};
+const ic=n=>n=='₵'?'<span style="font-size:20px">₵</span>':`<svg class="svg" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]||P.more}"/></svg>`;
+function demo(){let s=11;const r=()=>(s=s*16807%2147483647)/2147483647,pk=a=>a[Math.floor(r()*a.length)];
+const T=[["Accra","Greater Accra",5.6037,-.187],["Kumasi","Ashanti",6.6885,-1.6244],["Takoradi","Western",4.8962,-1.7554],["Cape Coast","Central",5.1053,-1.2466],["Tarkwa","Western",5.3018,-1.9937],["East Legon","Greater Accra",5.635,-.155],["Madina","Greater Accra",5.668,-.166],["Adenta","Greater Accra",5.707,-.164],["Kasoa","Central",5.534,-.418],["Tamale","Northern",9.4034,-.8424]];
+const Y=[["Apartment","building",3800,"2 Bedroom Apartment"],["Room","bed",900,"Single Room"],["House","home",5200,"3 Bedroom House"],["Hostel","bed",1500,"Hostel Room"],["Shop","store",2400,"Shop Space"],["Office","briefcase",3200,"Office Suite"],["Showroom","store",6000,"Showroom"],["Warehouse","building",5000,"Warehouse"],["Salon","store",1800,"Salon Space"],["Restaurant","store",4000,"Restaurant Space"],["Commercial Space","copy",3500,"Commercial Space"],["Other","more",1200,"Property"]];
+const L=Array.from({length:72},(_,i)=>{const t=T[Math.floor(r()**1.6*10)],y=Y[Math.floor(r()**1.5*12)],q=r();return{id:i+1,title:y[3]+" – "+t[0],town:t[0],region:t[1],type:y[0],ic:y[1],price:Math.round(y[2]*(.7+r()*.8)/50)*50,status:q<.62?"active":q<.8?"pending":q<.9?"rejected":"suspended",created:N-r()*75*Dy,available:r()<.76,confirmed:N-r()*9*Dy,updated:N-r()*14*Dy,imageUrl:null}});
+const U=Array.from({length:160},()=>{const q=r();return{role:q<.65?"Seeker":q<.93?"Owner":"Agent",verified:r()<.74,created:N-r()*75*Dy}});
+const Pm=Array.from({length:40},()=>{const q=r();return{amt:pk([50,100,150,200,300]),st:q<.8?"ok":q<.92?"wait":"fail",at:N-r()*180*Dy}});
+const R=Array.from({length:16},()=>({k:pk(["rep","sus","dup"]),at:N-r()*14*Dy}));
+const S=Array.from({length:70},()=>({k:pk(["owner","user","comp","tick"]),open:r()<.3,at:N-r()*14*Dy}));
+return{T,Y,L,U,P:Pm,R,S}}
+const D=USE_DEMO_DATA?demo():null,wait=()=>new Promise(r=>setTimeout(r,200+Math.random()*200));
+const gr=(a,k,d,f=()=>1)=>{const c=a.filter(x=>f(x)&&x[k]>N-d*Dy).length,p=a.filter(x=>f(x)&&x[k]<=N-d*Dy&&x[k]>N-2*d*Dy).length;return p?Math.round((c-p)/p*100):null};
+const sm=(a,lo,hi)=>a.filter(x=>x.st=="ok"&&x.at>N-hi*Dy&&x.at<=N-lo*Dy).reduce((t,x)=>t+x.amt,0);
+const pcts=a=>{const t=a.reduce((x,y)=>x+y,0);if(!t)return a.map(()=>0);const f=a.map(v=>v*100/t),b=f.map(Math.floor);let k=100-b.reduce((x,y)=>x+y,0);f.map((v,i)=>[v-b[i],i]).sort((x,y)=>y[0]-x[0]).slice(0,k).forEach(x=>b[x[1]]++);return b};
+const cnt=(a,f)=>a.filter(f).length,tally=(a,k)=>{const m={};a.forEach(x=>m[x[k]]=(m[x[k]]||0)+1);return Object.entries(m).sort((x,y)=>y[1]-x[1])};
+/* Service layer: swap these functions for Supabase later. UI never touches D directly. */
+const svc={
+async kpis(){await wait();if(!D)return;const{L,U,P}=D,rev=sm(P,0,1e4),c=sm(P,0,30),p=sm(P,30,60);return[{l:"Total Listings",v:L.length,i:"building",c:"var(--blue)",d:gr(L,"created",30)},{l:"Total Users",v:U.length,i:"users",c:"var(--pu)",d:gr(U,"created",30)},{l:"Total Listing Revenue",v:cedi(rev),i:"₵",c:"var(--gold)",d:p?Math.round((c-p)/p*100):null},{l:"Active Listings",v:cnt(L,x=>x.status=="active"),i:"check",c:"var(--ok)",d:gr(D.L,"created",30,x=>x.status=="active")}]},
+async mod(){await wait();if(!D)return;const c=s=>cnt(D.L,x=>x.status==s);return{c:[c("pending"),c("active"),c("rejected"),c("suspended")],q:D.L.filter(x=>x.status=="pending").sort((a,b)=>b.created-a.created).slice(0,3)}},
+async users(){await wait();if(!D)return;const{U}=D,v=cnt(U,u=>u.verified);return{n:["Seeker","Owner","Agent"].map(k=>cnt(U,u=>u.role==k)),v,t:U.length-v,p:Math.round(v/U.length*100)}},
+async pay(){await wait();if(!D)return;const{P}=D,a=["ok","wait","fail"].map(k=>P.filter(x=>x.st==k).reduce((t,x)=>t+x.amt,0));return{tot:a.reduce((x,y)=>x+y,0),a,p:pcts(a),tr:[5,4,3,2,1,0].map(m=>sm(P,m*30,m*30+30))}},
+async rep(){await wait();if(!D)return;return["rep","sus","dup"].map(k=>({n:cnt(D.R,x=>x.k==k),d:gr(D.R,"at",7,x=>x.k==k)}))},
+async avail(){await wait();if(!D)return;const{L}=D,a=cnt(L,x=>x.available);return{a,u:L.length-a,p:Math.round(a/L.length*100),days:Math.round(L.reduce((t,x)=>t+(N-x.confirmed),0)/L.length/Dy),rec:cnt(L,x=>x.updated>N-7*Dy)}},
+async loc(){await wait();if(!D)return;const{L}=D,rg=tally(L,"region"),top=rg.slice(0,4),oth=rg.slice(4).reduce((t,x)=>t+x[1],0),regs=oth?[...top,["Other",oth]]:top,pc=pcts(regs.map(x=>x[1])),tw=tally(L,"town"),t9=tw.slice(0,9),to=tw.slice(9).reduce((t,x)=>t+x[1],0);return{regs:regs.map((x,i)=>[x[0],x[1],pc[i]]),towns:[...t9,...(to?[["Others",to]]:[])]}},
+async cats(){await wait();if(!D)return;return D.Y.map(y=>[y[0],y[1],cnt(D.L,x=>x.type==y[0])])},
+async sup(){await wait();if(!D)return;const f=(k)=>({n:cnt(D.S,x=>x.k==k),d:gr(D.S,"at",7,x=>x.k==k)});return{r:[f("owner"),f("user"),f("comp"),f("tick")],open:cnt(D.S,x=>x.open)}},
+async recent(){await wait();if(!D)return;return D.L.slice().sort((a,b)=>b.created-a.created).slice(0,6)},
+async map(){await wait();if(!D)return;const tw=tally(D.L,"town"),cn=Object.fromEntries(tw);return{pts:["Accra","Kumasi","Takoradi","Cape Coast","Tarkwa"].map(n=>{const t=D.T.find(x=>x[0]==n);return[n,t[2],t[3],cn[n]||0]}),leg:tw.slice(0,9)}},
+async set(id,st){await wait();if(!D)return;const l=D.L.find(x=>x.id==id);if(l)l.status=st}};
+/* UI helpers */
+const CL={active:"var(--ok)",pending:"var(--wa)",rejected:"var(--er)",suspended:"var(--sl)"},LB={active:"Active",pending:"Pending",rejected:"Rejected",suspended:"Suspended"};
+const bd=s=>`<span class="bg" style="--c:${CL[s]}">${LB[s]}</span>`;
+const chip=(i,c)=>`<span class="chip" style="--c:${c}">${ic(i)}</span>`;
+const tile=(l,v,c,i)=>`<div class="tile" style="--c:${c}">${i?`<span class="ti">${ic(i)}</span>`:''}<span>${esc(l)}</span><b>${esc(v)}</b></div>`;
+const dl=(d,t)=>d==null?'':`<div class="dl ${d<0?'dn':'up'}">${d<0?'↓':'↑'} ${Math.abs(d)}% ${t}</div>`;
+const th=l=>l.imageUrl?`<img class="th" src="${esc(l.imageUrl)}" alt="">`:`<span class="th">${ic(l.ic)}</span>`;
+const bar=(l,v,p,c)=>`<div class="row b"><div style="display:flex;justify-content:space-between"><span>${esc(l)}</span><span><b>${v}</b> <span class="mu">${p}%</span></span></div><div class="pb" style="--c:${c};margin-top:6px"><i style="width:${p}%"></i></div></div>`;
+const row=(i,c,l,v,d)=>`<div class="row"><span class="l">${chip(i,c)}<span>${l}</span></span><span style="text-align:right"><b>${v}</b>${d||''}</span></div>`;
+const donut=(p,l,c='var(--ok)',s=96)=>`<svg viewBox="0 0 36 36" width="${s}" height="${s}" role="img" aria-label="${l}"><circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--bd)" stroke-width="4"/><circle cx="18" cy="18" r="15.9155" fill="none" stroke="${c}" stroke-width="4" stroke-dasharray="${p} ${100-p}" transform="rotate(-90 18 18)"/><text x="18" y="20" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor">${p}%</text></svg>`;
+const W=[
+{id:"kpis",bare:1,s:16,f:()=>svc.kpis(),r:k=>`<div class="kp">${k.map((x,i)=>`<div class="card" style="--i:${i}"><div class="kpi">${chip(x.i,x.c)}<div><div class="mu">${x.l}</div><div class="big">${esc(x.v)}</div>${dl(x.d,'vs last 30 days')}</div></div></div>`).join('')}</div>`},
+{id:"qa",t:"Quick Actions",nl:1,s:8,f:async()=>1,r:()=>`<div class="qa">${[["plus","Add Listing","var(--blue)"],["users","View Users","var(--pu)"],["card","View Payments","var(--ok)"],["gear","Settings","var(--sl)"]].map(x=>`<a href="#" data-soon>${chip(x[0],x[2])}${x[1]}</a>`).join('')}</div>`},
+{id:"mod",t:"Listing Moderation",s:6,f:()=>svc.mod(),r:m=>`<div class="tiles" style="--n:4">${[["Pending",0,"var(--wa)","clock"],["Approved",1,"var(--ok)","check"],["Rejected",2,"var(--er)","x"],["Suspended",3,"var(--sl)","alert"]].map(x=>tile(x[0],m.c[x[1]],x[2],x[3])).join('')}</div>`+(m.q.length?m.q.map(l=>{const p=listingPricingInfo(l);return`<div class="q">${th(l)}<div><b>${esc(l.title)}</b><span class="mu sm">${cedi(l.price)}/month · ${esc(l.type)} · ${p.type} · Listing fee ${p.fee} · ${rel(l.created)}</span><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn p" data-a="approve" data-id="${l.id}">Approve</button><button class="btn" data-a="reject" data-id="${l.id}">Reject</button><button class="btn" data-a="view" data-id="${l.id}">View</button></div></div></div>`}).join(''):'<p class="mu">No pending listings. The queue is clear.</p>')},
+{id:"users",t:"User & Owner Management",s:6,f:()=>svc.users(),r:u=>`<div class="tiles" style="--n:3">${tile("Seekers",u.n[0],"var(--blue)","users")}${tile("Owners",u.n[1],"var(--gold)","home")}${tile("Agents",u.n[2],"var(--pu)","briefcase")}</div>${bar("Verified Users",u.v,u.p,"var(--ok)")}${bar("Pending Verification",u.t,100-u.p,"var(--wa)")}`},
+{id:"pay",t:"Payments & Revenue",s:6,f:()=>svc.pay(),r:p=>{const mx=Math.max(...p.tr,1);return`<div class="mu sm">Total Listing Fees (all attempts)</div><div class="big">${cedi(p.tot)}</div><div class="tiles" style="--n:3;margin-top:10px">${[["Successful","var(--ok)","check"],["Pending","var(--wa)","clock"],["Failed","var(--er)","x"]].map((x,i)=>tile(x[0],cedi(p.a[i])+" · "+p.p[i]+"%",x[1],x[2])).join('')}</div><svg viewBox="0 0 120 40" width="100%" height="64" role="img" aria-label="Successful revenue, last 6 months, oldest first: ${p.tr.map(cedi).join(', ')}">${p.tr.map((v,i)=>`<rect x="${i*20+3}" y="${38-v/mx*34}" width="14" height="${Math.max(v/mx*34,1)}" rx="3" fill="var(--blue)" opacity="${.35+i*.13}"/>`).join('')}</svg><p class="mu sm" style="margin:6px 0 0">Payment verification is not connected yet.</p>`}},
+{id:"rep",t:"Reports & Fraud",s:6,f:()=>svc.rep(),r:r=>[["alert","var(--er)","Reported Listings"],["shield","var(--pu)","Suspicious Activity"],["copy","var(--wa)","Duplicate Listings"]].map((x,i)=>row(x[0],x[1],x[2],r[i].n,dl(r[i].d,'vs last 7 days'))).join('')},
+{id:"avail",t:"Availability & Freshness",s:5,f:()=>svc.avail(),r:a=>`<div class="tiles" style="--n:2">${[["Available",a.a,a.p,"var(--ok)"],["Unavailable",a.u,100-a.p,"var(--sl)"]].map(x=>`<div class="tile" style="--c:${x[3]};text-align:center">${donut(x[2],x[2]+'% '+x[0].toLowerCase(),x[3],64)}<span style="display:block">${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div>${row("clock","var(--blue)","Last confirmed (avg.)",a.days+" days ago")}${row("check","var(--ok)","Recently updated (7 days)",a.rec)}`},
+{id:"loc",t:"Location & Market Analytics",s:8,f:()=>svc.loc(),r:l=>`<div class="two"><div><h3>Top Regions</h3>${l.regs.map((x,i)=>bar(x[0],x[1],x[2],["var(--r1)","var(--r2)","var(--r3)","var(--r4)","var(--r5)"][i])).join('')}</div><div><h3>Top Towns / Areas</h3>${l.towns.map(x=>`<div class="row"><span>${esc(x[0])}</span><b>${x[1]}</b></div>`).join('')}</div></div>`},
+{id:"cats",t:"Property & Category Management",s:6,f:()=>svc.cats(),r:c=>`<div class="tiles" style="--n:3">${c.map(x=>tile(x[0],x[2],"var(--blue)",x[1])).join('')}</div><a href="#" data-soon class="lnk sm">Manage Categories</a>`},
+{id:"sup",t:"Support & Messages",s:5,f:()=>svc.sup(),r:s=>[["msg","var(--blue)","Owner Enquiries"],["users","var(--pu)","User Enquiries"],["alert","var(--er)","Complaints"],["help","var(--ok)","Support Tickets"]].map((x,i)=>row(x[0],x[1],x[2],s.r[i].n,dl(s.r[i].d,'vs last 7 days'))).join('')+row("clock","var(--wa)","Unresolved Issues",s.open)},
+{id:"recent",t:"Recent Listings",s:16,w:1,f:()=>svc.recent(),r:r=>`<table class="t"><caption class="vh">Recent listings</caption><thead><tr>${["Image","Title","Location","Property type","Listing type","Rent","Listing fee","Status","Listed On","Actions"].map(h=>`<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${r.map(l=>{const p=listingPricingInfo(l);return`<tr><td data-l="Image">${th(l)}</td><td data-l="Title"><b>${esc(l.title)}</b></td><td data-l="Location">${esc(l.town)}, ${esc(l.region)}</td><td data-l="Property type">${esc(l.type)}</td><td data-l="Listing type">${p.type}</td><td data-l="Rent">${cedi(l.price)} <span class="mu sm">/ month</span></td><td data-l="Listing fee">${p.fee}</td><td data-l="Status">${bd(l.status)}</td><td data-l="Listed On">${fd(l.created)}</td><td data-l="Actions"><div class="rel"><button class="ib" data-m aria-haspopup="true" aria-expanded="false" aria-label="Actions for ${esc(l.title)}">${ic('more')}</button><div class="pop" hidden>${[["view","View"],["approve","Approve"],["reject","Reject"],["suspend","Suspend"]].map(a=>`<button data-a="${a[0]}" data-id="${l.id}">${a[1]}</button>`).join('')}</div></div></td></tr>`}).join('')}</tbody></table>`},
+{id:"map",t:"Listings by Location",s:8,w:1,f:()=>svc.map(),r:m=>{const mx=Math.max(...m.pts.map(p=>p[3]),1),X=g=>(g+2.3)/2.6*280+10,Y=a=>(6.9-a)/2.2*230+15;return`<svg viewBox="0 0 300 260" width="100%" role="img" aria-label="Sample listing counts: ${m.pts.map(p=>p[0]+' '+p[3]).join(', ')}" style="background:var(--bg);border-radius:12px">${[0,1,2,3,4,5].map(i=>`<path d="M${10+i*56} 15v230M10 ${15+i*46}h280" stroke="var(--bd)"/>`).join('')}${m.pts.map(p=>{const r=11+p[3]/mx*10;return`<circle cx="${X(p[2])}" cy="${Y(p[1])}" r="${r}" fill="var(--blue)" stroke="#fff" stroke-width="2"/><text x="${X(p[2])}" y="${Y(p[1])+4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${p[3]}</text><text x="${X(p[2])+r+3}" y="${Y(p[1])+4}" font-size="12" fill="currentColor">${esc(p[0])}</text>`}).join('')}</svg><p class="mu sm" style="margin:6px 0">Positions use real coordinates. Map tiles load in the live app.</p><div class="two" style="gap:0 16px">${m.leg.map(x=>`<div class="row" style="padding:5px 0"><span>${esc(x[0])}</span><b>${x[1]}</b></div>`).join('')}</div>`}}];
+async function load(el,fn,rd,q){if(!q)el.innerHTML='<div class="sk"></div><div class="sk"></div>';try{const d=await fn();if(d==null){el.innerHTML='<p class="mu">Nothing to show yet.</p>';return}el.innerHTML=rd(d);el.querySelectorAll('i[data-i]').forEach(e=>e.outerHTML=ic(e.dataset.i))}catch(e){el.innerHTML='<p class="mu">We couldn\'t load this. <button class="lnk">Try Again</button></p>';el.querySelector('button').onclick=()=>load(el,fn,rd)}}
+const run=q=>W.forEach(w=>load($('#w-'+w.id),w.f,w.r,q));
+W.forEach((w,i)=>$('#g').insertAdjacentHTML('beforeend',w.bare?`<div class="c" style="--s:${w.s}"><div id="w-${w.id}"></div></div>`:`<section class="card c${w.w?' w':''}" style="--s:${w.s};--i:${i}" aria-label="${w.t}"><div class="hd"><h2>${w.t}</h2>${w.nl?'':'<a href="#" data-soon>View all →</a>'}</div><div id="w-${w.id}"></div></section>`));
+document.querySelectorAll('i[data-i]').forEach(e=>e.outerHTML=ic(e.dataset.i));run();
+/* Interactions */
+let tt,pend,nav=$('#nav'),mb=$('#mb'),bk=$('#bk');
+const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2600)};
+const dr=o=>{nav.classList.toggle('open',o);bk.hidden=!o;mb.setAttribute('aria-expanded',o);o?nav.querySelector('a').focus():mb.focus()};
+const done=()=>{toast('Demo mode: change not saved');run(true)};
+async function act(a,id){if(a=='view')return toast('Demo mode: no detail page in this preview');if(a=='reject'){pend=id;$('#why').value='';return $('#dlg').showModal()}await svc.set(id,a=='approve'?'active':'suspended');done()}
+mb.onclick=()=>dr(true);bk.onclick=()=>dr(false);$('#no').onclick=()=>$('#dlg').close();$('#yes').onclick=async()=>{$('#dlg').close();await svc.set(pend,'rejected');done()};
+document.addEventListener('click',e=>{const m=e.target.closest('[data-m]');document.querySelectorAll('.pop').forEach(p=>{if(!m||p!==m.nextElementSibling)p.hidden=true});if(m)m.nextElementSibling.hidden=!m.nextElementSibling.hidden;document.querySelectorAll('[data-m]').forEach(b=>b.setAttribute('aria-expanded',!b.nextElementSibling.hidden));if(m)return;const s=e.target.closest('[data-soon]');if(s){e.preventDefault();toast('Not part of this preview yet')}const a=e.target.closest('[data-a]');if(a)act(a.dataset.a,+a.dataset.id)});
+document.addEventListener('keydown',e=>{if(e.key=='Escape'){document.querySelectorAll('.pop').forEach(p=>p.hidden=true);if(nav.classList.contains('open'))dr(false)}
+if(e.key=='Tab'&&nav.classList.contains('open')){const f=[...nav.querySelectorAll('a,button')],i=f.indexOf(document.activeElement);if(e.shiftKey&&i<=0){f[f.length-1].focus();e.preventDefault()}else if(!e.shiftKey&&i==f.length-1){f[0].focus();e.preventDefault()}}});
 
-const statusLabels = {
-  payment_pending: "Payment pending",
-  pending_approval: "Pending approval",
-  changes_requested: "Changes requested",
-  live: "Live",
-  unavailable: "Unavailable",
-  needs_confirmation: "Needs confirmation",
-  rejected: "Rejected",
-  removed: "Removed",
-  paid: "Paid",
-  pending: "Pending",
-  failed: "Failed",
-  refunded: "Refunded",
-  open: "Open",
-  reviewing: "Reviewing",
-  resolved: "Resolved",
-  dismissed: "Dismissed",
-};
-const statusFilters = {
-  "#pending-approval": "pending_approval",
-  "#changes-requested": "changes_requested",
-  "#live-listings": "live",
-  "#needs-confirmation": "needs_confirmation",
-  "#unavailable": "unavailable",
-  "#rejected": "rejected",
-  "#removed": "removed",
-};
-const paymentFilters = {
-  "#successful-payments": "paid",
-  "#pending-payments": "pending",
-  "#failed-payments": "failed",
-  "#refunded-payments": "refunded",
-};
-const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-})[character]);
-const money = (amount) => `GH₵ ${Number(amount || 0).toLocaleString("en-GH")}`;
-const shortType = (value) => String(value || "Room").replace(/Self-Contained/i, "Self-contained");
-const client = window.supabase?.createClient && window.NESTGH_SUPABASE_CONFIG
-  ? window.supabase.createClient(window.NESTGH_SUPABASE_CONFIG.url, window.NESTGH_SUPABASE_CONFIG.publishableKey)
-  : null;
-const pageNames = new Map([...document.querySelectorAll("[data-page]")].map((link) => [link.getAttribute("href"), link.dataset.page]));
-const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.help}</svg>`;
-document.querySelectorAll("[data-icon]").forEach((element) => { element.innerHTML = icon(element.dataset.icon); });
-
-const authPanel = document.getElementById("auth-panel");
-const authForm = document.getElementById("auth-form");
-const authError = document.getElementById("auth-error");
-const appShell = document.getElementById("app-shell");
-const sidebar = document.getElementById("sidebar");
-const scrim = document.getElementById("scrim");
-const menuButton = document.getElementById("menu-button");
-const profileButton = document.getElementById("profile-button");
-const profileMenu = document.getElementById("profile-menu");
-const toast = document.getElementById("toast");
-const state = { user: null, admin: null, listings: [], payments: [], reports: [], activity: [] };
-let toastTimeout;
-
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add("visible");
-  window.clearTimeout(toastTimeout);
-  toastTimeout = window.setTimeout(() => toast.classList.remove("visible"), 3200);
-}
-
-function showAuth(message = "") {
-  authPanel.hidden = false;
-  appShell.hidden = true;
-  authError.textContent = message;
-  authError.hidden = !message;
-}
-
-function setSidebarOpen(open) {
-  sidebar.classList.toggle("open", open);
-  scrim.classList.toggle("visible", open);
-  menuButton.setAttribute("aria-expanded", String(open));
-  menuButton.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
-  document.body.classList.toggle("navigation-open", open);
-}
-
-function normalizeListing(row) {
-  const data = row.public_data || {};
-  return {
-    ...row,
-    title: String(data.title || "Untitled listing"),
-    owner: String(data.name || "Owner not provided"),
-    town: String(data.town || "—"),
-    area: String(data.area || "—"),
-    rent: Number(data.rent) || 0,
-    type: shortType(data.type),
-    period: String(data.period || "Monthly"),
-  };
-}
-
-function listingStatus(status) {
-  return statusLabels[status] || String(status || "Unknown");
-}
-
-function statusClass(status) {
-  if (status === "pending_approval" || status === "payment_pending" || status === "pending") return "pending";
-  return status || "pending";
-}
-
-function dashboardMetric(title, value, note, iconName) {
-  return `<article class="metric-card" aria-label="${escapeHtml(title)}: ${escapeHtml(value)}">
-    <div class="metric-topline"><span>${escapeHtml(title)}</span><span class="metric-icon" aria-hidden="true">${icon(iconName)}</span></div>
-    <div class="metric-value">${escapeHtml(value)}</div><p class="metric-note">${escapeHtml(note)}</p>
-  </article>`;
-}
-
-function renderDashboard() {
-  const live = state.listings.filter((listing) => listing.status === "live");
-  const pending = state.listings.filter((listing) => listing.status === "pending_approval");
-  const rent = state.listings.reduce((sum, listing) => {
-    if (!["live", "unavailable", "needs_confirmation"].includes(listing.status)) return sum;
-    const months = { Monthly: 1, "3 Months": 3, "6 Months": 6, Yearly: 12, Semester: 6 }[listing.period] || 1;
-    return sum + listing.rent / months;
-  }, 0);
-  document.getElementById("metrics-grid").innerHTML = [
-    dashboardMetric("Total Listings", state.listings.length, "Live backend records", "building"),
-    dashboardMetric("Live Listings", live.length, "Visible on the public site", "shield"),
-    dashboardMetric("Pending Approval", pending.length, "Paid submissions awaiting review", "listings"),
-    dashboardMetric("Listed Monthly Rent", money(rent), "Monthly equivalent of active listings", "wallet"),
-  ].join("");
-  document.getElementById("hero-stats").innerHTML = `
-    <div><span>Rooms on the platform</span><strong>${state.listings.length.toLocaleString()}</strong></div>
-    <div><span>Live across Ghana</span><strong>${live.length.toLocaleString()}</strong></div>`;
-
-  const featured = [...pending, ...live, ...state.listings.filter((listing) => !["pending_approval", "live", "removed", "rejected"].includes(listing.status))].slice(0, 3);
-  document.getElementById("featured-grid").innerHTML = featured.length
-    ? featured.map((listing, index) => {
-      const photo = listing.public_data.photos?.find((url) => typeof url === "string" && url.startsWith("https://"));
-      return `<article class="property-card">
-        <a class="property-photo property-photo-${index + 1}" href="#listings" data-page="All Listings" aria-label="View ${escapeHtml(listing.title)}"${photo ? ` style="background-image:url('${escapeHtml(photo)}')"` : ""}></a>
-        <span class="property-status status-${statusClass(listing.status)}">${escapeHtml(listingStatus(listing.status))}</span>
-        <div class="property-body"><div class="property-type">${escapeHtml(listing.type)} <span>·</span> ${escapeHtml(listing.town)}</div>
-          <h3>${escapeHtml(listing.title)}</h3><p>${escapeHtml(listing.area)} · Listed by ${escapeHtml(listing.owner)}</p>
-          <div class="property-price">${money(listing.rent)} <small>/ ${escapeHtml(listing.period)}</small></div></div>
-      </article>`;
-    }).join("")
-    : '<div class="featured-empty">No live listings have been submitted yet.</div>';
-
-  document.getElementById("preview-listing-rows").innerHTML = state.listings.slice(0, 4).map((listing, index) => `
-    <tr><td><span class="table-property-thumb thumb-${index + 1}"></span><strong>${escapeHtml(listing.title)}</strong><small>${escapeHtml(listing.type)}</small></td>
-    <td>${escapeHtml(listing.area)}, ${escapeHtml(listing.town)}</td><td>${money(listing.rent)}</td>
-    <td><span class="status-badge status-${statusClass(listing.status)}">${escapeHtml(listingStatus(listing.status))}</span></td></tr>`).join("");
-  const townCounts = state.listings.reduce((counts, listing) => {
-    counts[listing.town] = (counts[listing.town] || 0) + 1;
-    return counts;
-  }, {});
-  document.getElementById("tema-count").textContent = townCounts.Tema || 0;
-  document.getElementById("accra-count").textContent = townCounts.Accra || 0;
-  document.getElementById("kumasi-count").textContent = townCounts.Kumasi || 0;
-
-  const recentListings = state.listings.slice(0, 3);
-  const recentPayments = state.payments.slice(0, 3);
-  const recentReports = state.reports.slice(0, 3);
-  const recentActivity = state.activity.slice(0, 3);
-  const sections = [
-    ["Recent Listings", "#listings", recentListings.map((item) => `<div class="activity-row"><span>${escapeHtml(item.title)}</span><b class="status-badge status-${statusClass(item.status)}">${escapeHtml(listingStatus(item.status))}</b></div>`).join(""), "No listing records."],
-    ["Recent Payments", "#payments", recentPayments.map((item) => `<div class="activity-row"><span>${escapeHtml(item.reference)}</span><b>${money(item.amount_minor / 100)} <span class="payment-status">${escapeHtml(listingStatus(item.status))}</span></b></div>`).join(""), "No payment records."],
-    ["Recent Reports", "#reports", recentReports.map((item) => `<div class="activity-row"><span>${escapeHtml(item.reason)}</span><b class="status-badge status-${statusClass(item.status)}">${escapeHtml(listingStatus(item.status))}</b></div>`).join(""), "No reports have been submitted."],
-    ["Recent Activity", "#activity-logs", recentActivity.map((item) => `<div class="activity-row"><span>${escapeHtml(item.action)}</span><time>${new Date(item.created_at).toLocaleString()}</time></div>`).join(""), "No admin activity recorded."],
-  ];
-  document.getElementById("activity-grid").innerHTML = sections.map(([title, hash, rows, empty]) => `
-    <article class="activity-card"><header class="activity-header"><h3>${title}</h3><a href="${hash}" data-page="${escapeHtml(pageNames.get(hash) || title)}">View all</a></header>
-    <div class="activity-list">${rows || `<div class="activity-empty">${empty}</div>`}</div></article>`).join("");
-}
-
-function renderListings() {
-  const filter = statusFilters[window.location.hash];
-  const listings = state.listings.filter((listing) => !filter || listing.status === filter);
-  document.getElementById("listings-title").textContent = pageNames.get(window.location.hash) || "All Listings";
-  document.querySelector(".listing-table thead").innerHTML = "<tr><th>Listing</th><th>Owner</th><th>Location</th><th>Rent</th><th>Status</th><th>Actions</th></tr>";
-  document.getElementById("listing-rows").innerHTML = listings.map((listing) => {
-    let actions = "";
-    if (["pending_approval", "changes_requested"].includes(listing.status)) {
-      actions = `<button class="row-action approve-action" data-action="live" data-id="${escapeHtml(listing.id)}">Approve</button>
-        <button class="row-action" data-action="changes_requested" data-id="${escapeHtml(listing.id)}">Request changes</button>
-        <button class="row-action remove-action" data-action="rejected" data-id="${escapeHtml(listing.id)}">Reject</button>`;
-    } else if (listing.status === "live") {
-      actions = `<button class="row-action" data-action="unavailable" data-id="${escapeHtml(listing.id)}">Mark unavailable</button>`;
-    } else if (["unavailable", "rejected", "removed", "needs_confirmation"].includes(listing.status)) {
-      actions = `<button class="row-action approve-action" data-action="live" data-id="${escapeHtml(listing.id)}">Restore live</button>`;
-    }
-    if (!["removed", "rejected"].includes(listing.status)) {
-      actions += `<button class="row-action remove-action" data-action="removed" data-id="${escapeHtml(listing.id)}">Remove</button>`;
-    }
-    const privateAddress = listing.private_data?.exact_address;
-    return `<tr><td><strong>${escapeHtml(listing.title)}</strong><small>${escapeHtml(listing.id)} · ${escapeHtml(listing.type)}</small></td>
-      <td>${escapeHtml(listing.owner)}<small>${escapeHtml(listing.private_data?.owner_email || "")}</small></td>
-      <td>${escapeHtml(listing.area)}, ${escapeHtml(listing.town)}${privateAddress ? `<small>${escapeHtml(privateAddress)}</small>` : ""}</td>
-      <td>${money(listing.rent)}<small>/ ${escapeHtml(listing.period)}</small></td>
-      <td><span class="status-badge status-${statusClass(listing.status)}">${escapeHtml(listingStatus(listing.status))}</span></td>
-      <td><div class="row-actions">${actions || "—"}</div></td></tr>`;
-  }).join("");
-  document.getElementById("listings-empty").hidden = listings.length > 0;
-  document.querySelector(".listing-table").hidden = listings.length === 0;
-}
-
-function renderPayments() {
-  const filter = paymentFilters[window.location.hash];
-  const payments = state.payments.filter((payment) => !filter || payment.status === filter);
-  const listingById = new Map(state.listings.map((listing) => [listing.id, listing]));
-  document.getElementById("listings-title").textContent = pageNames.get(window.location.hash) || "All Payments";
-  document.querySelector(".listing-table thead").innerHTML = "<tr><th>Reference</th><th>Listing</th><th>Owner</th><th>Amount</th><th>Status</th><th>Created</th></tr>";
-  document.getElementById("listing-rows").innerHTML = payments.map((payment) => {
-    const listing = listingById.get(payment.listing_id);
-    return `<tr><td><strong>${escapeHtml(payment.reference)}</strong><small>${escapeHtml(payment.id)}</small></td>
-      <td>${escapeHtml(listing?.title || "Listing unavailable")}</td><td>${escapeHtml(listing?.owner || "—")}</td>
-      <td>${money(payment.amount_minor / 100)}<small>${escapeHtml(payment.currency)}</small></td>
-      <td><span class="status-badge status-${statusClass(payment.status)}">${escapeHtml(listingStatus(payment.status))}</span></td>
-      <td>${new Date(payment.created_at).toLocaleString()}</td></tr>`;
-  }).join("");
-  document.getElementById("listings-empty").hidden = payments.length > 0;
-  document.querySelector(".listing-table").hidden = payments.length === 0;
-}
-
-function renderReports() {
-  document.getElementById("listings-title").textContent = "Reports & Safety";
-  document.querySelector(".listing-table thead").innerHTML = "<tr><th>Reason</th><th>Listing</th><th>Reporter contact</th><th>Status</th><th>Submitted</th><th>Actions</th></tr>";
-  const listingById = new Map(state.listings.map((listing) => [listing.id, listing]));
-  document.getElementById("listing-rows").innerHTML = state.reports.map((report) => {
-    const listing = listingById.get(report.listing_id);
-    const actions = ["open", "reviewing"].includes(report.status)
-      ? `<button class="row-action approve-action" data-report-action="resolved" data-id="${escapeHtml(report.id)}">Resolve</button><button class="row-action" data-report-action="dismissed" data-id="${escapeHtml(report.id)}">Dismiss</button>`
-      : "—";
-    return `<tr><td>${escapeHtml(report.reason)}</td><td>${escapeHtml(listing?.title || report.listing_id)}</td>
-      <td>${escapeHtml(report.reporter_contact || "—")}</td><td><span class="status-badge status-${statusClass(report.status)}">${escapeHtml(listingStatus(report.status))}</span></td>
-      <td>${new Date(report.created_at).toLocaleString()}</td><td><div class="row-actions">${actions}</div></td></tr>`;
-  }).join("");
-  document.getElementById("listings-empty").hidden = state.reports.length > 0;
-  document.querySelector(".listing-table").hidden = state.reports.length === 0;
-}
-
-function renderOwners() {
-  const owners = new Map();
-  state.listings.forEach((listing) => {
-    const phone = String(listing.public_data.phone || "");
-    const email = String(listing.private_data?.owner_email || "");
-    const key = phone || email || listing.id;
-    const owner = owners.get(key) || {
-      name: listing.owner,
-      phone,
-      email,
-      role: String(listing.public_data.role || "—"),
-      listings: 0,
-    };
-    owner.listings++;
-    owners.set(key, owner);
-  });
-  const records = [...owners.values()];
-  document.getElementById("listings-title").textContent = "Owners & Caretakers";
-  document.querySelector(".listing-table thead").innerHTML = "<tr><th>Owner</th><th>Role</th><th>Phone</th><th>Email</th><th>Listings</th></tr>";
-  document.getElementById("listing-rows").innerHTML = records.map((owner) => `
-    <tr><td><strong>${escapeHtml(owner.name)}</strong></td><td>${escapeHtml(owner.role)}</td>
-      <td>${escapeHtml(owner.phone || "—")}</td><td>${escapeHtml(owner.email || "—")}</td><td>${owner.listings}</td></tr>`).join("");
-  document.getElementById("listings-empty").hidden = records.length > 0;
-  document.querySelector(".listing-table").hidden = records.length === 0;
-}
-
-function renderActivity() {
-  const listingById = new Map(state.listings.map((listing) => [listing.id, listing]));
-  document.getElementById("listings-title").textContent = "Activity Logs";
-  document.querySelector(".listing-table thead").innerHTML = "<tr><th>Action</th><th>Listing</th><th>Details</th><th>Time</th></tr>";
-  document.getElementById("listing-rows").innerHTML = state.activity.map((item) => `
-    <tr><td>${escapeHtml(item.action)}</td><td>${escapeHtml(listingById.get(item.listing_id)?.title || "—")}</td>
-      <td>${escapeHtml(JSON.stringify(item.details || {}))}</td><td>${new Date(item.created_at).toLocaleString()}</td></tr>`).join("");
-  document.getElementById("listings-empty").hidden = state.activity.length > 0;
-  document.querySelector(".listing-table").hidden = state.activity.length === 0;
-}
-
-function renderPage() {
-  const page = pageNames.get(window.location.hash) || "Dashboard";
-  const dashboard = page === "Dashboard";
-  const listingsPage = window.location.hash === "#listings" || Boolean(statusFilters[window.location.hash]);
-  const paymentsPage = window.location.hash === "#payments" || Boolean(paymentFilters[window.location.hash]);
-  const reportsPage = window.location.hash === "#reports";
-  const ownersPage = window.location.hash === "#owners";
-  const activityPage = window.location.hash === "#activity-logs";
-  document.title = `${page} | NestGH Admin`;
-  document.getElementById("page-title").textContent = page;
-  document.getElementById("page-eyebrow").textContent = dashboard ? "Overview" : "Workspace";
-  document.getElementById("page-description").textContent = dashboard
-    ? "A live view of listings, payments, and platform activity."
-    : (listingsPage || paymentsPage || reportsPage || ownersPage || activityPage ? "Review and manage records stored in Supabase." : `${page} is not connected to a live data source yet.`);
-  document.getElementById("connection-title").textContent = "Connected to Supabase";
-  document.getElementById("connection-description").textContent = "Live data is protected by your administrator account and Supabase row-level security.";
-  document.getElementById("snapshot-title").textContent = dashboard ? "Platform snapshot" : `${page} overview`;
-  document.getElementById("snapshot-section").hidden = !dashboard;
-  document.getElementById("recent-section").hidden = !dashboard;
-  document.getElementById("featured-section").hidden = !dashboard;
-  document.getElementById("dashboard-hero").hidden = !dashboard;
-  document.getElementById("overview-grid").hidden = !dashboard;
-  document.getElementById("lower-grid").hidden = !dashboard;
-  document.querySelector(".page-heading").hidden = dashboard;
-  document.getElementById("listings-section").hidden = !(listingsPage || paymentsPage || reportsPage || ownersPage || activityPage);
-  document.getElementById("placeholder-section").hidden = dashboard || listingsPage || paymentsPage || reportsPage || ownersPage || activityPage;
-  document.getElementById("placeholder-title").textContent = `${page} is not connected yet`;
-  if (dashboard) renderDashboard();
-  if (listingsPage) renderListings();
-  if (paymentsPage) renderPayments();
-  if (reportsPage) renderReports();
-  if (ownersPage) renderOwners();
-  if (activityPage) renderActivity();
-  document.querySelectorAll(".nav-link[data-page], .nav-more-menu a[data-page]").forEach((link) => {
-    const active = link.dataset.page === page;
-    link.classList.toggle("active", active && link.classList.contains("nav-link"));
-    link.classList.toggle("current", active && link.closest(".nav-more-menu") !== null);
-    if (active) link.setAttribute("aria-current", "page");
-    else link.removeAttribute("aria-current");
-  });
-}
-
-async function refreshData() {
-  document.getElementById("connection-title").textContent = "Loading live data…";
-  let results;
-  try {
-    results = await Promise.all([
-      client.from("listings").select("id,status,public_data,private_data,created_at,updated_at").order("created_at", { ascending: false }),
-      client.from("payments").select("id,listing_id,reference,amount_minor,currency,status,created_at,paid_at").order("created_at", { ascending: false }),
-      client.from("listing_reports").select("id,listing_id,reason,reporter_contact,status,created_at").order("created_at", { ascending: false }),
-      client.from("admin_activity").select("id,admin_user_id,listing_id,action,details,created_at").order("created_at", { ascending: false }).limit(20),
-    ]);
-  } catch (error) {
-    console.error("Could not reach Supabase admin data:", error);
-    document.getElementById("connection-title").textContent = "Backend data could not be loaded";
-    document.getElementById("connection-description").textContent = error instanceof Error ? error.message : "Network request failed.";
-    showToast("Could not reach Supabase. Check your network and try refreshing.");
-    return;
-  }
-  const failure = results.find((result) => result.error);
-  if (failure) {
-    console.error("Could not load Supabase admin data:", failure.error);
-    document.getElementById("connection-title").textContent = "Backend data could not be loaded";
-    document.getElementById("connection-description").textContent = failure.error.message;
-    showToast(`Could not load admin data: ${failure.error.message}`);
-    return;
-  }
-  state.listings = results[0].data.map(normalizeListing);
-  state.payments = results[1].data;
-  state.reports = results[2].data;
-  state.activity = results[3].data;
-  document.getElementById("connection-title").textContent = "Connected to Supabase";
-  renderPage();
-}
-
-async function activateSession(session) {
-  const user = session?.user;
-  if (!user) {
-    state.user = null;
-    state.admin = null;
-    showAuth();
-    return;
-  }
-  const { data: admin, error } = await client.from("admin_users").select("user_id,display_name").eq("user_id", user.id).maybeSingle();
-  if (error) {
-    console.error("Could not verify admin access:", error);
-    await client.auth.signOut();
-    showAuth("Admin access could not be verified. Check the Supabase migration and administrator setup.");
-    return;
-  }
-  if (!admin) {
-    await client.auth.signOut();
-    showAuth("This account is not authorized for the NestGH admin workspace.");
-    return;
-  }
-  state.user = user;
-  state.admin = admin;
-  document.getElementById("admin-name").textContent = admin.display_name || "NestGH Admin";
-  document.getElementById("admin-email").textContent = user.email || "";
-  profileButton.textContent = (admin.display_name || user.email || "N").slice(0, 1).toUpperCase();
-  authPanel.hidden = true;
-  appShell.hidden = false;
-  await refreshData();
-}
-
-authForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!client) {
-    showAuth("Supabase configuration did not load. Check the project URL, publishable key, and browser network connection.");
-    return;
-  }
-  const button = document.getElementById("auth-submit");
-  button.disabled = true;
-  button.textContent = "Signing in…";
-  authError.hidden = true;
-  try {
-    const { data, error } = await client.auth.signInWithPassword({
-      email: document.getElementById("auth-email").value.trim(),
-      password: document.getElementById("auth-password").value,
-    });
-    if (error) {
-      showAuth(`Sign in failed: ${error.message}`);
-      return;
-    }
-    await activateSession(data.session);
-  } catch (error) {
-    console.error("Admin sign in failed:", error);
-    showAuth(`Sign in failed: ${error instanceof Error ? error.message : "Network request failed."}`);
-  } finally {
-    button.disabled = false;
-    button.textContent = "Sign in";
-  }
-});
-
-document.getElementById("sign-out").addEventListener("click", async () => {
-  try {
-    const { error } = await client.auth.signOut();
-    if (error) {
-      console.error("Admin sign out failed:", error);
-      showToast(`Could not sign out: ${error.message}`);
-      return;
-    }
-    state.user = null;
-    state.admin = null;
-    state.listings = [];
-    state.payments = [];
-    state.reports = [];
-    showAuth();
-  } catch (error) {
-    console.error("Admin sign out failed:", error);
-    showToast(`Could not sign out: ${error instanceof Error ? error.message : "Network request failed."}`);
-  }
-});
-
-document.getElementById("refresh-data").addEventListener("click", () => {
-  refreshData().catch((error) => {
-    console.error("Admin refresh failed:", error);
-    showToast("Unable to refresh live data. Please try again.");
-  });
-});
-
-document.getElementById("listing-rows").addEventListener("click", async (event) => {
-  const button = event.target.closest("button[data-action][data-id]");
-  if (!button || !state.user) return;
-  const listing = state.listings.find((item) => item.id === button.dataset.id);
-  if (!listing) return;
-  button.disabled = true;
-  const { error } = await client.from("listings").update({
-    status: button.dataset.action,
-    public_data: { ...listing.public_data, verified: ["live", "unavailable"].includes(button.dataset.action) },
-    updated_at: new Date().toISOString(),
-  }).eq("id", listing.id);
-  if (error) {
-    console.error("Listing moderation failed:", error);
-    button.disabled = false;
-    showToast(`Listing update failed: ${error.message}`);
-    return;
-  }
-  const { error: activityError } = await client.from("admin_activity").insert({
-    admin_user_id: state.user.id,
-    listing_id: listing.id,
-    action: `${listingStatus(button.dataset.action)}: ${listing.title}`,
-    details: { from: listing.status, to: button.dataset.action },
-  });
-  if (activityError) console.error("Listing was updated but its activity log was not saved:", activityError);
-  await refreshData();
-  showToast(activityError ? "Listing updated, but its activity log could not be saved." : `Listing updated: ${listingStatus(button.dataset.action)}.`);
-});
-
-document.getElementById("listing-rows").addEventListener("click", async (event) => {
-  const button = event.target.closest("button[data-report-action][data-id]");
-  if (!button || !state.user) return;
-  button.disabled = true;
-  const { error } = await client.from("listing_reports")
-    .update({ status: button.dataset.reportAction })
-    .eq("id", button.dataset.id);
-  if (error) {
-    console.error("Report moderation failed:", error);
-    button.disabled = false;
-    showToast(`Report update failed: ${error.message}`);
-    return;
-  }
-  await refreshData();
-  showToast(`Report ${listingStatus(button.dataset.reportAction).toLowerCase()}.`);
-});
-
-document.getElementById("menu-button").addEventListener("click", () => setSidebarOpen(!sidebar.classList.contains("open")));
-scrim.addEventListener("click", () => setSidebarOpen(false));
-profileButton.addEventListener("click", () => {
-  const open = profileButton.getAttribute("aria-expanded") !== "true";
-  profileButton.setAttribute("aria-expanded", String(open));
-  profileMenu.hidden = !open;
-});
-document.addEventListener("click", (event) => {
-  if (event.target.closest("[data-page]")) {
-    const moreMenu = document.querySelector(".nav-more");
-    if (moreMenu) moreMenu.open = false;
-    if (window.matchMedia("(max-width: 600px)").matches) setSidebarOpen(false);
-  }
-  if (!event.target.closest(".topbar-actions")) {
-    profileMenu.hidden = true;
-    profileButton.setAttribute("aria-expanded", "false");
-  }
-});
-window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    setSidebarOpen(false);
-    profileMenu.hidden = true;
-    profileButton.setAttribute("aria-expanded", "false");
-  }
-});
-window.addEventListener("hashchange", renderPage);
-if (client) {
-  client.auth.getSession().then(({ data, error }) => {
-    if (error) {
-      console.error("Could not restore admin session:", error);
-      showAuth(`Could not restore your session: ${error.message}`);
-      return;
-    }
-    activateSession(data.session).catch((activationError) => {
-      console.error("Could not activate admin session:", activationError);
-      showAuth("Admin access could not be activated. Please sign in again.");
-    });
-  }).catch((error) => {
-    console.error("Could not restore admin session:", error);
-    showAuth("Could not connect to restore your admin session. Check your network and try again.");
-  });
-  client.auth.onAuthStateChange((event) => {
-    if (event === "SIGNED_OUT" && state.user) {
-      state.user = null;
-      state.admin = null;
-      state.listings = [];
-      state.payments = [];
-      state.reports = [];
-      showAuth("Your admin session has ended. Please sign in again.");
-    }
-  });
-} else {
-  showAuth("Supabase configuration did not load. Check the project URL and browser SDK.");
-}
+const html=document.documentElement,tb=$('#th'),setB=b=>{html.dataset.brand=b;tb.setAttribute('aria-pressed',b=='gold');tb.textContent=b=='gold'?'Gold theme: on':'Gold theme';try{localStorage.setItem('nestgh-brand',b)}catch(e){}};
+let sb='ref';try{sb=localStorage.getItem('nestgh-brand')||'ref'}catch(e){}
+setB(sb);tb.onclick=()=>setB(html.dataset.brand=='gold'?'ref':'gold');
