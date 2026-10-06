@@ -6,7 +6,7 @@ import { hasRole } from "@/lib/server/admin-auth";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
 import { ROOM_TYPE_LABEL } from "@/lib/server/public-listings";
-import "../../admin.css";
+import { AdminFrame } from "@/app/admin/admin-ui";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ review?: string }> };
 
@@ -77,14 +77,9 @@ export default async function AdminListingPage({ params, searchParams }: Props) 
   const region = town?.parent;
 
   return (
-    <main className="admin-shell">
-      <div className="admin-workspace">
-        <header className="admin-topbar">
-          <Link className="admin-brand" href="/admin"><span className="admin-brand-mark">N</span><span><strong>NestGH.</strong><small>ADMIN WORKSPACE</small></span></Link>
-          <nav className="admin-desktop-nav" aria-label="Admin workspace"><Link href="/admin">Dashboard</Link><Link className="active" href="/admin#listings">Listings</Link></nav>
-        </header>
-        <section className="admin-content admin-detail">
-          <p><Link className="admin-text-link" href="/admin#listings">← Back to listings</Link></p>
+    <AdminFrame admin={admin} active="/admin/listings">
+      <section className="admin-detail">
+          <p><Link className="admin-text-link" href="/admin/listings">← Back to listings</Link></p>
           <div className="admin-panel-heading">
             <div>
               <p className="eyebrow">{commercial ? "SHOP / SPACE" : "ROOM"} · {listing.id}</p>
@@ -229,8 +224,7 @@ export default async function AdminListingPage({ params, searchParams }: Props) 
               </section>
             ) : null}
           </div>
-        </section>
-      </div>
-    </main>
+      </section>
+    </AdminFrame>
   );
 }

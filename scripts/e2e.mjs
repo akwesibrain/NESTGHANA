@@ -151,7 +151,12 @@ try {
   );
   const cookie = { Cookie: `nestgh-admin=${token}` };
   const dashboard = await (await fetch(`${BASE}/admin`, { headers: cookie })).text();
-  assert.ok(dashboard.includes("E2E single room in Ho") && dashboard.includes("Listing fees"), "dashboard lists the submission");
+  assert.ok(dashboard.includes("E2E single room in Ho") && dashboard.includes("Overview"), "dashboard lists the submission");
+  for (const page of ["/admin/listings", "/admin/payments", "/admin/reports", "/admin/settings"]) {
+    const res = await fetch(`${BASE}${page}`, { headers: cookie });
+    assert.equal(res.status, 200, page);
+    assert.ok((await res.text()).includes("ngd-tabs"), `${page} renders the admin frame`);
+  }
   const detail = await fetch(`${BASE}/admin/listings/${row.id}`, { headers: cookie });
   const detailHtml = await detail.text();
   assert.equal(detail.status, 200);

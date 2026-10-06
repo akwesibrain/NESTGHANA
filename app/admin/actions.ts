@@ -72,7 +72,7 @@ export async function updateListingFees(formData: FormData) {
   const spaceFeePesewas = parseCedis(formData.get("spaceFee"));
   const reason = String(formData.get("reason") || "").trim();
   if (!roomFeePesewas || !hostelFeePesewas || !spaceFeePesewas || reason.length < 3 || reason.length > 1000) {
-    redirect("/admin?fee=invalid#website-settings");
+    redirect("/admin/settings?fee=invalid");
   }
 
   try {
@@ -110,17 +110,17 @@ export async function updateListingFees(formData: FormData) {
     });
   } catch (error) {
     console.error("admin_listing_fee_update_failed", error instanceof Error ? error.message : "unknown");
-    redirect("/admin?fee=save_failed#website-settings");
+    redirect("/admin/settings?fee=save_failed");
   }
   revalidatePath("/admin");
-  redirect("/admin?fee=saved#website-settings");
+  redirect("/admin/settings?fee=saved");
 }
 
 const reviewInput = z.object({
   listingId: z.uuid(),
   decision: z.enum(["approve", "changes", "reject"]),
   reason: z.string().trim().max(1000).optional(),
-  from: z.enum(["dashboard", "detail"]).optional(),
+  from: z.enum(["dashboard", "detail", "listings"]).optional(),
 });
 const DECISION_STATUS = { approve: "LIVE", changes: "CHANGES_REQUESTED", reject: "REJECTED" } as const;
 
@@ -134,7 +134,9 @@ export async function reviewListing(formData: FormData) {
   });
   if (!parsed.success) redirect("/admin?review=invalid#listings");
   const back = (code: string) =>
-    parsed.data.from === "detail" ? `/admin/listings/${parsed.data.listingId}?review=${code}` : `/admin?review=${code}#listings`;
+    parsed.data.from === "detail" ? `/admin/listings/${parsed.data.listingId}?review=${code}`
+      : parsed.data.from === "listings" ? `/admin/listings?review=${code}`
+      : `/admin?review=${code}`;
   if (parsed.data.decision !== "approve" && (parsed.data.reason?.length ?? 0) < 3) redirect(back("reason_required"));
 
   try {
@@ -160,4 +162,43 @@ export async function reviewListing(formData: FormData) {
   }
   revalidatePath("/admin");
   redirect(back(parsed.data.decision));
+}
+
+const reportInput = z.object({
+  reportId: z.uuid(),
+  status: z.enum(["REVIEWING", "RESOLVED", "DISMISSED"]),
+});
+
+/** Moves a visitor report through the review queue (audited). */
+export async function updateReportStatus(formData: FormData) {
+  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
+  const parsed = reportInput.safeParse({ reportId: formData.get("reportId"), status: formData.get("status") });
+  if (!parsed.success) redirect("/admin/reports?report=invalid");
+
+  try {
+    await getDb().$transaction(async tx => {
+      const previous = await tx.report.findUniqueOrThrow({ where: { id: parsed.data.reportId }, select: { status: true, listingId: true } });
+      await tx.report.update({
+        where: { id: parsed.data.reportId },
+        data: { status: parsed.data.status, reviewedById: admin.user.id, reviewedAt: new Date() },
+      });
+      await tx.adminActivityLog.create({
+        data: {
+          adminUserId: admin.user.id,
+          action: "REPORT_STATUS_CHANGED",
+          resourceType: "REPORT",
+          resourceId: parsed.data.reportId,
+          previousState: { status: previous.status },
+          newState: { status: parsed.data.status },
+          source: "admin_dashboard",
+          metadata: { listingId: previous.listingId },
+        },
+      });
+    });
+  } catch (error) {
+    console.error("admin_report_update_failed", error instanceof Error ? error.message : "unknown");
+    redirect("/admin/reports?report=failed");
+  }
+  revalidatePath("/admin/reports");
+  redirect("/admin/reports?report=saved");
 }
