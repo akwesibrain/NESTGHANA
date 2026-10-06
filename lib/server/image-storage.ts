@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, rmdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 // Private on-disk storage for listing photos (paths are recorded in listing_images).
@@ -51,6 +51,9 @@ export async function readImage(key: string): Promise<Buffer> {
 
 export async function deleteImages(keys: string[]) {
   await Promise.all(keys.map(key => rm(resolveKey(key), { force: true }).catch(() => undefined)));
+  // Remove each submission folder once it is empty (rmdir refuses non-empty folders).
+  const folders = new Set(keys.map(key => path.dirname(resolveKey(key))));
+  await Promise.all([...folders].map(folder => rmdir(folder).catch(() => undefined)));
 }
 
 export function mimeForKey(key: string): string {

@@ -18,7 +18,9 @@
     "db:studio": "prisma studio",
     "test:db": "node scripts/test-db.mjs",
     "admin:create": "tsx scripts/create-admin.ts",
-    "test:e2e": "node scripts/e2e.mjs"
+    "test:e2e": "node scripts/e2e.mjs",
+    "demo:add": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/demo-data.ts add",
+    "demo:remove": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/demo-data.ts remove"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "7.10.0",
