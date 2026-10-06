@@ -22,9 +22,9 @@ database or auth service.
 
 | Command | What it covers |
 |---|---|
-| `npm run test:db` | 29 tests on a throwaway database: schema rules, listing lifecycle, admin auth/MFA/sessions, submission, payments (fake Paystack), approval |
-| `npm run test:e2e` | Whole flow over HTTP on a real Next.js server: submit → pay (webhook) → admin review → public listing with photos |
-| `npm run test:security` | Cross-site request protection |
+| `npm run test:db` | 35 tests on a throwaway database: schema rules, listing lifecycle, admin auth/MFA/sessions, submission, payments (fake Paystack), approval, owner manage links, notifications, availability job |
+| `npm run test:e2e` | Whole flow over HTTP on a real Next.js server: submit → pay (webhook) → owner manage link → admin pages → public listing with photos |
+| `npm run test:security` | Cross-site request protection, photo metadata (GPS) removal |
 | `node --test tests/listing-pricing.test.cjs` | Fees by listing type |
 | `npm run typecheck`, `npm run build` | TypeScript and production build |
 
