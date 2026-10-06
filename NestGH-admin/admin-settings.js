@@ -8,7 +8,7 @@
     ["Communication", [["contact", "Contact Information"], ["whatsapp", "WhatsApp"], ["notifications", "Notifications"]]],
     ["Website", [["general", "General"], ["homepage", "Homepage"], ["seo", "SEO"]]],
     ["Privacy & Safety", [["privacy", "Privacy & Legal"], ["moderation", "Moderation"]]],
-    ["Integrations", [["supabase", "Supabase"], ["payment-integration", "Payment Integration"], ["email", "Email"], ["analytics", "Analytics"]]],
+    ["Integrations", [["database", "MySQL Database"], ["payment-integration", "Payment Integration"], ["email", "Email"], ["analytics", "Analytics"]]],
     ["System", [["audit-logs", "Audit Logs"], ["system-status", "System Status"], ["data-management", "Data Management"], ["danger-zone", "Danger Zone"]]]
   ];
 
@@ -74,7 +74,7 @@
     return `<div class="settings-content-grid">
       <section class="settings-subcard"><h3>Security status</h3>
         ${settingCard("Two-factor authentication", security.verifiedTotp ? "A verified authenticator factor is enrolled." : "No verified authenticator factor is enrolled.", security.verifiedTotp ? "operational" : "not_configured")}
-        ${settingCard("Current session assurance", "Verified by Supabase Auth for this request.", security.assuranceLevel === "aal2" ? "operational" : "not_configured")}
+        ${settingCard("Current session assurance", "Verified by the NestGH admin session (MFA) for this request.", security.assuranceLevel === "aal2" ? "operational" : "not_configured")}
         ${unavailable("This admin preview does not expose password changes, MFA enrollment, login alerts, session listing, or session revocation. No security action has been simulated.")}
       </section>
       <section class="settings-subcard"><h3>Session controls</h3><p class="mu">Session details are not available from the current authenticated API.</p>${unavailable("Session-management actions are unavailable until an authorized session-management endpoint is implemented.")}</section>
@@ -155,7 +155,7 @@
   const renderIntegration = section => {
     if (!state.data) return unavailable("Integration status requires the authenticated settings API.");
     const integration = state.data.integrations || {};
-    const entries = section === "supabase" ? [["Supabase", integration.supabase], ["Database", integration.database], ["Authentication", integration.authentication], ["Storage", integration.storage]]
+    const entries = section === "database" ? [["MySQL (Prisma)", integration.database], ["Authentication", integration.authentication], ["Storage", integration.storage]]
       : section === "payment-integration" || section === "paystack" ? [["Paystack credentials", integration.paystack]]
       : section === "email" ? [["Email provider", integration.email]]
       : [["Analytics", "not_configured"]];
@@ -169,8 +169,8 @@
     if (!state.data) return unavailable("System checks require the authenticated settings API.");
     return `<section class="settings-subcard"><h3>Live service checks</h3>
       ${settingCard("Database", "Existing settings record query completed.", state.data.integrations.database)}
-      ${settingCard("Authentication", "Supabase verified the current administrator session.", state.data.integrations.authentication)}
-      ${settingCard("Storage", "Listing image storage bucket check.", state.data.integrations.storage)}
+      ${settingCard("Authentication", "The NestGH admin session (MySQL) verified the current administrator.", state.data.integrations.authentication)}
+      ${settingCard("Storage", "Private listing photo storage check.", state.data.integrations.storage)}
       ${settingCard("Paystack", "Credential presence only; no secret values are exposed.", state.data.integrations.paystack)}
       ${settingCard("Email", "No email provider is configured in the current server settings.", state.data.integrations.email)}
     </section>`;
@@ -193,7 +193,7 @@
       case "admin-users": return renderRoles();
       case "paystack":
       case "payment-integration":
-      case "supabase":
+      case "database":
       case "email":
       case "analytics": return renderIntegration(state.section);
       case "system-status": return renderSystemStatus();

@@ -85,8 +85,8 @@ try {
     assert.equal((await fetch(BASE + file)).status, 200, file);
   }
   const html = await (await fetch(`${BASE}/index.html`)).text();
-  assert.ok(!html.includes("supabase"), "no Supabase scripts");
-  step("public site assets load, no Supabase");
+  assert.ok(!html.toLowerCase().includes("supabase"), "no third-party database scripts");
+  step("public site assets load (MySQL API only)");
 
   // ── Submission over multipart ──
   const jpeg = () => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...Array.from({ length: 300 }, (_, i) => i % 256)])], { type: "image/jpeg" });

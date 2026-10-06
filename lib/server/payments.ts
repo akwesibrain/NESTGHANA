@@ -6,7 +6,7 @@ import { feeFor, getListingFees, listingFeeType } from "./listing-fees";
 import { transitionListingInTransaction } from "./listing-status";
 import { initializeTransaction, isPaystackCheckoutUrl, type PaystackTransaction, verifyTransaction } from "./paystack";
 
-// Listing-fee payments via Paystack (port of the Supabase payment functions + finalize RPC).
+// Listing-fee payments via Paystack, recorded in MySQL.
 // The amount always comes from website_settings for the listing's type; the browser only echoes
 // the fee it showed so a fee change mid-checkout is detected instead of silently charged.
 

@@ -20,7 +20,7 @@ const gr=(a,k,d,f=()=>1)=>{const c=a.filter(x=>f(x)&&x[k]>N-d*Dy).length,p=a.fil
 const sm=(a,lo,hi)=>a.filter(x=>x.st=="ok"&&x.at>N-hi*Dy&&x.at<=N-lo*Dy).reduce((t,x)=>t+x.amt,0);
 const pcts=a=>{const t=a.reduce((x,y)=>x+y,0);if(!t)return a.map(()=>0);const f=a.map(v=>v*100/t),b=f.map(Math.floor);let k=100-b.reduce((x,y)=>x+y,0);f.map((v,i)=>[v-b[i],i]).sort((x,y)=>y[0]-x[0]).slice(0,k).forEach(x=>b[x[1]]++);return b};
 const cnt=(a,f)=>a.filter(f).length,tally=(a,k)=>{const m={};a.forEach(x=>m[x[k]]=(m[x[k]]||0)+1);return Object.entries(m).sort((x,y)=>y[1]-x[1])};
-/* Service layer: swap these functions for Supabase later. UI never touches D directly. */
+/* Service layer: swap these functions for NestGH API (MySQL) calls later. UI never touches D directly. */
 const svc={
 async kpis(){await wait();if(!D)return;const{L,U,P}=D,rev=sm(P,0,1e4),c=sm(P,0,30),p=sm(P,30,60);return[{l:"Total Listings",v:L.length,i:"building",c:"var(--blue)",d:gr(L,"created",30)},{l:"Total Users",v:U.length,i:"users",c:"var(--pu)",d:gr(U,"created",30)},{l:"Total Listing Revenue",v:cedi(rev),i:"₵",c:"var(--gold)",d:p?Math.round((c-p)/p*100):null},{l:"Active Listings",v:cnt(L,x=>x.status=="active"),i:"check",c:"var(--ok)",d:gr(D.L,"created",30,x=>x.status=="active")}]},
 async mod(){await wait();if(!D)return;const c=s=>cnt(D.L,x=>x.status==s);return{c:[c("pending"),c("active"),c("rejected"),c("suspended")],q:D.L.filter(x=>x.status=="pending").sort((a,b)=>b.created-a.created).slice(0,3)}},

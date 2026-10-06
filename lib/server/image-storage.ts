@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-// Private on-disk storage for listing photos (replaces the Supabase "listing-pending" bucket).
+// Private on-disk storage for listing photos (paths are recorded in listing_images).
 // Files live outside public/ and are only served through /api/images (approved photos of LIVE
 // listings) or /api/admin/images (signed-in admins).
 

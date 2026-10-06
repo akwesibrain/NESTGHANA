@@ -6,7 +6,7 @@ import { CONTACT_CONSENT_KEY, ROOM_TYPE_LABEL } from "./public-listings";
 import { transitionListingInTransaction } from "./listing-status";
 import { deleteImages, detectImageKind, MAX_IMAGE_BYTES, saveImage } from "./image-storage";
 
-// Owner listing submission (port of the Supabase start-listing-payment function, minus payment).
+// Owner listing submission (payment is started separately in payments.ts).
 // Validates the "List your property" form, stores photos privately, and creates the owner,
 // listing, private address, consent and image rows in one transaction, ending in PAYMENT_PENDING.
 

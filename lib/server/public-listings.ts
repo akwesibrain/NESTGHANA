@@ -5,7 +5,7 @@ import { getListingFees } from "./listing-fees";
 import { paystackConfigured } from "./paystack";
 
 // Builds the `public_data` shape that the public site renders (app.js → mapPublicListing for rooms,
-// commercial-listings.js → normalize for Shops & Spaces). Mirrors the Supabase public_listings view.
+// commercial-listings.js → normalize for Shops & Spaces).
 // Only LIVE listings whose owner consented to showing their contacts are exposed, and only
 // allowlisted fields; listing_private, owner email and unapproved photos never leave the server.
 

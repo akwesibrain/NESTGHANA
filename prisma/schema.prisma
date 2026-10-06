@@ -1,5 +1,5 @@
 // NestGH database schema (MySQL / MariaDB).
-// Ported from supabase/migrations/20261001000100_nestgh_core.sql. Rules Prisma cannot express
+// Rules Prisma cannot express
 // (CHECK constraints, append-only audit tables, listing status guards) live in the migration SQL.
 // Money is always stored as integer pesewas (GH₵1 = 100 pesewas).
 
@@ -151,7 +151,7 @@ enum SecuritySeverity {
 }
 
 // ───────────────────────── Admin & security ─────────────────────────
-// Replaces Supabase auth.users + profiles. Public sign-up does not exist; admins are provisioned.
+// Public sign-up does not exist; admins are created with `npm run admin:create`.
 
 model AdminUser {
   id               String    @id @default(uuid()) @db.Char(36)

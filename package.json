@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:security": "node --test tests/security/*.test.mjs",
+    "test:security": "tsx --conditions=react-server --tsconfig tsconfig.json --test tests/security/*.test.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",

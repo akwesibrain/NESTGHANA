@@ -11,7 +11,7 @@ import {
 } from "./admin-crypto";
 import { getDb } from "./db";
 
-// Admin accounts, sessions and MFA (replaces Supabase Auth). Cookie handling lives in
+// Admin accounts, sessions and MFA, stored in MySQL. Cookie handling lives in
 // admin-session.ts; everything here works on plain values so it can be tested directly.
 
 export const SESSION_IDLE_MS = 30 * 60 * 1000;

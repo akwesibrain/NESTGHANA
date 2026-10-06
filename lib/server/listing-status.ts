@@ -2,7 +2,7 @@ import "server-only";
 import type { ActorType, AdminRole, ListingStatus, Prisma } from "@/generated/prisma/client";
 import { getDb } from "./db";
 
-// The only way a listing's status may change (port of the Supabase transition_listing function).
+// The only way a listing's status may change.
 // The listings_guard_status_upd trigger rejects any status update made without
 // @nestgh_status_transition = 1, which this function sets inside its own transaction.
 
