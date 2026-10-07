@@ -1,5 +1,6 @@
 .next/
 node_modules/
+# Local environment files may contain secrets such as Paystack and TxtConnect API keys.
 .env
 .env.*
 !.env.example
