@@ -176,6 +176,10 @@ nav .w {
   font: inherit;
   cursor: pointer;
 }
+.links .service-trigger:hover,
+.links .service-trigger[aria-expanded="true"] {
+  color: var(--green-600);
+}
 .service-chevron {
   width: 7px;
   height: 7px;
