@@ -963,16 +963,106 @@ $("sv").onclick = () => {
 };
 $("mobile-saved").onclick = () => $("sv").click();
 $("mobile-more").onclick = () => $("mn").click();
+const servicesConfig = window.NESTGH_SERVICES_CONFIG;
+if (!servicesConfig || !Array.isArray(servicesConfig.SERVICES)) {
+  throw new Error("NestGH services configuration is missing or invalid.");
+}
+const serviceNav = $("other-services");
+const serviceTrigger = $("services-trigger");
+const serviceMenu = $("services-menu");
+const dataSiteUrl = servicesConfig.DATA_SITE_URL.trim();
+if (dataSiteUrl) {
+  let parsedDataSiteUrl;
+  try {
+    parsedDataSiteUrl = new URL(dataSiteUrl);
+  } catch {
+    throw new Error("DATA_SITE_URL must be an absolute HTTP or HTTPS URL.");
+  }
+  if (!["http:", "https:"].includes(parsedDataSiteUrl.protocol)) {
+    throw new Error("DATA_SITE_URL must use HTTP or HTTPS.");
+  }
+
+  servicesConfig.SERVICES.forEach((service) => {
+    if (!service.id || !service.label || !service.description) {
+      throw new Error("Each NestGH service needs an id, label and description.");
+    }
+    const serviceUrl = service.url || dataSiteUrl;
+    let parsedServiceUrl;
+    try {
+      parsedServiceUrl = new URL(serviceUrl);
+    } catch {
+      throw new Error(
+        `Service "${service.id}" needs an absolute HTTP or HTTPS URL.`,
+      );
+    }
+    if (!["http:", "https:"].includes(parsedServiceUrl.protocol)) {
+      throw new Error(`Service "${service.id}" must use HTTP or HTTPS.`);
+    }
+
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    const label = document.createElement("span");
+    const description = document.createElement("small");
+    link.href = parsedServiceUrl.href;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    label.textContent = service.label;
+    description.textContent = service.description;
+    link.append(label, description);
+    item.append(link);
+    serviceMenu.append(item);
+  });
+  serviceNav.hidden = servicesConfig.SERVICES.length === 0;
+}
+function setServicesOpen(open, restoreFocus = false) {
+  serviceTrigger.setAttribute("aria-expanded", String(open));
+  serviceMenu.hidden = !open;
+  if (restoreFocus) serviceTrigger.focus();
+}
+serviceTrigger.addEventListener("click", () => {
+  setServicesOpen(serviceTrigger.getAttribute("aria-expanded") !== "true");
+});
+serviceTrigger.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    setServicesOpen(true);
+    const links = serviceMenu.querySelectorAll("a");
+    links[event.key === "ArrowUp" ? links.length - 1 : 0]?.focus();
+  }
+});
+serviceNav.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && serviceTrigger.getAttribute("aria-expanded") === "true") {
+    event.preventDefault();
+    setServicesOpen(false, true);
+    return;
+  }
+  if (
+    !["ArrowDown", "ArrowUp"].includes(event.key) ||
+    !event.target.matches(".service-menu a")
+  ) {
+    return;
+  }
+  event.preventDefault();
+  const links = [...serviceMenu.querySelectorAll("a")];
+  const currentIndex = links.indexOf(event.target);
+  const offset = event.key === "ArrowDown" ? 1 : -1;
+  links[(currentIndex + offset + links.length) % links.length].focus();
+});
+document.addEventListener("click", (event) => {
+  if (!serviceNav.contains(event.target)) setServicesOpen(false);
+});
 $("mn").onclick = () => {
   const open = $("links").classList.toggle("open");
   $("mn").setAttribute("aria-expanded", String(open));
   $("mobile-more").setAttribute("aria-expanded", String(open));
+  if (!open) setServicesOpen(false);
 };
 $("links").onclick = (e) => {
   if (e.target.closest("a")) {
     $("links").classList.remove("open");
     $("mn").setAttribute("aria-expanded", "false");
     $("mobile-more").setAttribute("aria-expanded", "false");
+    setServicesOpen(false);
   }
 };
 fillAreas();
