@@ -294,9 +294,11 @@ function Meter({ label, value, total, tone }: { label: string; value: number; to
   return (
     <div className="ngd-meter" title={`${value} of ${total}`}>
       <div className="ngd-meter-head"><span>{label}</span><strong>{percent}%</strong></div>
-      <div className="ngd-meter-track" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label={label}>
-        <span className={`is-${tone}`} style={{ width: `${percent}%` }} />
-      </div>
+      {/* SVG geometry, not inline styles: the CSP blocks style attributes. */}
+      <svg className="ngd-meter-svg" width="100%" height="8" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label={label}>
+        <rect width="100%" height="8" rx="4" className="ngd-meter-bg" />
+        {percent > 0 ? <rect width={`${percent}%`} height="8" rx="4" className={`ngd-meter-fill is-${tone}`} /> : null}
+      </svg>
       <small className="ngd-muted">{count(value)} of {count(total)}</small>
     </div>
   );
@@ -330,7 +332,10 @@ function BarList({ rows, total, max, showPct = false }: { rows: { name: string; 
       {rows.map(row => (
         <li key={row.name} title={`${row.name}: ${row.count} listing${row.count === 1 ? "" : "s"}`}>
           <div><span>{row.name}</span><strong>{showPct && total ? `${Math.round((row.count / total) * 100)}%` : row.count}</strong></div>
-          <span className="ngd-bar-track"><span style={{ width: `${Math.max(4, (row.count / max) * 100)}%` }} /></span>
+          <svg className="ngd-bar-svg" width="100%" height="6" aria-hidden="true">
+            <rect width="100%" height="6" rx="3" className="ngd-meter-bg" />
+            <rect width={`${Math.max(4, (row.count / max) * 100)}%`} height="6" rx="3" className="ngd-bar-fill" />
+          </svg>
         </li>
       ))}
     </ul>

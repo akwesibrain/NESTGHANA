@@ -96,7 +96,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
       </Card>
 
       {canSeeSecurity ? (
-        <div style={{ marginTop: 16 }}>
+        <div className="ngd-gap-top">
           <Card title="Admin security events (latest 30)">
             <div className="ngd-table-wrap">
               <table className="ngd-table">

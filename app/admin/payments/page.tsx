@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { PaymentStatus } from "@/generated/prisma/client";
-import { AdminFrame, Card, cedis, count, ghanaDate, Icon } from "@/app/admin/admin-ui";
+import { AdminFrame, Card, cedis, ghanaDate } from "@/app/admin/admin-ui";
+import { SalesLive } from "@/app/admin/payments/sales-live";
+import { getSalesAnalytics } from "@/lib/server/sales-analytics";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
 
@@ -22,7 +24,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
   const params = await searchParams;
   const status = (Object.keys(STATUS) as PaymentStatus[]).find(s => s === params.status);
   const db = getDb();
-  const [payments, groups, openReports] = await Promise.all([
+  const [payments, sales, openReports] = await Promise.all([
     db.payment.findMany({
       where: status ? { status } : {},
       orderBy: { createdAt: "desc" },
@@ -32,23 +34,17 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
         listing: { select: { id: true, title: true, owner: { select: { fullName: true } } } },
       },
     }),
-    db.payment.groupBy({ by: ["status"], _count: { _all: true }, _sum: { amountPesewas: true } }),
+    getSalesAnalytics(30),
     db.report.count({ where: { status: { in: ["OPEN", "REVIEWING"] } } }),
   ]);
-  const sum = (s: PaymentStatus[]) => groups.filter(g => s.includes(g.status)).reduce((t, g) => t + (g._sum.amountPesewas ?? 0), 0);
-  const num = (s: PaymentStatus[]) => groups.filter(g => s.includes(g.status)).reduce((t, g) => t + g._count._all, 0);
 
   return (
     <AdminFrame admin={admin} active="/admin/payments" alerts={openReports}>
       <div className="ngd-page-head">
         <div><h1>Payments</h1><p>Listing fees paid through Paystack. Amounts are recorded only after Paystack confirms them.</p></div>
       </div>
-      <div className="ngd-row ngd-row-4">
-        <Summary icon="check" tone="good" label="Collected" value={cedis(sum(["PAID"]), 2)} note={`${count(num(["PAID"]))} paid`} />
-        <Summary icon="clock" tone="warning" label="In progress" value={cedis(sum(["PENDING", "PROCESSING"]), 2)} note={`${count(num(["PENDING", "PROCESSING"]))} attempts`} />
-        <Summary icon="x" tone="critical" label="Failed / cancelled" value={cedis(sum(["FAILED", "ABANDONED"]), 2)} note={`${count(num(["FAILED", "ABANDONED"]))} attempts`} />
-        <Summary icon="card" tone="neutral" label="Refunded" value={cedis(sum(["REFUNDED", "PARTIALLY_REFUNDED"]), 2)} note={`${count(num(["REFUNDED", "PARTIALLY_REFUNDED"]))} payments`} />
-      </div>
+      <SalesLive initial={sales} />
+      <div className="ngd-spacer" />
       <Card title="Payment attempts">
         <nav className="ngd-tabs-filter" aria-label="Filter by payment status">
           <Link className={!status ? "is-active" : undefined} href="/admin/payments">All</Link>
@@ -82,13 +78,3 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
   );
 }
 
-function Summary({ icon, tone, label, value, note }: { icon: string; tone: string; label: string; value: string; note: string }) {
-  return (
-    <section className={`ngd-card ngd-mini is-${tone}`} aria-label={label}>
-      <span className="ngd-mini-icon"><Icon name={icon} size={16} /></span>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small className="ngd-muted">{note}</small>
-    </section>
-  );
-}
