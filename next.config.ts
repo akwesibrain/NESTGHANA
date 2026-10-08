@@ -14,7 +14,15 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
   async rewrites() {
-    return { beforeFiles: [{ source: "/", destination: "/index.html" }], afterFiles: [], fallback: [] };
+    return {
+      beforeFiles: [
+        { source: "/", destination: "/index.html" },
+        { source: "/buy-data", destination: "/buy-data/index.html" },
+        { source: "/buy-data/", destination: "/buy-data/index.html" },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
   },
   async headers() {
     return [

@@ -1004,8 +1004,10 @@ if (dataSiteUrl) {
     const label = document.createElement("span");
     const description = document.createElement("small");
     link.href = parsedServiceUrl.href;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
+    if (parsedServiceUrl.origin !== window.location.origin) {
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    }
     label.textContent = service.label;
     description.textContent = service.description;
     link.append(label, description);
