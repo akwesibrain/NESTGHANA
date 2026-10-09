@@ -1,0 +1,766 @@
+// NestGH database schema (MySQL / MariaDB).
+// Rules Prisma cannot express
+// (CHECK constraints, append-only audit tables, listing status guards) live in the migration SQL.
+// Money is always stored as integer pesewas (GH₵1 = 100 pesewas).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ───────────────────────── Enums ─────────────────────────
+
+enum ListingStatus {
+  DRAFT
+  PAYMENT_PENDING
+  PENDING_APPROVAL
+  CHANGES_REQUESTED
+  LIVE
+  NEEDS_CONFIRMATION
+  UNAVAILABLE
+  REJECTED
+  REMOVED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+  SUPPORT
+}
+
+enum ActorType {
+  SYSTEM
+  ADMIN
+  OWNER
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  ABANDONED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum LocationKind {
+  REGION
+  TOWN
+  AREA
+}
+
+/// Admin-set availability label shown to renters (frontend-data-contract.md, Phase 1). "Unavailable"
+/// is not a value here: it comes from the listing status UNAVAILABLE.
+enum AvailabilityLabel {
+  AVAILABLE
+  ALMOST_TAKEN
+  RESERVED
+  RENTED
+}
+
+/// The listing contact's confirmed relationship to the property. The VERIFIED_* values are only
+/// accepted (and only published) once the owner-identity check is recorded.
+enum ContactType {
+  DIRECT_OWNER
+  VERIFIED_AGENT
+  VERIFIED_PROPERTY_MANAGER
+  CARETAKER
+}
+
+enum RentPeriod {
+  MONTH
+  THREE_MONTHS
+  SIX_MONTHS
+  YEAR
+  SEMESTER
+  OTHER
+}
+
+enum RoomType {
+  SINGLE_ROOM      @map("Single Room")
+  CHAMBER_HALL     @map("Chamber & Hall")
+  SELF_CONTAINED   @map("Self-Contained")
+  ONE_IN_ROOM      @map("1-in-a-Room")
+  TWO_IN_ROOM      @map("2-in-a-Room")
+  FOUR_IN_ROOM     @map("4-in-a-Room")
+  STUDENT_HOSTEL   @map("Student Hostel")
+  // Commercial (Shops & Spaces)
+  SHOP             @map("Shop")
+  STORE            @map("Store")
+  OFFICE           @map("Office")
+  SHOWROOM         @map("Showroom")
+  WAREHOUSE        @map("Warehouse")
+  SALON            @map("Salon")
+  RESTAURANT       @map("Restaurant")
+  COMMERCIAL_SPACE @map("Commercial Space")
+  OTHER            @map("Other")
+}
+
+enum ListingFeeType {
+  ROOM
+  HOSTEL
+  SPACE
+}
+
+enum PropertyCategory {
+  ROOM
+  COMMERCIAL
+}
+
+enum ListingCondition {
+  NEW             @map("New")
+  NEWLY_RENOVATED @map("Newly Renovated")
+  GOOD            @map("Good Condition")
+  FAIR            @map("Fair Condition")
+}
+
+enum Furnishing {
+  FURNISHED      @map("Furnished")
+  UNFURNISHED    @map("Unfurnished")
+  NOT_APPLICABLE @map("Not Applicable")
+}
+
+enum ImageCategory {
+  EXTERIOR    @map("Exterior")
+  BEDROOM     @map("Bedroom")
+  BATHROOM    @map("Bathroom")
+  KITCHEN     @map("Kitchen")
+  COMPOUND    @map("Compound or common area")
+  INTERIOR    @map("Interior")
+  FRONTAGE    @map("Frontage")
+  FACILITIES  @map("Facilities")
+  SURROUNDING @map("Surrounding area")
+  EXTRA       @map("Extra")
+  PROFILE     @map("Profile")
+}
+
+enum RevisionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InquiryChannel {
+  PHONE
+  WHATSAPP
+}
+
+enum ManageLinkPurpose {
+  MANAGE_LISTING
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  DISMISSED
+}
+
+enum SecuritySeverity {
+  INFO
+  WARN
+  ERROR
+}
+
+// ───────────────────────── Admin & security ─────────────────────────
+// Public sign-up does not exist; admins are created with `npm run admin:create`.
+
+model AdminUser {
+  id               String    @id @default(uuid()) @db.Char(36)
+  email            String    @unique @db.VarChar(254)
+  displayName      String    @default("") @map("display_name") @db.VarChar(120)
+  passwordHash     String    @map("password_hash") @db.VarChar(255)
+  /// Encrypted TOTP secret; MFA is mandatory before privileged actions.
+  mfaSecretEnc     String?   @map("mfa_secret_enc") @db.VarChar(512)
+  mfaEnabledAt     DateTime? @map("mfa_enabled_at") @db.DateTime(3)
+  /// Last accepted TOTP time step; a code is never accepted twice (replay protection).
+  mfaLastStep      BigInt?   @map("mfa_last_step") @db.UnsignedBigInt
+  isActive         Boolean   @default(true) @map("is_active")
+  failedLoginCount Int       @default(0) @map("failed_login_count") @db.UnsignedSmallInt
+  lockedUntil      DateTime? @map("locked_until") @db.DateTime(3)
+  lastLoginAt      DateTime? @map("last_login_at") @db.DateTime(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  roles                AdminRoleGrant[]         @relation("RoleHolder")
+  rolesGranted         AdminRoleGrant[]         @relation("RoleGranter")
+  sessions             AdminSession[]
+  settingsUpdated      WebsiteSettings[]
+  settingsHistory      WebsiteSettingsHistory[]
+  listingsApproved     Listing[]
+  phoneVerified        ListingVerification[]    @relation("PhoneVerifier")
+  identityVerified     ListingVerification[]    @relation("IdentityVerifier")
+  propertyVerified     ListingVerification[]    @relation("PropertyVerifier")
+  priceVerified        ListingVerification[]    @relation("PriceVerifier")
+  availabilityVerified ListingVerification[]    @relation("AvailabilityVerifier")
+  siteVisits           ListingVerification[]    @relation("SiteVisitor")
+  revisionsReviewed    ListingRevision[]
+  activityLogs         AdminActivityLog[]
+  notificationsSent    Notification[]
+  reportsReviewed      Report[]
+
+  @@map("admin_users")
+}
+
+model AdminRoleGrant {
+  userId      String    @map("user_id") @db.Char(36)
+  role        AdminRole
+  grantedById String?   @map("granted_by") @db.Char(36)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  user      AdminUser  @relation("RoleHolder", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy AdminUser? @relation("RoleGranter", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@id([userId, role])
+  @@index([role, userId])
+  @@map("admin_roles")
+}
+
+/// Server-side admin sessions. Only a SHA-256 of the session token is stored.
+model AdminSession {
+  id            String    @id @default(uuid()) @db.Char(36)
+  userId        String    @map("user_id") @db.Char(36)
+  tokenSha256   Bytes     @unique @map("token_sha256") @db.Binary(32)
+  mfaVerifiedAt DateTime? @map("mfa_verified_at") @db.DateTime(3)
+  ipHash        Bytes?    @map("ip_hash") @db.Binary(32)
+  userAgent     String?   @map("user_agent") @db.VarChar(255)
+  expiresAt     DateTime  @map("expires_at") @db.DateTime(3)
+  lastSeenAt    DateTime  @default(now()) @map("last_seen_at") @db.DateTime(3)
+  revokedAt     DateTime? @map("revoked_at") @db.DateTime(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("admin_sessions")
+}
+
+/// Append-only (enforced by trigger).
+model AdminActivityLog {
+  id            String   @id @default(uuid()) @db.Char(36)
+  adminUserId   String?  @map("admin_user_id") @db.Char(36)
+  action        String   @db.VarChar(120)
+  resourceType  String   @map("resource_type") @db.VarChar(80)
+  resourceId    String?  @map("resource_id") @db.Char(36)
+  previousState Json?    @map("previous_state")
+  newState      Json?    @map("new_state")
+  reason        String?  @db.Text
+  source        String   @db.VarChar(100)
+  metadata      Json
+  createdAt     DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId, createdAt])
+  @@index([resourceType, resourceId, createdAt])
+  @@map("admin_activity_logs")
+}
+
+model RateLimitCounter {
+  endpoint        String   @db.VarChar(80)
+  keySha256       Bytes    @map("key_sha256") @db.Binary(32)
+  windowStartedAt DateTime @map("window_started_at") @db.DateTime(3)
+  requestCount    Int      @map("request_count") @db.UnsignedInt
+  createdAt       DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@id([endpoint, keySha256])
+  @@index([windowStartedAt])
+  @@map("rate_limit_counters")
+}
+
+model SecurityEvent {
+  id           String           @id @default(uuid()) @db.Char(36)
+  eventType    String           @map("event_type") @db.VarChar(100)
+  severity     SecuritySeverity
+  ipHash       Bytes?           @map("ip_hash") @db.Binary(32)
+  actorId      String?          @map("actor_id") @db.Char(36)
+  resourceType String?          @map("resource_type") @db.VarChar(80)
+  resourceId   String?          @map("resource_id") @db.Char(36)
+  safeMetadata Json             @map("safe_metadata")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([eventType, createdAt])
+  @@map("security_events")
+}
+
+// ───────────────────────── Locations ─────────────────────────
+
+model Location {
+  id        String       @id @default(uuid()) @db.Char(36)
+  kind      LocationKind
+  parentId  String?      @map("parent_id") @db.Char(36)
+  name      String       @db.VarChar(100)
+  slug      String       @db.VarChar(110)
+  /// Full slug path, e.g. "greater-accra/accra/madina". Unique across the whole hierarchy.
+  path      String       @unique @db.VarChar(255)
+  createdAt DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.DateTime(3)
+
+  parent         Location?          @relation("LocationTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children       Location[]         @relation("LocationTree")
+  aliases        LocationAlias[]
+  neighbors      LocationNeighbor[] @relation("NeighborFrom")
+  neighborOf     LocationNeighbor[] @relation("NeighborTo")
+  listingsInArea Listing[]
+
+  @@unique([parentId, slug])
+  @@index([parentId, kind])
+  @@index([kind, name])
+  @@map("locations")
+}
+
+model LocationAlias {
+  id         String   @id @default(uuid()) @db.Char(36)
+  locationId String   @map("location_id") @db.Char(36)
+  alias      String   @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, alias])
+  @@index([alias])
+  @@map("location_aliases")
+}
+
+model LocationNeighbor {
+  locationId  String   @map("location_id") @db.Char(36)
+  neighborId  String   @map("neighbor_id") @db.Char(36)
+  estimatedKm Decimal  @map("estimated_km") @db.Decimal(7, 2)
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  location Location @relation("NeighborFrom", fields: [locationId], references: [id], onDelete: Cascade)
+  neighbor Location @relation("NeighborTo", fields: [neighborId], references: [id], onDelete: Cascade)
+
+  @@id([locationId, neighborId])
+  @@map("location_neighbors")
+}
+
+// ───────────────────────── Owners & settings ─────────────────────────
+
+/// Owners have no accounts; they manage listings through hashed, expiring manage links.
+model Owner {
+  id           String   @id @default(uuid()) @db.Char(36)
+  fullName     String   @map("full_name") @db.VarChar(120)
+  phoneE164    String   @map("phone_e164") @db.VarChar(16)
+  whatsappE164 String   @map("whatsapp_e164") @db.VarChar(16)
+  email        String   @db.VarChar(254)
+  relationship String   @db.VarChar(250)
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listings Listing[]
+
+  @@index([phoneE164])
+  @@index([email])
+  @@map("owners")
+}
+
+/// Single row (id = 1).
+model WebsiteSettings {
+  id                   Int      @id @default(1) @db.UnsignedTinyInt
+  /// Listing fees by listing type (see listing-pricing.js): rooms, student hostels, commercial spaces.
+  roomFeePesewas       Int      @default(3000) @map("room_fee_pesewas") @db.UnsignedInt
+  hostelFeePesewas     Int      @default(3500) @map("hostel_fee_pesewas") @db.UnsignedInt
+  spaceFeePesewas      Int      @default(4000) @map("space_fee_pesewas") @db.UnsignedInt
+  currency             String   @default("GHS") @db.Char(3)
+  confirmationDays     Int      @default(30) @map("confirmation_days") @db.UnsignedSmallInt
+  privacyPolicyVersion String   @map("privacy_policy_version") @db.VarChar(40)
+  termsVersion         String   @map("terms_version") @db.VarChar(40)
+  updatedById          String?  @map("updated_by") @db.Char(36)
+  createdAt            DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  updatedBy AdminUser?               @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  history   WebsiteSettingsHistory[]
+
+  @@map("website_settings")
+}
+
+model WebsiteSettingsHistory {
+  id               String   @id @default(uuid()) @db.Char(36)
+  settingId        Int      @map("setting_id") @db.UnsignedTinyInt
+  roomFeePesewas   Int      @map("room_fee_pesewas") @db.UnsignedInt
+  hostelFeePesewas Int      @map("hostel_fee_pesewas") @db.UnsignedInt
+  spaceFeePesewas  Int      @map("space_fee_pesewas") @db.UnsignedInt
+  currency         String   @db.Char(3)
+  confirmationDays Int      @map("confirmation_days") @db.UnsignedSmallInt
+  changedById      String?  @map("changed_by") @db.Char(36)
+  reason           String   @db.VarChar(1000)
+  createdAt        DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  setting   WebsiteSettings @relation(fields: [settingId], references: [id], onDelete: Restrict)
+  changedBy AdminUser?      @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@map("website_settings_history")
+}
+
+// ───────────────────────── Listings ─────────────────────────
+
+model Listing {
+  id                         String             @id @default(uuid()) @db.Char(36)
+  /// Client-generated idempotency key for the submission form.
+  submissionId               String             @unique @map("submission_id") @db.Char(36)
+  status                     ListingStatus      @default(DRAFT)
+  propertyCategory           PropertyCategory   @default(ROOM) @map("property_category")
+  ownerId                    String             @map("owner_id") @db.Char(36)
+  areaId                     String             @map("area_id") @db.Char(36)
+  title                      String             @db.VarChar(100)
+  description                String             @db.Text
+  roomType                   RoomType           @map("room_type")
+  condition                  ListingCondition
+  furnished                  Furnishing
+  unitsTotal                 Int                @map("units_total") @db.UnsignedSmallInt
+  /// Required for rooms; NULL for commercial listings.
+  bedrooms                   Int?               @db.UnsignedSmallInt
+  rentAmountPesewas          Int                @map("rent_amount_pesewas") @db.UnsignedInt
+  rentPeriod                 RentPeriod         @map("rent_period")
+  rentPeriodOther            String?            @map("rent_period_other") @db.VarChar(80)
+  advancePayments            Int                @map("advance_payments") @db.UnsignedSmallInt
+  depositPesewas             Int                @default(0) @map("deposit_pesewas") @db.UnsignedInt
+  agencyFeePesewas           Int                @default(0) @map("agency_fee_pesewas") @db.UnsignedInt
+  otherChargesPesewas        Int                @default(0) @map("other_charges_pesewas") @db.UnsignedInt
+  /// Facility name → "Included" | "Private" | "Shared" | "Not available" etc.
+  facilities                 Json
+  rules                      Json
+  /// Public landmark shown to renters (the exact address stays in listing_private).
+  landmark                   String             @default("") @db.VarChar(200)
+  // Commercial-only fields: all set for COMMERCIAL, all NULL for ROOM (enforced by CHECK).
+  /// Upfront advance in pesewas (commercial listings quote an amount, rooms a number of months).
+  advanceAmountPesewas       Int?               @map("advance_amount_pesewas") @db.UnsignedInt
+  commercialTypeOther        String?            @map("commercial_type_other") @db.VarChar(80)
+  sizeSqm                    Decimal?           @map("size_sqm") @db.Decimal(10, 2)
+  roadVisibility             Boolean?           @map("road_visibility")
+  parking                    Boolean?
+  electricity                Boolean?
+  water                      Boolean?
+  estimatedMoveInCostPesewas Int?               @map("estimated_move_in_cost_pesewas") @db.UnsignedInt
+  availabilityDate           DateTime           @map("availability_date") @db.Date
+  unitsAvailable             Int                @map("units_available") @db.UnsignedSmallInt
+  approvedById               String?            @map("approved_by") @db.Char(36)
+  approvedAt                 DateTime?          @map("approved_at") @db.DateTime(3)
+  lastConfirmedAt            DateTime?          @map("last_confirmed_at") @db.DateTime(3)
+  /// Explicit availability label set by an admin; NULL means none was set (never inferred).
+  availabilityLabel          AvailabilityLabel? @map("availability_label")
+  /// Confirmed contact relationship set by an admin; NULL means not confirmed.
+  contactType                ContactType?       @map("contact_type")
+  createdAt                  DateTime           @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                  DateTime           @updatedAt @map("updated_at") @db.DateTime(3)
+
+  owner         Owner                  @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  area          Location               @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  approvedBy    AdminUser?             @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+  private       ListingPrivate?
+  verification  ListingVerification?
+  images        ListingImage[]
+  revisions     ListingRevision[]
+  statusHistory ListingStatusHistory[]
+  availability  ListingAvailability?
+  payments      Payment[]
+  reports       Report[]
+  inquiries     Inquiry[]
+  consents      Consent[]
+  manageTokens  ManageLinkToken[]
+  notifications Notification[]
+  manageUsage   ManageLinkUsage[]
+
+  @@index([status, createdAt])
+  @@index([propertyCategory, status, createdAt])
+  @@index([areaId, status])
+  @@index([ownerId])
+  @@map("listings")
+}
+
+/// Never exposed publicly.
+model ListingPrivate {
+  listingId       String   @id @map("listing_id") @db.Char(36)
+  exactAddress    String   @map("exact_address") @db.VarChar(1000)
+  directions      String?  @db.VarChar(2000)
+  exactLatitude   Decimal? @map("exact_latitude") @db.Decimal(9, 6)
+  exactLongitude  Decimal? @map("exact_longitude") @db.Decimal(9, 6)
+  mapUrl          String?  @map("map_url") @db.VarChar(2048)
+  moderationNotes String   @map("moderation_notes") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("listing_private")
+}
+
+model ListingVerification {
+  listingId                String    @id @map("listing_id") @db.Char(36)
+  phoneVerifiedAt          DateTime? @map("phone_verified_at") @db.DateTime(3)
+  phoneVerifiedById        String?   @map("phone_verified_by") @db.Char(36)
+  identityVerifiedAt       DateTime? @map("identity_verified_at") @db.DateTime(3)
+  identityVerifiedById     String?   @map("identity_verified_by") @db.Char(36)
+  propertyVerifiedAt       DateTime? @map("property_verified_at") @db.DateTime(3)
+  propertyVerifiedById     String?   @map("property_verified_by") @db.Char(36)
+  priceVerifiedAt          DateTime? @map("price_verified_at") @db.DateTime(3)
+  priceVerifiedById        String?   @map("price_verified_by") @db.Char(36)
+  availabilityVerifiedAt   DateTime? @map("availability_verified_at") @db.DateTime(3)
+  availabilityVerifiedById String?   @map("availability_verified_by") @db.Char(36)
+  /// Date a NestGH team member visited the property (a calendar date, not a timestamp).
+  visitedOn                DateTime? @map("visited_on") @db.Date
+  visitedById              String?   @map("visited_by") @db.Char(36)
+  createdAt                DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing                Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  phoneVerifiedBy        AdminUser? @relation("PhoneVerifier", fields: [phoneVerifiedById], references: [id], onDelete: SetNull)
+  identityVerifiedBy     AdminUser? @relation("IdentityVerifier", fields: [identityVerifiedById], references: [id], onDelete: SetNull)
+  propertyVerifiedBy     AdminUser? @relation("PropertyVerifier", fields: [propertyVerifiedById], references: [id], onDelete: SetNull)
+  priceVerifiedBy        AdminUser? @relation("PriceVerifier", fields: [priceVerifiedById], references: [id], onDelete: SetNull)
+  availabilityVerifiedBy AdminUser? @relation("AvailabilityVerifier", fields: [availabilityVerifiedById], references: [id], onDelete: SetNull)
+  visitedBy              AdminUser? @relation("SiteVisitor", fields: [visitedById], references: [id], onDelete: SetNull)
+
+  @@map("listing_verifications")
+}
+
+model ListingImage {
+  id                String        @id @default(uuid()) @db.Char(36)
+  listingId         String        @map("listing_id") @db.Char(36)
+  category          ImageCategory
+  /// Relative key inside private image storage; never a path with "..", a leading slash, or backslashes.
+  storagePath       String        @unique @map("storage_path") @db.VarChar(255)
+  displayOrder      Int           @map("display_order") @db.UnsignedTinyInt
+  approvedForPublic Boolean       @default(false) @map("approved_for_public")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, category, displayOrder])
+  @@index([listingId, displayOrder])
+  @@map("listing_images")
+}
+
+model ListingRevision {
+  id                 String         @id @default(uuid()) @db.Char(36)
+  listingId          String         @map("listing_id") @db.Char(36)
+  proposedPublicData Json           @map("proposed_public_data")
+  reason             String         @db.VarChar(1000)
+  status             RevisionStatus @default(PENDING)
+  reviewedById       String?        @map("reviewed_by") @db.Char(36)
+  reviewedAt         DateTime?      @map("reviewed_at") @db.DateTime(3)
+  createdAt          DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing    Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reviewedBy AdminUser? @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([listingId, status, createdAt])
+  @@map("listing_revisions")
+}
+
+/// Append-only (enforced by trigger).
+model ListingStatusHistory {
+  id             String         @id @default(uuid()) @db.Char(36)
+  listingId      String         @map("listing_id") @db.Char(36)
+  previousStatus ListingStatus? @map("previous_status")
+  newStatus      ListingStatus  @map("new_status")
+  actorType      ActorType      @map("actor_type")
+  actorId        String?        @map("actor_id") @db.Char(36)
+  reason         String?        @db.Text
+  source         String         @db.VarChar(100)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+
+  @@index([listingId, createdAt])
+  @@map("listing_status_history")
+}
+
+model ListingAvailability {
+  listingId       String     @id @map("listing_id") @db.Char(36)
+  lastConfirmedAt DateTime?  @map("last_confirmed_at") @db.DateTime(3)
+  confirmedBy     ActorType? @map("confirmed_by")
+  createdAt       DateTime   @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("listing_availability")
+}
+
+// ───────────────────────── Payments ─────────────────────────
+
+model Payment {
+  id                    String         @id @default(uuid()) @db.Char(36)
+  listingId             String         @map("listing_id") @db.Char(36)
+  /// Equals listing_id only while status = PAID. Its UNIQUE index allows one PAID payment per listing
+  /// (MySQL has no partial indexes); a CHECK constraint keeps it consistent with status.
+  paidListingId         String?        @unique @map("paid_listing_id") @db.Char(36)
+  reference             String         @unique @db.VarChar(80)
+  /// Which fee was charged (the amount is copied from website_settings at checkout).
+  listingType           ListingFeeType @map("listing_type")
+  amountPesewas         Int            @map("amount_pesewas") @db.UnsignedInt
+  currency              String         @db.Char(3)
+  status                PaymentStatus  @default(PENDING)
+  paystackTransactionId String?        @unique @map("paystack_transaction_id") @db.VarChar(100)
+  refundAmountPesewas   Int            @default(0) @map("refund_amount_pesewas") @db.UnsignedInt
+  paidAt                DateTime?      @map("paid_at") @db.DateTime(3)
+  createdAt             DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt             DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+
+  @@index([listingId, createdAt])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+/// Raw Paystack webhook/verification events. Append-only (enforced by trigger).
+model PaymentEvent {
+  id               String   @id @default(uuid()) @db.Char(36)
+  paymentReference String   @map("payment_reference") @db.VarChar(80)
+  eventType        String   @map("event_type") @db.VarChar(100)
+  bodySha256       Bytes    @map("body_sha256") @db.Binary(32)
+  rawPayload       Json     @map("raw_payload")
+  createdAt        DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@unique([paymentReference, eventType, bodySha256])
+  @@index([paymentReference, createdAt])
+  @@map("payment_events")
+}
+
+// ───────────────────────── Public interaction ─────────────────────────
+
+model Report {
+  id              String       @id @default(uuid()) @db.Char(36)
+  listingId       String       @map("listing_id") @db.Char(36)
+  reason          String       @db.VarChar(1000)
+  reporterContact String?      @map("reporter_contact") @db.VarChar(254)
+  status          ReportStatus @default(OPEN)
+  reviewedById    String?      @map("reviewed_by") @db.Char(36)
+  reviewedAt      DateTime?    @map("reviewed_at") @db.DateTime(3)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing    Listing    @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  reviewedBy AdminUser? @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([listingId, createdAt])
+  @@map("reports")
+}
+
+model Inquiry {
+  id            String         @id @default(uuid()) @db.Char(36)
+  listingId     String         @map("listing_id") @db.Char(36)
+  channel       InquiryChannel
+  visitorIpHash Bytes          @map("visitor_ip_hash") @db.Binary(32)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt])
+  @@map("inquiries")
+}
+
+model Consent {
+  id                   String   @id @default(uuid()) @db.Char(36)
+  listingId            String   @map("listing_id") @db.Char(36)
+  privacyPolicyVersion String   @map("privacy_policy_version") @db.VarChar(40)
+  termsVersion         String   @map("terms_version") @db.VarChar(40)
+  checkboxValues       Json     @map("checkbox_values")
+  consentedAt          DateTime @map("consented_at") @db.DateTime(3)
+  createdAt            DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("consents")
+}
+
+// ───────────────────────── Owner manage links ─────────────────────────
+
+/// Only the SHA-256 of a manage-link token is stored; the token itself is sent to the owner once.
+model ManageLinkToken {
+  id          String            @id @default(uuid()) @db.Char(36)
+  listingId   String            @map("listing_id") @db.Char(36)
+  tokenSha256 Bytes             @unique @map("token_sha256") @db.Binary(32)
+  purpose     ManageLinkPurpose
+  expiresAt   DateTime          @map("expires_at") @db.DateTime(3)
+  revokedAt   DateTime?         @map("revoked_at") @db.DateTime(3)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  usage   ManageLinkUsage[]
+
+  @@index([listingId, expiresAt])
+  @@map("manage_link_tokens")
+}
+
+model ManageLinkUsage {
+  id        String   @id @default(uuid()) @db.Char(36)
+  tokenId   String?  @map("token_id") @db.Char(36)
+  listingId String?  @map("listing_id") @db.Char(36)
+  action    String   @db.VarChar(80)
+  succeeded Boolean
+  ipHash    Bytes?   @map("ip_hash") @db.Binary(32)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  token   ManageLinkToken? @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+  listing Listing?         @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  @@index([tokenId, createdAt])
+  @@map("manage_link_usage")
+}
+
+// ───────────────────────── Notifications ─────────────────────────
+
+/// Outbox of messages to owners. Until a WhatsApp/email provider is configured, admins send them
+/// from the dashboard (one-click WhatsApp). Message text that contains a manage link is redacted
+/// once the message is sent or dismissed, so live links do not linger in the database.
+model Notification {
+  id        String              @id @default(uuid()) @db.Char(36)
+  listingId String?             @map("listing_id") @db.Char(36)
+  channel   NotificationChannel
+  recipient String              @db.VarChar(254)
+  template  String              @db.VarChar(60)
+  message   String              @db.Text
+  status    NotificationStatus  @default(PENDING)
+  sentById  String?             @map("sent_by") @db.Char(36)
+  sentAt    DateTime?           @map("sent_at") @db.DateTime(3)
+  createdAt DateTime            @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
+
+  listing Listing?   @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  sentBy  AdminUser? @relation(fields: [sentById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([listingId, createdAt])
+  @@map("notifications")
+}

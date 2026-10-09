@@ -1,0 +1,53 @@
+name: CI
+
+# Runs on every push and pull request: typecheck, lint, unit/security tests, database tests and the
+# end-to-end flow against a real MariaDB 10.4 (same version as XAMPP), then a production build.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mariadb:
+        image: mariadb:10.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-root-password"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      # Test-only values for the throwaway CI database; never real secrets.
+      DATABASE_URL: mysql://root:ci-root-password@127.0.0.1:3306/nestghana
+      DATABASE_APP_URL: mysql://root:ci-root-password@127.0.0.1:3306/nestghana
+      IP_HASH_SECRET: ci-only-ip-hash-secret
+      ADMIN_MFA_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Security tests
+        run: npm run test:security
+      - name: Listing pricing tests
+        run: node --test tests/listing-pricing.test.cjs
+      - name: Database tests
+        run: npm run test:db
+      - name: End-to-end flow
+        run: npm run test:e2e
+      - name: Production build
+        run: npm run build

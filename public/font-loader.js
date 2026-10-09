@@ -1,8 +1,1 @@
-const fontStylesheetPreload = document.querySelector("[data-font-stylesheet]");
-
-if (fontStylesheetPreload) {
-  const fontStylesheet = document.createElement("link");
-  fontStylesheet.rel = "stylesheet";
-  fontStylesheet.href = fontStylesheetPreload.href;
-  document.head.append(fontStylesheet);
-}
+const fontStylesheetPreload=document.querySelector("[data-font-stylesheet]");if(fontStylesheetPreload){const e=document.createElement("link");e.rel="stylesheet",e.href=fontStylesheetPreload.href,document.head.append(e)}

@@ -1,61 +1,34 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const secure = process.env.NODE_ENV === "production";
-  const supabaseOrigin = url ? new URL(url).origin : "";
-  const browserSupabaseOrigin = "https://plbtnltcocsuekifddat.supabase.co";
+  // Cloudflare Turnstile (bot protection) loads a script and an iframe when it is configured.
+  const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? " https://challenges.cloudflare.com" : "";
+  // The Buy Data page (/buy-data) is a separate app with its own Supabase backend and inline styles.
+  const buyData = ["/buy-data", "/buy-data/", "/buy-data/index.html"].includes(request.nextUrl.pathname);
+  const buyDataBackend = "https://plbtnltcocsuekifddat.supabase.co";
+  const styleSource = buyData ? "'unsafe-inline'" : `'nonce-${nonce}'`;
   const policy = [
     "default-src 'self'",
     "base-uri 'self'",
     "form-action 'self' https://checkout.paystack.com",
     "frame-ancestors 'none'",
     "object-src 'none'",
-    "img-src 'self' data: blob: https://*.supabase.co",
-    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
-    `script-src 'self' 'nonce-${nonce}'`,
-    `connect-src 'self' ${browserSupabaseOrigin}${supabaseOrigin && supabaseOrigin !== browserSupabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+    "img-src 'self' data: blob:",
+    `style-src 'self' ${styleSource} https://fonts.googleapis.com`,
+    // React's development build needs eval() for its error overlay; production never allows it.
+    `script-src 'self' 'nonce-${nonce}'${turnstile}${secure ? "" : " 'unsafe-eval'"}`,
+    `frame-src 'self'${turnstile}`,
+    `connect-src 'self'${buyData ? ` ${buyDataBackend}` : ""}`,
     "font-src 'self' https://fonts.gstatic.com",
-    "upgrade-insecure-requests",
+    // Only upgrade in production: the dev server is plain HTTP, so upgrading breaks every asset when opened via a LAN IP.
+    ...(secure ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", policy);
-  let response = NextResponse.next({ request: { headers: requestHeaders } });
-
-  if (url && key) {
-    const supabase = createServerClient(url, key, {
-      cookieOptions: {
-        name: "nestgh-admin-auth",
-        path: "/",
-        sameSite: "strict",
-        secure,
-        httpOnly: true,
-        maxAge: 30 * 60,
-      },
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll(cookiesToSet) {
-          for (const { name, value, options } of cookiesToSet) {
-            request.cookies.set(name, value);
-            response = NextResponse.next({ request: { headers: requestHeaders } });
-            response.cookies.set(name, value, {
-              ...options,
-              path: "/",
-              sameSite: "strict",
-              secure,
-              httpOnly: true,
-              maxAge: 30 * 60,
-            });
-          }
-        },
-      },
-    });
-    await supabase.auth.getUser();
-  }
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", policy);
   return response;
 }

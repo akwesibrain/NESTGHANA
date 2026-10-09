@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NestGH launch video</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=block" rel="stylesheet">
+<style>
+:root { --bg: #f7f4ee; --ink: #171614; --muted: #6b655c; --gold: #98721e; --gold-hi: #c99a2e; --line: #e4ddcf; --wa: #25d366; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); overflow: hidden; }
+body { font-family: "Bricolage Grotesque", system-ui, sans-serif; color: var(--ink); }
+#root { position: relative; overflow: hidden; background: radial-gradient(120% 90% at 50% 0%, #fbf9f4 0%, var(--bg) 55%, #efe9dd 100%); }
+.L #root { width: 1920px; height: 1080px; }
+.V #root { width: 1080px; height: 1920px; }
+
+/* Header */
+#head { position: absolute; left: 0; right: 0; }
+.L #head { top: 52px; padding: 0 200px; height: 130px; }
+.V #head { top: 54px; padding: 0 60px; height: 250px; text-align: center; }
+#tracker { display: flex; gap: 28px; font-size: 19px; font-weight: 700; letter-spacing: .16em; }
+.L #tracker { position: absolute; right: 200px; top: 6px; }
+.V #tracker { justify-content: center; gap: 22px; font-size: 21px; }
+#tracker span { color: var(--ink); opacity: .28; position: relative; padding-bottom: 9px; }
+#tracker span i { position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 2px; background: var(--gold); width: 0; }
+#count { font-size: 19px; font-weight: 700; letter-spacing: .16em; color: var(--gold); }
+.L #count { position: absolute; left: 200px; top: 6px; }
+.V #count { display: none; }
+#titleRow { position: absolute; display: flex; align-items: baseline; gap: 30px; }
+.L #titleRow { left: 200px; top: 38px; }
+.V #titleRow { left: 0; right: 0; top: 54px; flex-direction: column; align-items: center; gap: 10px; }
+.word { font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.L .word { font-size: 76px; }
+.V .word { font-size: 96px; }
+#wordBox { position: relative; overflow: hidden; }
+.L #wordBox { height: 82px; min-width: 10px; }
+.V #wordBox { height: 104px; width: 100%; }
+#wordBox .word { position: absolute; left: 0; top: 0; white-space: nowrap; }
+.V #wordBox .word { left: 0; right: 0; text-align: center; }
+#capBox { position: relative; }
+.L #capBox { height: 40px; width: 1000px; }
+.V #capBox { height: 46px; width: 100%; }
+.cap { position: absolute; left: 0; top: 0; white-space: nowrap; font-weight: 500; color: var(--muted); }
+.L .cap { font-size: 31px; }
+.V .cap { font-size: 34px; left: 0; right: 0; text-align: center; }
+
+/* Stage (browser window / phone) */
+#stage { position: absolute; overflow: hidden; background: var(--bg); }
+.L #stage { left: 200px; top: 196px; width: 1520px; height: 855px; border-radius: 22px; box-shadow: 0 30px 70px -30px rgba(60, 45, 15, .35), 0 0 0 1px rgba(23, 22, 20, .07); }
+.L #over { left: 200px; top: 196px; width: 1520px; height: 855px; }
+.V #over { left: 180px; top: 318px; width: 720px; height: 1558px; }
+#over { position: absolute; }
+.V #stage { left: 180px; top: 318px; width: 720px; height: 1558px; border-radius: 52px; box-shadow: 0 0 0 12px #171614, 0 40px 80px -30px rgba(60, 45, 15, .45); }
+#cam { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.shot { position: absolute; left: 0; top: 0; }
+.cover { position: absolute; background: #f7f4ee; }
+.reveal { position: absolute; background-repeat: no-repeat; border-radius: 14px; }
+.ring { position: absolute; border: 3px solid var(--gold); border-radius: 12px; box-shadow: 0 0 0 6px rgba(152, 114, 30, .16); }
+#cursor { position: absolute; left: 0; top: 0; width: 40px; height: 40px; pointer-events: none; }
+#tap { position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 3px solid var(--gold); }
+#touch { position: absolute; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: rgba(23, 22, 20, .28); border: 3px solid rgba(255, 255, 255, .9); }
+
+/* WhatsApp message preview */
+#msg { position: absolute; background: #fff; border-radius: 22px; box-shadow: 0 30px 60px -25px rgba(30, 25, 10, .45), 0 0 0 1px rgba(23, 22, 20, .06); padding: 26px 28px 28px; }
+.L #msg { width: 600px; }
+.V #msg { width: 900px; padding: 30px 34px 34px; }
+#msg .top { display: flex; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid #eee8dc; margin-bottom: 22px; }
+#msg .badge { width: 46px; height: 46px; border-radius: 50%; background: var(--wa); display: grid; place-items: center; }
+#msg .badge svg { width: 26px; height: 26px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linejoin: round; }
+#msg .t1 { font-weight: 700; font-size: 24px; }
+#msg .t2 { font-size: 18px; color: var(--muted); font-weight: 500; }
+.V #msg .t1 { font-size: 30px; }
+.V #msg .t2 { font-size: 23px; }
+#msg .bubble { margin-left: auto; max-width: 92%; background: #dcf8c6; border-radius: 18px 18px 4px 18px; padding: 18px 22px; font-size: 26px; line-height: 1.38; font-weight: 500; min-height: 74px; }
+.V #msg .bubble { font-size: 33px; }
+#msg .caret { display: inline-block; width: 3px; height: 1em; background: var(--ink); vertical-align: -3px; margin-left: 2px; }
+#msg .row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 18px; }
+#msg .send { width: 56px; height: 56px; border-radius: 50%; background: var(--wa); display: grid; place-items: center; }
+#msg .send svg { width: 26px; height: 26px; fill: #fff; }
+#msg .hint { font-size: 18px; color: var(--muted); font-weight: 500; }
+.V #msg .hint { font-size: 23px; }
+#callTag { position: absolute; background: var(--ink); color: #fff; font-weight: 700; border-radius: 999px; padding: 10px 18px; font-size: 22px; white-space: nowrap; }
+
+/* Vertical compare carousel */
+.L #carousel { display: none; }
+#scrim { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(247,244,238,0) 45%, rgba(247,244,238,.88) 56%); }
+#carousel { position: absolute; left: 0; top: 330px; width: 1080px; height: 1530px; }
+.ccard { position: absolute; top: 0; left: 0; background-repeat: no-repeat; border-radius: 26px; box-shadow: 0 30px 60px -28px rgba(60, 45, 15, .5); }
+.cring { position: absolute; border: 4px solid var(--gold); border-radius: 14px; box-shadow: 0 0 0 8px rgba(152, 114, 30, .16); }
+#dots { position: absolute; left: 0; right: 0; display: flex; justify-content: center; gap: 14px; }
+#dots b { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); }
+
+/* Brand moment */
+#home { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(70% 70% at 50% 45%, #fffdf8 0%, #f6efe0 100%); }
+#home .in { text-align: center; }
+#home svg { display: block; margin: 0 auto; }
+.L #home svg { width: 300px; height: 260px; }
+.V #home svg { width: 340px; height: 295px; }
+#home h2 { font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+.L #home h2 { font-size: 88px; margin-top: 26px; }
+.V #home h2 { font-size: 84px; margin-top: 30px; }
+#home p { color: var(--muted); font-weight: 500; }
+.L #home p { font-size: 32px; margin-top: 14px; }
+.V #home p { font-size: 32px; margin-top: 14px; }
+
+/* End card */
+#end { position: absolute; inset: 0; background: #fefefe; display: grid; place-items: center; }
+#end .in { text-align: center; }
+#end img { display: block; margin: 0 auto; }
+.L #end img { width: 760px; height: 760px; margin-top: -60px; }
+.V #end img { width: 980px; height: 980px; }
+#soon { display: inline-block; font-weight: 700; letter-spacing: .32em; text-transform: uppercase; color: var(--gold); border: 2px solid rgba(152, 114, 30, .55); border-radius: 999px; }
+.L #soon { font-size: 34px; padding: 18px 40px 18px 50px; margin-top: -150px; }
+.V #soon { font-size: 44px; padding: 22px 48px 22px 62px; margin-top: -170px; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="head">
+    <div id="count"></div>
+    <div id="tracker"></div>
+    <div id="titleRow"><div id="wordBox"></div><div id="capBox"></div></div>
+  </div>
+  <div id="stage">
+    <div id="cam"></div>
+    <div id="scrim"></div>
+    <div id="home"><div class="in">
+      <svg viewBox="0 0 300 260" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d8ab3a"/><stop offset="1" stop-color="#98721e"/></linearGradient></defs>
+        <path id="roof" d="M30 128 L150 30 L270 128" stroke="url(#g)" stroke-width="20"/>
+        <path id="walls" d="M62 112 V232 H238 V112" stroke="url(#g)" stroke-width="16"/>
+        <g id="key"><circle cx="128" cy="176" r="22" stroke="url(#g)" stroke-width="12"/><path d="M150 176 H204 M190 176 V196 M176 176 V192" stroke="url(#g)" stroke-width="12"/></g>
+      </svg>
+      <h2 id="homeH">Welcome home.</h2>
+      <p id="homeP">Find it. Contact the owner. Move in.</p>
+    </div></div>
+  </div>
+  <div id="over">
+    <div id="msg">
+      <div class="top">
+        <div class="badge"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></div>
+        <div><div class="t1">WhatsApp</div><div class="t2">Opens a chat with the listing owner</div></div>
+      </div>
+      <div class="bubble"><span id="typed"></span><span class="caret" id="caret"></span></div>
+      <div class="row"><span class="hint">Message is pre-filled</span><div class="send" id="send"><svg viewBox="0 0 24 24"><path d="M3 20.5 21 12 3 3.5l.02 6.6L15 12 3.02 13.9z"/></svg></div></div>
+    </div>
+    <div id="callTag">or call the owner</div>
+    <div id="cursor"><svg viewBox="0 0 40 40" width="40" height="40"><path d="M8 4 L8 31 L15 24.5 L20 35 L25 32.6 L20 22.5 L29.5 22.5 Z" fill="#171614" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg></div>
+    <div id="tap"></div>
+    <div id="touch"></div>
+  </div>
+  <div id="carousel"><div id="dots"><b></b><b></b><b></b></div></div>
+  <div id="end"><div class="in"><img src="logo.png" alt="NestGH, Find Your Next Space"><div id="soon">Coming Soon</div></div></div>
+</div>
+<script src="data.js"></script>
+<script>
+const P = new URLSearchParams(location.search);
+const FMT = P.get("format") === "vertical" ? "V" : "L";
+document.documentElement.className = FMT;
+const D = SHOTS[FMT === "L" ? "desktop" : "mobile"];
+const DIR = FMT === "L" ? "../shots-desktop/" : "../shots-mobile/";
+const ST = FMT === "L" ? { w: 1520, h: 855, vw: 1440, vh: 810 } : { w: 720, h: 1558, vw: 390, vh: 844 };
+const S = ST.w / ST.vw;
+
+// Scene starts sit on the music's beat grid (vol-10, ~110 BPM).
+const SC = [0, 8.22, 14.20, 20.19, 26.74, 31.65];
+const END = 36.2;
+const WORDS = ["SEE", "SEARCH", "COMPARE", "CONTACT", "MOVE"];
+const CAPS = [
+  [[0, "Rooms and hostels across Ghana."], [5.4, "Shops, offices and commercial spaces too."]],
+  [[SC[1], "Filter by region, town and property type."]],
+  [[SC[2], "Price, location and facilities, side by side."]],
+  [[SC[3], "Message the owner directly on WhatsApp, or call."]],
+  [[SC[4], "Taken rooms are clearly marked."]],
+];
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, e) => a + (b - a) * e;
+const io = e => e < .5 ? 4 * e * e * e : 1 - Math.pow(-2 * e + 2, 3) / 2;
+const out = e => 1 - Math.pow(1 - e, 3);
+const back = e => { const c = 1.5; return 1 + (c + 1) * Math.pow(e - 1, 3) + c * Math.pow(e - 1, 2); };
+const $ = id => document.getElementById(id);
+const el = (tag, cls, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; parent.append(e); return e; };
+const center = r => [r.x + r.w / 2, r.y + r.h / 2];
+
+// ---------- timeline data ----------
+const s1 = SC[1];
+const SEARCH_T = { region: s1 + 1.3, town: s1 + 2.3, go: s1 + 3.4, results: s1 + 3.7 };
+const SHOT_LIST = FMT === "L" ? [
+  ["01-hero", 0, 2.6], ["02-grid", 2.4, 5.6], ["12-shops-cards", 5.4, 8.5],
+  ["03-search-empty", 8.22, SEARCH_T.region + .3], ["04-search-region", SEARCH_T.region + .1, SEARCH_T.town + .3],
+  ["05-search-town", SEARCH_T.town + .1, SEARCH_T.results + .4], ["07-results", SEARCH_T.results, SC[4] + .4], ["10b-taken-card", SC[4], END],
+] : [
+  ["01-hero", 0, 2.6], ["02-grid", 2.4, 4.3], ["02b-grid-more", 4.0, 5.6], ["12-shops-cards", 5.4, 8.5],
+  ["03-search-empty", 8.22, SEARCH_T.region + .3], ["04-search-region", SEARCH_T.region + .1, SEARCH_T.town + .3],
+  ["05-search-town", SEARCH_T.town + .1, SEARCH_T.results + .4], ["07-results", SEARCH_T.results, SC[4] + .4], ["10b-taken-card", SC[4], END],
+];
+const FADE = { "01-hero": .01, "04-search-region": .12, "05-search-town": .12 };
+const REVEALS = FMT === "L" ? { "02-grid": [0, 1, 2, 3, 4, 5, 6, 7], "12-shops-cards": [0, 1, 2, 3] }
+  : { "02-grid": [0, 1], "02b-grid-more": [3, 4, 5], "12-shops-cards": [0, 1] };
+const STAGGER = FMT === "L" ? .13 : .22;
+
+const CAM = FMT === "L" ? [
+  [0, 1, 720, 405], [2.4, 1.05, 720, 405], [2.4, 1, 720, 405], [5.4, 1.05, 720, 420], [5.4, 1, 720, 405], [8.22, 1.05, 720, 420],
+  [8.22, 1, 720, 405], [9.0, 1.13, 720, 300], [SEARCH_T.results - .1, 1.13, 720, 300], [SEARCH_T.results + .5, 1, 720, 405], [SC[2], 1.04, 640, 420],
+  [SC[2] + 1.0, 1.42, 567, 477, 1], [SC[3], 1.46, 567, 477, 1], [SC[3] + .8, 1.56, 262, 470], [SC[4], 1.6, 262, 470],
+  [SC[4], 1.32, 872, 457], [SC[4] + 2.2, 1.46, 872, 457], [END, 1.5, 872, 457],
+] : [
+  [0, 1, 195, 422], [2.4, 1.04, 195, 422], [2.4, 1, 195, 422], [4.0, 1.03, 195, 422], [4.0, 1, 195, 422], [5.4, 1.03, 195, 422],
+  [5.4, 1, 195, 422], [8.22, 1.03, 195, 422], [8.22, 1, 195, 422], [SEARCH_T.results, 1, 195, 422], [SC[2], 1.03, 195, 422],
+  [SC[3], 1, 195, 422], [SC[4], 1.04, 195, 422], [SC[4], 1, 195, 422], [END, 1.04, 195, 422],
+];
+function camAt(t) {
+  let i = 0;
+  while (i < CAM.length - 1 && CAM[i + 1][0] <= t) i++;
+  const a = CAM[i], b = CAM[Math.min(i + 1, CAM.length - 1)];
+  const e = b[0] > a[0] ? io(seg(t, a[0], b[0])) : 0;
+  const z = lerp(a[1], b[1], e), fx = lerp(a[2], b[2], e), fy = lerp(a[3], b[3], e);
+  const k = S * z, free = lerp(a[4] || 0, b[4] || 0, e);
+  const tx = lerp(clamp(ST.w / 2 - fx * k, ST.w - ST.vw * k, 0), ST.w / 2 - fx * k, free);
+  const ty = clamp(ST.h / 2 - fy * k, ST.h - ST.vh * k, 0);
+  return { k, tx, ty };
+}
+const toStage = (c, x, y) => [c.tx + x * c.k, c.ty + y * c.k];
+
+// Cursor path (page coordinates of the shot on screen).
+const R = name => D[name];
+const PT = {
+  region: center(R("03-search-empty").region[0]),
+  town: center(R("04-search-region").town[0]),
+  go: center(R("05-search-town").go[0]),
+  wa: center(R("07-results").wa[0]),
+  call: center(R("07-results").call[0]),
+};
+const CUR = FMT === "L" ? [
+  [s1 + .4, 760, 560], [s1 + 1.2, ...PT.region], [s1 + 1.6, ...PT.region], [s1 + 2.2, ...PT.town], [s1 + 2.6, ...PT.town], [s1 + 3.3, ...PT.go], [SEARCH_T.results + .1, ...PT.go],
+  [SC[3] + .5, 330, 520], [SC[3] + 1.4, ...PT.wa], [SC[3] + 1.9, ...PT.wa],
+] : [
+  [s1 + .4, 260, 700], [s1 + 1.2, ...PT.region], [s1 + 1.6, ...PT.region], [s1 + 2.2, ...PT.town], [s1 + 2.6, ...PT.town], [s1 + 3.3, ...PT.go], [SEARCH_T.results + .1, ...PT.go],
+  [SC[3] + .5, 200, 470], [SC[3] + 1.4, ...PT.wa], [SC[3] + 1.9, ...PT.wa],
+];
+const CLICKS = [SEARCH_T.region, SEARCH_T.town, SEARCH_T.go, SC[3] + 1.5];
+function cursorAt(t) {
+  const visible = (t >= CUR[0][0] && t <= CUR[6][0]) || (t >= CUR[7][0] && t <= CUR[9][0] + .2);
+  if (!visible) return null;
+  const list = t <= CUR[6][0] + .01 ? CUR.slice(0, 7) : CUR.slice(7);
+  let i = 0;
+  while (i < list.length - 1 && list[i + 1][0] <= t) i++;
+  const a = list[i], b = list[Math.min(i + 1, list.length - 1)];
+  const e = b[0] > a[0] ? io(seg(t, a[0], b[0])) : 0;
+  const lift = Math.sin(Math.PI * e) * (FMT === "L" ? 26 : 30);
+  const op = Math.min(seg(t, list[0][0], list[0][0] + .25), 1 - seg(t, list[list.length - 1][0] - .05, list[list.length - 1][0] + .2));
+  return { x: lerp(a[1], b[1], e), y: lerp(a[2], b[2], e) - lift, op };
+}
+
+// ---------- build DOM ----------
+const cam = $("cam");
+cam.style.width = ST.vw + "px"; cam.style.height = ST.vh + "px";
+const shotEls = {};
+for (const [name] of SHOT_LIST) {
+  const g = el("div", "shot", cam); g.style.width = ST.vw + "px"; g.style.height = ST.vh + "px";
+  const img = el("img", "", g); img.src = DIR + name + ".png"; img.style.width = ST.vw + "px"; img.style.height = ST.vh + "px"; img.style.display = "block";
+  const rev = [];
+  for (const i of REVEALS[name] || []) {
+    const r = R(name).cards[i];
+    const cv = el("div", "cover", g); Object.assign(cv.style, { left: r.x - 16 + "px", top: r.y - 14 + "px", width: r.w + 32 + "px", height: r.h + 34 + "px" });
+    const rv = el("div", "reveal", g);
+    Object.assign(rv.style, { left: r.x + "px", top: r.y + "px", width: r.w + "px", height: r.h + "px", backgroundImage: `url(${DIR}${name}.png)`, backgroundSize: `${ST.vw}px ${ST.vh}px`, backgroundPosition: `${-r.x}px ${-r.y}px` });
+    rev.push({ cv, rv });
+  }
+  shotEls[name] = { g, rev };
+}
+// Rings on prices (compare), Taken (move) and the heading (search results).
+const mkRing = (r, pad) => { const e = el("div", "ring", cam); Object.assign(e.style, { left: r.x - pad + "px", top: r.y - pad + "px", width: r.w + pad * 2 + "px", height: r.h + pad * 2 + "px" }); return e; };
+const priceRings = FMT === "L" ? R("07-results").price.map(r => mkRing(r, 7)) : [];
+const waRing = mkRing(R("07-results").wa[0], 5); waRing.style.borderRadius = "999px";
+const callRing = mkRing(R("07-results").call[0], 5); callRing.style.borderRadius = "999px";
+const takenRing = mkRing(R("10b-taken-card").gone[0], 9);
+const headRing = el("div", "", cam);
+{ const h = R("07-results").heading[0]; Object.assign(headRing.style, { position: "absolute", left: h.x + "px", top: h.y + h.h + 6 + "px", height: (FMT === "L" ? 4 : 3) + "px", background: "#98721e", borderRadius: "2px" }); headRing.dataset.w = h.w; }
+
+// Header
+WORDS.forEach((w, i) => { const s = el("span", "", $("tracker")); s.textContent = w; el("i", "", s); });
+const wordEls = WORDS.map(w => { const e = el("div", "word", $("wordBox")); e.textContent = w; return e; });
+const capEls = CAPS.flat().map(([t0, txt]) => { const e = el("div", "cap", $("capBox")); e.textContent = txt; return { t0, e }; });
+const capEnds = capEls.map((c, i) => capEls[i + 1] ? capEls[i + 1].t0 : SC[5]);
+
+// Vertical carousel
+const carCards = [];
+if (FMT === "V") {
+  const T = R("07t-results-tall"), CW = 700, k = CW / 358;
+  const priceRel = [[17, 433, 129, 34], [17, 432, 131, 34], [17, 455, 143, 34]];
+  T.items.forEach((it, i) => {
+    const c = el("div", "ccard", $("carousel"));
+    Object.assign(c.style, { width: it.w * k + "px", height: it.h * k + "px", backgroundImage: `url(${DIR}07t-results-tall.png)`, backgroundSize: `${T.width * k}px ${T.height * k}px`, backgroundPosition: `${-it.x * k}px ${-it.y * k}px` });
+    const ring = el("div", "cring", c); const [px, py, pw, ph] = priceRel[i];
+    Object.assign(ring.style, { left: (px - 7) * k + "px", top: (py - 7) * k + "px", width: (pw + 14) * k + "px", height: (ph + 14) * k + "px" });
+    carCards.push({ c, ring, w: it.w * k, h: it.h * k });
+  });
+  $("dots").style.top = 1250 + "px";
+}
+
+const MSG = "Hello, is the room on NestGH (Student hostel room near KNUST) still available?";
+
+// ---------- frame function ----------
+function seek(t) {
+  const scene = SC.findLastIndex(s => t >= s);
+  const c = camAt(t);
+  cam.style.transform = `translate(${c.tx}px, ${c.ty}px) scale(${c.k})`;
+
+  // Shots
+  for (const [name, a, b] of SHOT_LIST) {
+    const { g, rev } = shotEls[name];
+    const on = t >= a && t < b;
+    g.style.display = on ? "block" : "none";
+    if (!on) continue;
+    g.style.opacity = a === 0 ? 1 : io(seg(t, a, a + (FADE[name] ?? .35)));
+    rev.forEach(({ cv, rv }, j) => {
+      const e = seg(t, a + .25 + j * STAGGER, a + .25 + j * STAGGER + .55);
+      rv.style.opacity = io(e); rv.style.transform = `translateY(${(1 - out(e)) * 34}px) scale(${lerp(.965, 1, out(e))})`;
+      cv.style.opacity = 1;
+    });
+  }
+
+  // Header: tracker, word, caption
+  const hv = 1 - seg(t, SC[5], SC[5] + .3);
+  $("head").style.opacity = hv;
+  [...$("tracker").children].forEach((s, i) => {
+    const active = Math.min(scene, 4);
+    s.style.opacity = i === active ? 1 : i < active ? .55 : .25;
+    s.style.color = i === active ? "#98721e" : "#171614";
+    const e = i < active ? 1 : i === active ? out(seg(t, SC[i], SC[i] + .45)) : 0;
+    s.lastChild.style.width = e * 100 + "%";
+  });
+  $("count").textContent = `0${Math.min(scene, 4) + 1} / 05`;
+  wordEls.forEach((w, i) => {
+    const inE = out(seg(t, SC[i] + .05, SC[i] + .5)), outE = io(seg(t, SC[i + 1] - .05, SC[i + 1] + .3));
+    w.style.opacity = i === 0 ? 1 - outE : inE * (1 - outE);
+    w.style.transform = `translateY(${(i === 0 ? 0 : (1 - inE) * 70) - outE * 70}px)`;
+  });
+  if (FMT === "L") { const cur = wordEls[Math.min(scene, 4)]; $("wordBox").style.width = cur.getBoundingClientRect().width + "px"; }
+  capEls.forEach(({ t0, e }, i) => {
+    const inE = i === 0 ? 1 : out(seg(t, t0 + .12, t0 + .6)), outE = seg(t, capEnds[i] - .1, capEnds[i] + .15);
+    e.style.opacity = inE * (1 - outE);
+    e.style.transform = `translateY(${(1 - inE) * 14}px)`;
+  });
+
+  // Search: heading underline once results land
+  headRing.style.width = io(seg(t, SEARCH_T.results + .7, SEARCH_T.results + 1.3)) * headRing.dataset.w + "px";
+  headRing.style.opacity = 1 - seg(t, SC[2], SC[2] + .3);
+
+  // Compare: rings on the three prices (landscape)
+  priceRings.forEach((r, i) => {
+    const e = seg(t, SC[2] + .9 + i * 1.15, SC[2] + 1.3 + i * 1.15);
+    r.style.opacity = io(e) * (1 - seg(t, SC[3] - .1, SC[3] + .3));
+    r.style.transform = `scale(${lerp(1.25, 1, back(e))})`;
+  });
+
+  // Vertical: phone gives way to the carousel during COMPARE
+  if (FMT === "V") {
+    const show = io(seg(t, SC[2], SC[2] + .45)) * (1 - io(seg(t, SC[3] - .35, SC[3] + .1)));
+    $("stage").style.opacity = 1 - show;
+    $("stage").style.transform = `scale(${lerp(1, .94, show)})`;
+    $("carousel").style.opacity = show;
+    $("carousel").style.display = show > 0 ? "block" : "none";
+    const a = io(seg(t, SC[2] + 1.9, SC[2] + 2.45)) + io(seg(t, SC[2] + 3.9, SC[2] + 4.45));
+    carCards.forEach(({ c, ring, w, h }, i) => {
+      const d = i - a, ad = Math.min(1, Math.abs(d));
+      const sc = 1 - .14 * ad;
+      const x = 540 + d * (w * .86 + 36) - w / 2, y = 660 - h / 2;
+      c.style.transform = `translate(${x}px, ${y}px) scale(${sc})`;
+      c.style.opacity = 1 - .5 * ad;
+      c.style.zIndex = 10 - Math.round(ad * 5);
+      const near = 1 - ad;
+      const pop = seg(t, SC[2] + .7 + i * 2.0, SC[2] + 1.1 + i * 2.0);
+      ring.style.opacity = io(pop) * near;
+      ring.style.transform = `scale(${lerp(1.2, 1, back(pop))})`;
+    });
+    [...$("dots").children].forEach((b, i) => { b.style.opacity = .2 + .8 * (1 - Math.min(1, Math.abs(i - a))); b.style.background = Math.abs(i - a) < .5 ? "#98721e" : "#171614"; });
+  }
+
+  // Contact: WhatsApp button ring, message preview, call hint
+  const waE = seg(t, SC[3] + 1.5, SC[3] + 1.9);
+  waRing.style.opacity = io(waE) * (1 - seg(t, SC[3] + 4.9, SC[3] + 5.2));
+  waRing.style.transform = `scale(${lerp(1.4, 1, back(waE))})`;
+  const mE = seg(t, SC[3] + 1.9, SC[3] + 2.45), mOut = seg(t, SC[4] - .15, SC[4] + .2);
+  const msg = $("msg");
+  $("scrim").style.opacity = FMT === "L" ? io(mE) * (1 - mOut) : 0;
+  msg.style.display = mE > 0 && mOut < 1 ? "block" : "none";
+  msg.style.opacity = io(mE) * (1 - mOut);
+  if (FMT === "L") { msg.style.left = "860px"; msg.style.top = "250px"; msg.style.transform = `translateX(${(1 - out(mE)) * 80}px)`; }
+  if (FMT === "V") { msg.style.left = (720 - 900) / 2 + "px"; msg.style.top = "110px"; msg.style.transform = `translateY(${(1 - out(mE)) * -60}px)`; }
+  const typeE = seg(t, SC[3] + 2.5, SC[3] + 4.5);
+  $("typed").textContent = MSG.slice(0, Math.round(MSG.length * typeE));
+  $("caret").style.opacity = typeE < 1 ? (Math.floor(t * 3) % 2 ? .25 : 1) : 0;
+  const sendE = seg(t, SC[3] + 4.6, SC[3] + 4.9);
+  $("send").style.transform = `scale(${1 + Math.sin(Math.PI * sendE) * .18})`;
+  const callE = seg(t, SC[3] + 5.0, SC[3] + 5.35);
+  callRing.style.opacity = io(callE) * (1 - mOut);
+  callRing.style.transform = `scale(${lerp(1.4, 1, back(callE))})`;
+  const tag = $("callTag");
+  tag.style.display = callE > 0 && mOut < 1 ? "block" : "none";
+  tag.style.opacity = io(callE) * (1 - mOut);
+  { const cr = R("07-results").call[0]; const [sx, sy] = toStage(c, cr.x + cr.w / 2, cr.y + cr.h);
+    if (FMT === "L") { tag.style.left = sx - 110 + "px"; tag.style.top = sy - cr.h * c.k - 74 + "px"; }
+    else { tag.style.left = sx - 230 + "px"; tag.style.top = sy + 30 + "px"; tag.style.fontSize = "28px"; } }
+
+  // Move: Taken ring, then the brand moment
+  const tkE = seg(t, SC[4] + .7, SC[4] + 1.1);
+  takenRing.style.opacity = io(tkE);
+  takenRing.style.transform = `scale(${lerp(1.5, 1, back(tkE))})`;
+  const home = $("home");
+  const hE = seg(t, SC[4] + 2.2, SC[4] + 2.7);
+  home.style.display = hE > 0 ? "grid" : "none";
+  home.style.opacity = io(hE);
+  const roof = $("roof"), walls = $("walls");
+  const rl = roof.getTotalLength(), wl = walls.getTotalLength();
+  roof.style.strokeDasharray = rl; roof.style.strokeDashoffset = rl * (1 - io(seg(t, SC[4] + 2.45, SC[4] + 3.2)));
+  walls.style.strokeDasharray = wl; walls.style.strokeDashoffset = wl * (1 - io(seg(t, SC[4] + 2.7, SC[4] + 3.45)));
+  const kE = seg(t, SC[4] + 3.1, SC[4] + 3.7);
+  $("key").style.opacity = io(kE);
+  $("key").style.transform = `translateX(${(1 - out(kE)) * -40}px)`;
+  const h2E = seg(t, SC[4] + 3.2, SC[4] + 3.7), pE = seg(t, SC[4] + 3.5, SC[4] + 4.0);
+  $("homeH").style.opacity = io(h2E); $("homeH").style.transform = `translateY(${(1 - out(h2E)) * 24}px)`;
+  $("homeP").style.opacity = io(pE); $("homeP").style.transform = `translateY(${(1 - out(pE)) * 18}px)`;
+
+  // Cursor / touch
+  const cu = cursorAt(t);
+  const cursor = $("cursor"), touch = $("touch"), tap = $("tap");
+  cursor.style.display = FMT === "L" && cu ? "block" : "none";
+  touch.style.display = FMT === "V" && cu ? "block" : "none";
+  if (cu) {
+    const [sx, sy] = toStage(c, cu.x, cu.y);
+    const press = CLICKS.reduce((m, ct) => Math.max(m, Math.sin(Math.PI * seg(t, ct - .08, ct + .14))), 0);
+    if (FMT === "L") { cursor.style.opacity = cu.op; cursor.style.transform = `translate(${sx - 8}px, ${sy - 4}px) scale(${1 - press * .15})`; }
+    else { touch.style.opacity = cu.op; touch.style.left = sx + "px"; touch.style.top = sy + "px"; touch.style.transform = `scale(${1 - press * .2})`; }
+  }
+  const lastClick = CLICKS.filter(ct => t >= ct).pop();
+  const tE = lastClick !== undefined ? seg(t, lastClick, lastClick + .45) : 1;
+  tap.style.display = tE < 1 ? "block" : "none";
+  if (tE < 1) {
+    const p = lastClick === CLICKS[3] ? PT.wa : lastClick === CLICKS[2] ? PT.go : lastClick === CLICKS[1] ? PT.town : PT.region;
+    const [sx, sy] = toStage(c, p[0], p[1]);
+    tap.style.left = sx + "px"; tap.style.top = sy + "px";
+    tap.style.opacity = 1 - tE; tap.style.transform = `scale(${lerp(.4, 1.6, out(tE))})`;
+  }
+
+  // End card
+  const end = $("end");
+  const eE = seg(t, SC[5], SC[5] + .45);
+  end.style.display = eE > 0 ? "grid" : "none";
+  end.style.opacity = io(eE);
+  const lE = seg(t, SC[5] + .15, SC[5] + .85), sE = seg(t, SC[5] + .6, SC[5] + 1.1);
+  const logo = end.querySelector("img");
+  logo.style.opacity = io(lE); logo.style.transform = `scale(${lerp(.94, 1, out(lE))})`;
+  $("soon").style.opacity = io(sE); $("soon").style.transform = `translateY(${(1 - out(sE)) * 20}px)`;
+}
+window.seek = seek;
+window.DURATION = END;
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]).then(() => { seek(0); return true; });
+seek(Number(P.get("t") || 0));
+</script>
+</body>
+</html>
