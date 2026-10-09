@@ -1,0 +1,9 @@
+# Rebuildable intermediates (screenshots, rendered frames, previews): run work/capture.mjs and work/render.mjs.
+work/shots-*/
+work/frames-*/
+work/stills/
+work/preview/
+work/frame0-original-*.jpg
+work/*.log
+work/comp/data.js
+work/comp/logo.png
