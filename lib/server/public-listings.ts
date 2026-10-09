@@ -4,6 +4,7 @@ import { getDb } from "./db";
 import { getListingFees } from "./listing-fees";
 import { paystackConfigured } from "./paystack";
 import { turnstileEnabled, turnstileSiteKey } from "./turnstile";
+import { publicTrust } from "./listing-trust";
 
 // Builds the `public_data` shape that the public site renders (app.js → mapPublicListing for rooms,
 // commercial-listings.js → normalize for Shops & Spaces).
@@ -149,6 +150,8 @@ export async function listPublicListings(
       landmark: true,
       availabilityDate: true,
       lastConfirmedAt: true,
+      availabilityLabel: true,
+      contactType: true,
       createdAt: true,
       advanceAmountPesewas: true,
       commercialTypeOther: true,
@@ -160,7 +163,9 @@ export async function listPublicListings(
       estimatedMoveInCostPesewas: true,
       owner: { select: { phoneE164: true, whatsappE164: true, relationship: true } },
       area: { select: { name: true, parent: { select: { name: true, parent: { select: { name: true } } } } } },
-      verification: { select: { phoneVerifiedAt: true, identityVerifiedAt: true, propertyVerifiedAt: true } },
+      verification: {
+        select: { phoneVerifiedAt: true, identityVerifiedAt: true, propertyVerifiedAt: true, priceVerifiedAt: true, availabilityVerifiedAt: true, visitedOn: true },
+      },
       images: {
         where: { approvedForPublic: true, category: { not: "PROFILE" } },
         orderBy: { displayOrder: "asc" },
@@ -246,6 +251,8 @@ export async function listPublicListings(
         avail: availableFrom > today ? "No, available from a later date" : "Yes, available now",
         from: availableFrom,
         photos: photoUrls,
+        // Phase 1 trust metadata: availabilityStatus, lastVerifiedAt, verifications, contactType.
+        ...publicTrust(row, v),
       },
     };
   });

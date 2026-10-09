@@ -26,6 +26,19 @@
       <a href="#top">Home</a>
       <a href="#rooms">Rooms</a>
       <a href="#shops-spaces">Shops &amp; Spaces</a>
+      <div class="service-nav" id="other-services" hidden>
+        <button
+          class="service-trigger"
+          id="services-trigger"
+          type="button"
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-controls="services-menu"
+        >
+          Other Services<span class="service-chevron" aria-hidden="true"></span>
+        </button>
+        <ul class="service-menu" id="services-menu" aria-label="Other services" hidden></ul>
+      </div>
       <a href="#how">About</a>
       <a href="#listroom">List Your Property</a>
     </div>
@@ -1160,6 +1173,7 @@
 <script defer src="ghana-locations.js"></script>
 <script defer src="listing-pricing.js"></script>
 <script defer src="commercial-listings.js"></script>
+<script src="services-config.js"></script>
 <script defer src="app.js"></script>
 </body>
 </html>

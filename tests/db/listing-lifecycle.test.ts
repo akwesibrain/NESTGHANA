@@ -275,3 +275,41 @@ test("check constraints reject invalid data", async () => {
     /must belong/,
   );
 });
+
+test("trust metadata: only recorded checks and explicit labels are public", async () => {
+  const listing = await newListing();
+  await publish(listing.id);
+  const trust = async () => {
+    const row = (await listPublicListings("room", 0, 50)).find(r => r.id === listing.id);
+    assert.ok(row);
+    const d = row.public_data as Record<string, unknown>;
+    return { availabilityStatus: d.availabilityStatus, lastVerifiedAt: d.lastVerifiedAt, verifications: d.verifications, contactType: d.contactType };
+  };
+
+  assert.deepEqual(await trust(), { availabilityStatus: undefined, lastVerifiedAt: undefined, verifications: {}, contactType: undefined },
+    "nothing is claimed before an admin records it");
+
+  // A "Verified Agent" claim stays hidden until the identity check exists.
+  await db.listing.update({ where: { id: listing.id }, data: { availabilityLabel: "ALMOST_TAKEN", contactType: "VERIFIED_AGENT" } });
+  const priceAt = new Date("2026-10-01T09:00:00Z");
+  await db.listingVerification.create({
+    data: { listingId: listing.id, priceVerifiedAt: priceAt, priceVerifiedById: adminId, visitedOn: new Date("2026-09-28T00:00:00Z"), visitedById: adminId },
+  });
+  let t = await trust();
+  assert.equal(t.availabilityStatus, "Almost taken");
+  assert.equal(t.contactType, undefined);
+  assert.deepEqual(t.verifications, { price: true, visitedByNestGH: { date: "2026-09-28" } });
+  assert.equal(t.lastVerifiedAt, priceAt.toISOString(), "latest recorded check");
+
+  const identityAt = new Date("2026-10-03T12:00:00Z");
+  await db.listingVerification.update({ where: { listingId: listing.id }, data: { identityVerifiedAt: identityAt, identityVerifiedById: adminId } });
+  t = await trust();
+  assert.equal(t.contactType, "Verified Agent");
+  assert.deepEqual(t.verifications, { price: true, ownerIdentity: true, visitedByNestGH: { date: "2026-09-28" } });
+  assert.equal(t.lastVerifiedAt, identityAt.toISOString());
+
+  await db.listing.update({ where: { id: listing.id }, data: { contactType: "CARETAKER", availabilityLabel: null } });
+  t = await trust();
+  assert.equal(t.contactType, "Caretaker");
+  assert.equal(t.availabilityStatus, undefined);
+});

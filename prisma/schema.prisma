@@ -62,6 +62,24 @@ enum LocationKind {
   AREA
 }
 
+/// Admin-set availability label shown to renters (frontend-data-contract.md, Phase 1). "Unavailable"
+/// is not a value here: it comes from the listing status UNAVAILABLE.
+enum AvailabilityLabel {
+  AVAILABLE
+  ALMOST_TAKEN
+  RESERVED
+  RENTED
+}
+
+/// The listing contact's confirmed relationship to the property. The VERIFIED_* values are only
+/// accepted (and only published) once the owner-identity check is recorded.
+enum ContactType {
+  DIRECT_OWNER
+  VERIFIED_AGENT
+  VERIFIED_PROPERTY_MANAGER
+  CARETAKER
+}
+
 enum RentPeriod {
   MONTH
   THREE_MONTHS
@@ -182,19 +200,22 @@ model AdminUser {
   createdAt        DateTime  @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt        DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
 
-  roles             AdminRoleGrant[]         @relation("RoleHolder")
-  rolesGranted      AdminRoleGrant[]         @relation("RoleGranter")
-  sessions          AdminSession[]
-  settingsUpdated   WebsiteSettings[]
-  settingsHistory   WebsiteSettingsHistory[]
-  listingsApproved  Listing[]
-  phoneVerified     ListingVerification[]    @relation("PhoneVerifier")
-  identityVerified  ListingVerification[]    @relation("IdentityVerifier")
-  propertyVerified  ListingVerification[]    @relation("PropertyVerifier")
-  revisionsReviewed ListingRevision[]
-  activityLogs      AdminActivityLog[]
-  notificationsSent Notification[]
-  reportsReviewed   Report[]
+  roles                AdminRoleGrant[]         @relation("RoleHolder")
+  rolesGranted         AdminRoleGrant[]         @relation("RoleGranter")
+  sessions             AdminSession[]
+  settingsUpdated      WebsiteSettings[]
+  settingsHistory      WebsiteSettingsHistory[]
+  listingsApproved     Listing[]
+  phoneVerified        ListingVerification[]    @relation("PhoneVerifier")
+  identityVerified     ListingVerification[]    @relation("IdentityVerifier")
+  propertyVerified     ListingVerification[]    @relation("PropertyVerifier")
+  priceVerified        ListingVerification[]    @relation("PriceVerifier")
+  availabilityVerified ListingVerification[]    @relation("AvailabilityVerifier")
+  siteVisits           ListingVerification[]    @relation("SiteVisitor")
+  revisionsReviewed    ListingRevision[]
+  activityLogs         AdminActivityLog[]
+  notificationsSent    Notification[]
+  reportsReviewed      Report[]
 
   @@map("admin_users")
 }
@@ -402,50 +423,54 @@ model WebsiteSettingsHistory {
 // ───────────────────────── Listings ─────────────────────────
 
 model Listing {
-  id                         String           @id @default(uuid()) @db.Char(36)
+  id                         String             @id @default(uuid()) @db.Char(36)
   /// Client-generated idempotency key for the submission form.
-  submissionId               String           @unique @map("submission_id") @db.Char(36)
-  status                     ListingStatus    @default(DRAFT)
-  propertyCategory           PropertyCategory @default(ROOM) @map("property_category")
-  ownerId                    String           @map("owner_id") @db.Char(36)
-  areaId                     String           @map("area_id") @db.Char(36)
-  title                      String           @db.VarChar(100)
-  description                String           @db.Text
-  roomType                   RoomType         @map("room_type")
+  submissionId               String             @unique @map("submission_id") @db.Char(36)
+  status                     ListingStatus      @default(DRAFT)
+  propertyCategory           PropertyCategory   @default(ROOM) @map("property_category")
+  ownerId                    String             @map("owner_id") @db.Char(36)
+  areaId                     String             @map("area_id") @db.Char(36)
+  title                      String             @db.VarChar(100)
+  description                String             @db.Text
+  roomType                   RoomType           @map("room_type")
   condition                  ListingCondition
   furnished                  Furnishing
-  unitsTotal                 Int              @map("units_total") @db.UnsignedSmallInt
+  unitsTotal                 Int                @map("units_total") @db.UnsignedSmallInt
   /// Required for rooms; NULL for commercial listings.
-  bedrooms                   Int?             @db.UnsignedSmallInt
-  rentAmountPesewas          Int              @map("rent_amount_pesewas") @db.UnsignedInt
-  rentPeriod                 RentPeriod       @map("rent_period")
-  rentPeriodOther            String?          @map("rent_period_other") @db.VarChar(80)
-  advancePayments            Int              @map("advance_payments") @db.UnsignedSmallInt
-  depositPesewas             Int              @default(0) @map("deposit_pesewas") @db.UnsignedInt
-  agencyFeePesewas           Int              @default(0) @map("agency_fee_pesewas") @db.UnsignedInt
-  otherChargesPesewas        Int              @default(0) @map("other_charges_pesewas") @db.UnsignedInt
+  bedrooms                   Int?               @db.UnsignedSmallInt
+  rentAmountPesewas          Int                @map("rent_amount_pesewas") @db.UnsignedInt
+  rentPeriod                 RentPeriod         @map("rent_period")
+  rentPeriodOther            String?            @map("rent_period_other") @db.VarChar(80)
+  advancePayments            Int                @map("advance_payments") @db.UnsignedSmallInt
+  depositPesewas             Int                @default(0) @map("deposit_pesewas") @db.UnsignedInt
+  agencyFeePesewas           Int                @default(0) @map("agency_fee_pesewas") @db.UnsignedInt
+  otherChargesPesewas        Int                @default(0) @map("other_charges_pesewas") @db.UnsignedInt
   /// Facility name → "Included" | "Private" | "Shared" | "Not available" etc.
   facilities                 Json
   rules                      Json
   /// Public landmark shown to renters (the exact address stays in listing_private).
-  landmark                   String           @default("") @db.VarChar(200)
+  landmark                   String             @default("") @db.VarChar(200)
   // Commercial-only fields: all set for COMMERCIAL, all NULL for ROOM (enforced by CHECK).
   /// Upfront advance in pesewas (commercial listings quote an amount, rooms a number of months).
-  advanceAmountPesewas       Int?             @map("advance_amount_pesewas") @db.UnsignedInt
-  commercialTypeOther        String?          @map("commercial_type_other") @db.VarChar(80)
-  sizeSqm                    Decimal?         @map("size_sqm") @db.Decimal(10, 2)
-  roadVisibility             Boolean?         @map("road_visibility")
+  advanceAmountPesewas       Int?               @map("advance_amount_pesewas") @db.UnsignedInt
+  commercialTypeOther        String?            @map("commercial_type_other") @db.VarChar(80)
+  sizeSqm                    Decimal?           @map("size_sqm") @db.Decimal(10, 2)
+  roadVisibility             Boolean?           @map("road_visibility")
   parking                    Boolean?
   electricity                Boolean?
   water                      Boolean?
-  estimatedMoveInCostPesewas Int?             @map("estimated_move_in_cost_pesewas") @db.UnsignedInt
-  availabilityDate           DateTime         @map("availability_date") @db.Date
-  unitsAvailable             Int              @map("units_available") @db.UnsignedSmallInt
-  approvedById               String?          @map("approved_by") @db.Char(36)
-  approvedAt                 DateTime?        @map("approved_at") @db.DateTime(3)
-  lastConfirmedAt            DateTime?        @map("last_confirmed_at") @db.DateTime(3)
-  createdAt                  DateTime         @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt                  DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+  estimatedMoveInCostPesewas Int?               @map("estimated_move_in_cost_pesewas") @db.UnsignedInt
+  availabilityDate           DateTime           @map("availability_date") @db.Date
+  unitsAvailable             Int                @map("units_available") @db.UnsignedSmallInt
+  approvedById               String?            @map("approved_by") @db.Char(36)
+  approvedAt                 DateTime?          @map("approved_at") @db.DateTime(3)
+  lastConfirmedAt            DateTime?          @map("last_confirmed_at") @db.DateTime(3)
+  /// Explicit availability label set by an admin; NULL means none was set (never inferred).
+  availabilityLabel          AvailabilityLabel? @map("availability_label")
+  /// Confirmed contact relationship set by an admin; NULL means not confirmed.
+  contactType                ContactType?       @map("contact_type")
+  createdAt                  DateTime           @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                  DateTime           @updatedAt @map("updated_at") @db.DateTime(3)
 
   owner         Owner                  @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   area          Location               @relation(fields: [areaId], references: [id], onDelete: Restrict)
@@ -489,20 +514,30 @@ model ListingPrivate {
 }
 
 model ListingVerification {
-  listingId            String    @id @map("listing_id") @db.Char(36)
-  phoneVerifiedAt      DateTime? @map("phone_verified_at") @db.DateTime(3)
-  phoneVerifiedById    String?   @map("phone_verified_by") @db.Char(36)
-  identityVerifiedAt   DateTime? @map("identity_verified_at") @db.DateTime(3)
-  identityVerifiedById String?   @map("identity_verified_by") @db.Char(36)
-  propertyVerifiedAt   DateTime? @map("property_verified_at") @db.DateTime(3)
-  propertyVerifiedById String?   @map("property_verified_by") @db.Char(36)
-  createdAt            DateTime  @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt            DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  listingId                String    @id @map("listing_id") @db.Char(36)
+  phoneVerifiedAt          DateTime? @map("phone_verified_at") @db.DateTime(3)
+  phoneVerifiedById        String?   @map("phone_verified_by") @db.Char(36)
+  identityVerifiedAt       DateTime? @map("identity_verified_at") @db.DateTime(3)
+  identityVerifiedById     String?   @map("identity_verified_by") @db.Char(36)
+  propertyVerifiedAt       DateTime? @map("property_verified_at") @db.DateTime(3)
+  propertyVerifiedById     String?   @map("property_verified_by") @db.Char(36)
+  priceVerifiedAt          DateTime? @map("price_verified_at") @db.DateTime(3)
+  priceVerifiedById        String?   @map("price_verified_by") @db.Char(36)
+  availabilityVerifiedAt   DateTime? @map("availability_verified_at") @db.DateTime(3)
+  availabilityVerifiedById String?   @map("availability_verified_by") @db.Char(36)
+  /// Date a NestGH team member visited the property (a calendar date, not a timestamp).
+  visitedOn                DateTime? @map("visited_on") @db.Date
+  visitedById              String?   @map("visited_by") @db.Char(36)
+  createdAt                DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
 
-  listing            Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  phoneVerifiedBy    AdminUser? @relation("PhoneVerifier", fields: [phoneVerifiedById], references: [id], onDelete: SetNull)
-  identityVerifiedBy AdminUser? @relation("IdentityVerifier", fields: [identityVerifiedById], references: [id], onDelete: SetNull)
-  propertyVerifiedBy AdminUser? @relation("PropertyVerifier", fields: [propertyVerifiedById], references: [id], onDelete: SetNull)
+  listing                Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  phoneVerifiedBy        AdminUser? @relation("PhoneVerifier", fields: [phoneVerifiedById], references: [id], onDelete: SetNull)
+  identityVerifiedBy     AdminUser? @relation("IdentityVerifier", fields: [identityVerifiedById], references: [id], onDelete: SetNull)
+  propertyVerifiedBy     AdminUser? @relation("PropertyVerifier", fields: [propertyVerifiedById], references: [id], onDelete: SetNull)
+  priceVerifiedBy        AdminUser? @relation("PriceVerifier", fields: [priceVerifiedById], references: [id], onDelete: SetNull)
+  availabilityVerifiedBy AdminUser? @relation("AvailabilityVerifier", fields: [availabilityVerifiedById], references: [id], onDelete: SetNull)
+  visitedBy              AdminUser? @relation("SiteVisitor", fields: [visitedById], references: [id], onDelete: SetNull)
 
   @@map("listing_verifications")
 }

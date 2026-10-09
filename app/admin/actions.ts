@@ -12,6 +12,7 @@ import { getDb } from "@/lib/server/db";
 import { TransitionError, transitionListing } from "@/lib/server/listing-status";
 import { consumeRateLimit, hashIp } from "@/lib/server/rate-limit";
 import { verifyTurnstile } from "@/lib/server/turnstile";
+import { VERIFIED_CONTACT_TYPES } from "@/lib/server/listing-trust";
 
 const signInInput = z.object({
   email: z.email().max(254),
@@ -254,9 +255,16 @@ export async function changeListingStatus(formData: FormData) {
   redirect(back(`status_${parsed.data.to.toLowerCase()}`));
 }
 
-const verifyInput = z.object({ listingId: z.uuid(), check: z.enum(["phone", "identity", "property"]), value: z.enum(["on", "off"]) });
+const verifyInput = z.object({
+  listingId: z.uuid(),
+  check: z.enum(["phone", "identity", "property", "price", "availability"]),
+  value: z.enum(["on", "off"]),
+});
 
-/** Records (or clears) a verification check; all three make the public "Verified" badge appear. */
+/**
+ * Records (or clears) a verification check. Phone, identity and property together make the public
+ * "Verified" badge appear; property, price, availability and identity each also show their own badge.
+ */
 export async function setVerification(formData: FormData) {
   const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
   const parsed = verifyInput.safeParse({ listingId: formData.get("listingId"), check: formData.get("check"), value: formData.get("value") });
@@ -264,11 +272,13 @@ export async function setVerification(formData: FormData) {
   const { listingId, check, value } = parsed.data;
   const at = value === "on" ? new Date() : null;
   const by = value === "on" ? admin.user.id : null;
-  const fields = check === "phone"
-    ? { phoneVerifiedAt: at, phoneVerifiedById: by }
-    : check === "identity"
-      ? { identityVerifiedAt: at, identityVerifiedById: by }
-      : { propertyVerifiedAt: at, propertyVerifiedById: by };
+  const fields = {
+    phone: { phoneVerifiedAt: at, phoneVerifiedById: by },
+    identity: { identityVerifiedAt: at, identityVerifiedById: by },
+    property: { propertyVerifiedAt: at, propertyVerifiedById: by },
+    price: { priceVerifiedAt: at, priceVerifiedById: by },
+    availability: { availabilityVerifiedAt: at, availabilityVerifiedById: by },
+  }[check];
   await getDb().$transaction(async tx => {
     await tx.listingVerification.upsert({ where: { listingId }, create: { listingId, ...fields }, update: fields });
     await tx.adminActivityLog.create({
@@ -280,6 +290,73 @@ export async function setVerification(formData: FormData) {
   });
   revalidatePath(`/admin/listings/${listingId}`);
   redirect(`/admin/listings/${listingId}?review=verification_saved`);
+}
+
+const visitInput = z.object({
+  listingId: z.uuid(),
+  // A calendar date (YYYY-MM-DD) or empty to clear the visit.
+  visitedOn: z.union([z.literal(""), z.iso.date()]),
+});
+
+/** Records the date a NestGH team member visited the property, or clears it. Future dates are refused. */
+export async function setSiteVisit(formData: FormData) {
+  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
+  const parsed = visitInput.safeParse({ listingId: formData.get("listingId"), visitedOn: formData.get("visitedOn") ?? "" });
+  if (!parsed.success) redirect("/admin/listings?review=invalid");
+  const { listingId, visitedOn } = parsed.data;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Accra" }).format(new Date());
+  if (visitedOn > today) redirect(`/admin/listings/${listingId}?review=visit_future`);
+  const fields = visitedOn
+    ? { visitedOn: new Date(`${visitedOn}T00:00:00Z`), visitedById: admin.user.id }
+    : { visitedOn: null, visitedById: null };
+  await getDb().$transaction(async tx => {
+    await tx.listingVerification.upsert({ where: { listingId }, create: { listingId, ...fields }, update: fields });
+    await tx.adminActivityLog.create({
+      data: {
+        adminUserId: admin.user.id, action: "LISTING_SITE_VISIT_CHANGED", resourceType: "LISTING", resourceId: listingId,
+        newState: { visitedOn: visitedOn || null }, source: "admin_dashboard", metadata: {},
+      },
+    });
+  });
+  revalidatePath(`/admin/listings/${listingId}`);
+  redirect(`/admin/listings/${listingId}?review=verification_saved`);
+}
+
+const trustInput = z.object({
+  listingId: z.uuid(),
+  availabilityLabel: z.enum(["", "AVAILABLE", "ALMOST_TAKEN", "RESERVED", "RENTED"]),
+  contactType: z.enum(["", "DIRECT_OWNER", "VERIFIED_AGENT", "VERIFIED_PROPERTY_MANAGER", "CARETAKER"]),
+});
+
+/** Sets the availability label and confirmed contact type renters see ("" clears either). */
+export async function setListingTrust(formData: FormData) {
+  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
+  const parsed = trustInput.safeParse({
+    listingId: formData.get("listingId"),
+    availabilityLabel: formData.get("availabilityLabel") ?? "",
+    contactType: formData.get("contactType") ?? "",
+  });
+  if (!parsed.success) redirect("/admin/listings?review=invalid");
+  const { listingId } = parsed.data;
+  const availabilityLabel = parsed.data.availabilityLabel || null;
+  const contactType = parsed.data.contactType || null;
+  const db = getDb();
+  if (contactType && VERIFIED_CONTACT_TYPES.has(contactType)) {
+    // "Verified Agent/Property Manager" is a claim: it needs the identity check on record first.
+    const v = await db.listingVerification.findUnique({ where: { listingId }, select: { identityVerifiedAt: true } });
+    if (!v?.identityVerifiedAt) redirect(`/admin/listings/${listingId}?review=contact_needs_identity`);
+  }
+  await db.$transaction(async tx => {
+    const updated = await tx.listing.update({ where: { id: listingId }, data: { availabilityLabel, contactType }, select: { id: true } });
+    await tx.adminActivityLog.create({
+      data: {
+        adminUserId: admin.user.id, action: "LISTING_TRUST_CHANGED", resourceType: "LISTING", resourceId: updated.id,
+        newState: { availabilityLabel, contactType }, source: "admin_dashboard", metadata: {},
+      },
+    });
+  });
+  revalidatePath(`/admin/listings/${listingId}`);
+  redirect(`/admin/listings/${listingId}?review=trust_saved`);
 }
 
 /** Queues a WhatsApp message with a fresh manage link for the owner, or revokes all their links. */

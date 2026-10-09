@@ -19,10 +19,21 @@ const assets = [
   ["logo-80.webp", "logo-80.webp"],
   ["logo-192.png", "logo-192.png"],
   ["listing-pricing.js", "listing-pricing.js"],
+  ["buy-data/index.html", "buy-data/index.html"],
+  ["buy-data/app.js", "buy-data/app.js"],
+  ["buy-data/images/hero-mtn.jpg", "buy-data/images/hero-mtn.jpg"],
+  ["buy-data/images/nestgh-logo-80.webp", "buy-data/images/nestgh-logo-80.webp"],
+  ["buy-data/images/nestgh-logo-192.png", "buy-data/images/nestgh-logo-192.png"],
+  ["buy-data/videos/hero.mp4", "buy-data/videos/hero.mp4"],
   ["data/ghana-locations.json", "ghana-locations.json"],
+  // Only the Buy Data page (/buy-data) uses this; it has its own Supabase backend. The listings site does not.
+  ["node_modules/@supabase/supabase-js/dist/umd/supabase.js", "supabase.js"],
+  ["node_modules/@supabase/supabase-js/LICENSE", "supabase.LICENSE.txt"],
 ];
 
 await mkdir(publicDir, { recursive: true });
+await mkdir(resolve(publicDir, "buy-data/images"), { recursive: true });
+await mkdir(resolve(publicDir, "buy-data/videos"), { recursive: true });
 await Promise.all(assets.map(([source, destination]) =>
   copyFile(resolve(root, source), resolve(publicDir, destination))));
 

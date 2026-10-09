@@ -392,14 +392,98 @@ const st = (r) =>
           "Available from " +
             new Date(r.availableFrom + "T00:00:00").toLocaleDateString(),
         ]
-      : r.d === 0
+      : r.d === null
+        ? ["w", "Needs confirmation"]
+        : r.d === 0
         ? ["g", "Confirmed today"]
         : r.d <= 7
           ? ["g", "Confirmed " + (r.d === 1 ? "1 day" : r.d + " days") + " ago"]
           : r.d <= 20
             ? ["y", "Confirmed " + r.d + " days ago"]
             : ["w", "Needs confirmation"];
-const rank = (r) => (r.un ? 3 : r.d > 20 ? 2 : r.d > 7 ? 1 : 0);
+const rank = (r) =>
+  r.un ? 3 : r.d === null || r.d > 20 ? 2 : r.d > 7 ? 1 : 0;
+const AVAILABILITY_STATUSES = new Set([
+  "Available",
+  "Almost taken",
+  "Reserved",
+  "Rented",
+  "Unavailable",
+]);
+const CONTACT_TYPES = new Set([
+  "Direct Owner",
+  "Verified Agent",
+  "Verified Property Manager",
+  "Caretaker",
+]);
+const VERIFICATION_LABELS = [
+  ["property", "Verified Property"],
+  ["price", "Verified Price"],
+  ["availability", "Verified Availability"],
+  ["ownerIdentity", "Verified Owner Identity"],
+];
+function availabilityStatus(r) {
+  if (r.un) return "Unavailable";
+  if (AVAILABILITY_STATUSES.has(r.availabilityStatus))
+    return r.availabilityStatus;
+  if (r.legacyAvailability === "Yes, available now") return "Available";
+  return "";
+}
+function verifiedLabel(dateValue) {
+  if (typeof dateValue !== "string" || !dateValue.trim()) return "";
+  const timestamp = Date.parse(dateValue);
+  if (!Number.isFinite(timestamp) || timestamp > Date.now()) return "";
+  const days = Math.floor((Date.now() - timestamp) / 86_400_000);
+  if (days > 14) return "Not recently verified";
+  if (days === 0) return "Verified today";
+  if (days === 1) return "Verified yesterday";
+  if (days < 7) return `Verified ${days} days ago`;
+  if (days < 14) return "Verified 1 week ago";
+  return "Verified 2 weeks ago";
+}
+function renderAvailabilityBadge(r) {
+  const status = availabilityStatus(r);
+  return status
+    ? `<span class="listing-badge availability-badge">${htmlEsc(status)}</span>`
+    : "";
+}
+function renderTrustBadges(r) {
+  const badges = VERIFICATION_LABELS
+    .filter(([key]) => r.verifications?.[key] === true)
+    .map(([, label]) => `<span class="listing-badge">${label}</span>`);
+  const visitDate = r.verifications?.visitedByNestGH?.date;
+  if (typeof visitDate === "string" && Number.isFinite(Date.parse(visitDate))) {
+    const date = new Date(`${visitDate.slice(0, 10)}T00:00:00`);
+    badges.push(
+      `<span class="listing-badge">Visited by NestGH · ${htmlEsc(date.toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" }))}</span>`,
+    );
+  }
+  return badges.join("");
+}
+function renderContactType(r) {
+  return CONTACT_TYPES.has(r.contactType)
+    ? `<span class="listing-badge contact-type-badge">${htmlEsc(r.contactType)}</span>`
+    : "";
+}
+function renderLastVerified(r) {
+  const label = verifiedLabel(r.lastVerifiedAt);
+  return label
+    ? `<span class="last-verified${label === "Not recently verified" ? " is-stale" : ""}">${label}</span>`
+    : "";
+}
+function renderVerificationExplainer() {
+  return `<details class="verification-explainer">
+    <summary>What does verified mean?</summary>
+    <p>A badge means NestGH records that the specific check named on it was completed. It is not a guarantee about the property, its condition, the contact, or any agreement.</p>
+    <ul>
+      <li><b>Verified Property:</b> NestGH recorded a property check.</li>
+      <li><b>Verified Price:</b> NestGH recorded a price check.</li>
+      <li><b>Verified Availability:</b> NestGH recorded an availability check; the room may have changed since.</li>
+      <li><b>Verified Owner Identity:</b> NestGH recorded an identity check; this is not a guarantee of conduct.</li>
+      <li><b>Visited by NestGH:</b> NestGH recorded a visit on the date shown.</li>
+    </ul>
+  </details>`;
+}
 const has = (r, k) =>
   k === "Kitchen"
     ? r.f.includes("Kitchen") || r.ty === "chamber" || r.ty === "self"
@@ -441,8 +525,16 @@ const btns = (r) =>
 function card(r, cm) {
   const i = ROOMS.indexOf(r),
     [k, l] = st(r),
-    mn = cm && cm.m[r.a];
-  return `<article class="card${r.un ? " off" : ""}" data-o="${i}"><div class="pic">${r.photos?.[0] ? `<img src="${htmlEsc(r.photos[0])}" alt="${htmlEsc(r.n)}" width="400" height="170" loading="lazy" decoding="async">` : art(i)}<span class="ty">${htmlEsc(TYPE[r.ty])}</span><button class="hb" data-i="${i}" aria-label="${saved.has(r.id) ? "Remove from" : "Save"} saved rooms" aria-pressed="${saved.has(r.id)}">${ico("heart")}</button></div><div class="b"><h3><button class="lk" data-o="${i}">${htmlEsc(r.n)}</button></h3><div class="loc">${ico("pin")}${htmlEsc(r.a)}, ${htmlEsc(r.t)}${mn ? " · " + mn + " min from campus" : ""}</div><div class="fac">${r.f.map((x) => `<span>${htmlEsc(x)}</span>`).join("")}</div><div class="meta"><span class="st"><i class="${k}"></i>${l}</span>${r.v ? " · <b>✔ Verified</b>" : ""}</div><div class="ft"><div class="pr">${ghs(r.p)} <small>/month</small></div><div class="acts">${r.un ? '<span class="gone">Taken</span>' : btns(r)}</div></div></div></article>`;
+    mn = cm && cm.m[r.a],
+    currentAvailability = availabilityStatus(r),
+    availability =
+      currentAvailability && currentAvailability !== l
+        ? renderAvailabilityBadge(r)
+        : "",
+    trustBadges = renderTrustBadges(r),
+    contactType = renderContactType(r),
+    lastVerified = renderLastVerified(r);
+  return `<article class="card${r.un ? " off" : ""}" data-o="${i}"><div class="pic">${r.photos?.[0] ? `<img src="${htmlEsc(r.photos[0])}" alt="${htmlEsc(r.n)}" width="400" height="170" loading="lazy" decoding="async">` : art(i)}<span class="ty">${htmlEsc(TYPE[r.ty])}</span><button class="hb" data-i="${i}" aria-label="${saved.has(r.id) ? "Remove from" : "Save"} saved rooms" aria-pressed="${saved.has(r.id)}">${ico("heart")}</button></div><div class="b"><h3><button class="lk" data-o="${i}">${htmlEsc(r.n)}</button></h3><div class="loc">${ico("pin")}${htmlEsc(r.a)}, ${htmlEsc(r.t)}${mn ? " · " + mn + " min from campus" : ""}</div><div class="fac">${r.f.map((x) => `<span>${htmlEsc(x)}</span>`).join("")}</div><div class="meta"><span class="st"><i class="${k}"></i>${l}</span>${availability}${trustBadges ? `<span class="listing-badges">${trustBadges}</span>` : ""}${contactType}</div>${lastVerified}<div class="ft"><div class="pr">${ghs(r.p)} <small>/month</small></div><div class="acts">${r.un ? '<span class="gone">Taken</span>' : btns(r)}</div></div></div></article>`;
 }
 function nearby() {
   const a = area.value;
@@ -541,7 +633,8 @@ function openSheet(i) {
       (Number(r.fee) || 0) +
       (Number(d.oth) || 0),
     description = String(d.description || d.desc || "").trim(),
-    status = r.un
+    status = availabilityStatus(r) ||
+      (r.un
       ? "Unavailable"
       : r.availableFrom
         ? `Available from ${r.availableFrom}`
@@ -549,7 +642,7 @@ function openSheet(i) {
           ? "Available now"
           : d.avail === "No, available from a later date"
             ? "Available from a later date"
-            : d.avail || "";
+            : d.avail || "");
   const kv = (o) =>
     `<div class="kv">${Object.entries(o)
       .filter(([, value]) => value !== null && value !== undefined && value !== "")
@@ -615,8 +708,10 @@ function openSheet(i) {
           <p class="property-summary-location">${ico("pin")}${htmlEsc([r.t, r.a].filter(Boolean).join(" · "))}</p>
           <p class="property-summary-rent">${ghs(monthlyRent)} <span>/month</span></p>
           ${estimatedMoveIn > 0 ? `<p class="property-move-in">Estimated move-in cost <b>${ghs(estimatedMoveIn)}</b></p>` : ""}
-          <div class="property-quick-facts">${d.beds ? `<span>${ico("home")} ${htmlEsc(d.beds)} bed</span>` : ""}${d.bath || D.bath ? `<span>${ico("home")} ${htmlEsc(d.bath || D.bath)} bath</span>` : ""}${status ? `<span class="property-availability">${htmlEsc(status)}</span>` : ""}</div>
-          ${r.v ? '<span class="property-verified">NestGH verified</span>' : ""}
+          <div class="property-quick-facts">${d.beds ? `<span>${ico("home")} ${htmlEsc(d.beds)} bed</span>` : ""}${d.bath || D.bath ? `<span>${ico("home")} ${htmlEsc(d.bath || D.bath)} bath</span>` : ""}${status ? `<span class="listing-badge availability-badge">${htmlEsc(status)}</span>` : ""}${renderContactType(r)}</div>
+          ${renderLastVerified(r)}
+          ${renderTrustBadges(r) ? `<div class="listing-badges property-trust-badges">${renderTrustBadges(r)}</div>` : ""}
+          ${renderVerificationExplainer()}
         </div>
       </section>
       <div class="property-tabs" role="tablist" aria-label="Property information">
@@ -898,16 +993,108 @@ $("sv").onclick = () => {
 };
 $("mobile-saved").onclick = () => $("sv").click();
 $("mobile-more").onclick = () => $("mn").click();
+const servicesConfig = window.NESTGH_SERVICES_CONFIG;
+if (!servicesConfig || !Array.isArray(servicesConfig.SERVICES)) {
+  throw new Error("NestGH services configuration is missing or invalid.");
+}
+const serviceNav = $("other-services");
+const serviceTrigger = $("services-trigger");
+const serviceMenu = $("services-menu");
+const dataSiteUrl = servicesConfig.DATA_SITE_URL.trim();
+if (dataSiteUrl) {
+  let parsedDataSiteUrl;
+  try {
+    parsedDataSiteUrl = new URL(dataSiteUrl);
+  } catch {
+    throw new Error("DATA_SITE_URL must be an absolute HTTP or HTTPS URL.");
+  }
+  if (!["http:", "https:"].includes(parsedDataSiteUrl.protocol)) {
+    throw new Error("DATA_SITE_URL must use HTTP or HTTPS.");
+  }
+
+  servicesConfig.SERVICES.forEach((service) => {
+    if (!service.id || !service.label || !service.description) {
+      throw new Error("Each NestGH service needs an id, label and description.");
+    }
+    const serviceUrl = service.url || dataSiteUrl;
+    let parsedServiceUrl;
+    try {
+      parsedServiceUrl = new URL(serviceUrl);
+    } catch {
+      throw new Error(
+        `Service "${service.id}" needs an absolute HTTP or HTTPS URL.`,
+      );
+    }
+    if (!["http:", "https:"].includes(parsedServiceUrl.protocol)) {
+      throw new Error(`Service "${service.id}" must use HTTP or HTTPS.`);
+    }
+
+    const item = document.createElement("li");
+    const link = document.createElement("a");
+    const label = document.createElement("span");
+    const description = document.createElement("small");
+    link.href = parsedServiceUrl.href;
+    if (parsedServiceUrl.origin !== window.location.origin) {
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    }
+    label.textContent = service.label;
+    description.textContent = service.description;
+    link.append(label, description);
+    item.append(link);
+    serviceMenu.append(item);
+  });
+  serviceNav.hidden = servicesConfig.SERVICES.length === 0;
+}
+function setServicesOpen(open, restoreFocus = false) {
+  serviceTrigger.setAttribute("aria-expanded", String(open));
+  serviceMenu.hidden = !open;
+  if (restoreFocus) serviceTrigger.focus();
+}
+serviceTrigger.addEventListener("click", () => {
+  setServicesOpen(serviceTrigger.getAttribute("aria-expanded") !== "true");
+});
+serviceTrigger.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    setServicesOpen(true);
+    const links = serviceMenu.querySelectorAll("a");
+    links[event.key === "ArrowUp" ? links.length - 1 : 0]?.focus();
+  }
+});
+serviceNav.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && serviceTrigger.getAttribute("aria-expanded") === "true") {
+    event.preventDefault();
+    setServicesOpen(false, true);
+    return;
+  }
+  if (
+    !["ArrowDown", "ArrowUp"].includes(event.key) ||
+    !event.target.matches(".service-menu a")
+  ) {
+    return;
+  }
+  event.preventDefault();
+  const links = [...serviceMenu.querySelectorAll("a")];
+  const currentIndex = links.indexOf(event.target);
+  const offset = event.key === "ArrowDown" ? 1 : -1;
+  links[(currentIndex + offset + links.length) % links.length].focus();
+});
+document.addEventListener("click", (event) => {
+  if (!serviceNav.contains(event.target)) setServicesOpen(false);
+});
 $("mn").onclick = () => {
   const open = $("links").classList.toggle("open");
   $("mn").setAttribute("aria-expanded", String(open));
   $("mobile-more").setAttribute("aria-expanded", String(open));
+  if (!open) setServicesOpen(false);
 };
 $("links").onclick = (e) => {
   if (e.target.closest("a")) {
     $("links").classList.remove("open");
     $("mn").setAttribute("aria-expanded", "false");
     $("mobile-more").setAttribute("aria-expanded", "false");
+    setServicesOpen(false);
   }
 };
 fillAreas();
@@ -934,10 +1121,10 @@ function mapPublicListing(row) {
   const whatsapp = String(d.wa || d.phone || "")
     .replace(/\D/g, "")
     .replace(/^0/, "233");
-  const confirmedAt = Date.parse(d.confirmed_at || row.created_at || "");
+  const confirmedAt = Date.parse(d.confirmed_at || "");
   const confirmedDays = Number.isFinite(confirmedAt)
     ? Math.max(0, Math.floor((Date.now() - confirmedAt) / 86400000))
-    : 0;
+    : null;
   const periodMonths = {
     "3 Months": 3,
     "6 Months": 6,
@@ -957,8 +1144,18 @@ function mapPublicListing(row) {
     rentAmount,
     period,
     f: [...new Set(facilities)],
-    v: Boolean(d.verified),
     d: confirmedDays,
+    availabilityStatus:
+      typeof d.availabilityStatus === "string" ? d.availabilityStatus : "",
+    legacyAvailability:
+      typeof d.avail === "string" ? d.avail : "",
+    lastVerifiedAt:
+      typeof d.lastVerifiedAt === "string" ? d.lastVerifiedAt : "",
+    verifications:
+      d.verifications && typeof d.verifications === "object"
+        ? d.verifications
+        : {},
+    contactType: typeof d.contactType === "string" ? d.contactType : "",
     adv: Number(d.adv) || 0,
     dep: Number(d.dep) || 0,
     fee: Number(d.fee) || 0,

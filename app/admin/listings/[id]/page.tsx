@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { changeListingStatus, ownerLinkAction, reviewListing, setVerification } from "@/app/admin/actions";
+import { changeListingStatus, ownerLinkAction, reviewListing, setListingTrust, setSiteVisit, setVerification } from "@/app/admin/actions";
 import { hasRole } from "@/lib/server/admin-auth";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
+import { AVAILABILITY_LABEL, CONTACT_TYPE_LABEL, VERIFIED_CONTACT_TYPES } from "@/lib/server/listing-trust";
 import { ROOM_TYPE_LABEL } from "@/lib/server/public-listings";
 import { AdminFrame } from "@/app/admin/admin-ui";
 
@@ -22,6 +23,9 @@ const reviewMessages: Record<string, { kind: "success" | "error"; text: string }
   status_removed: { kind: "success", text: "Listing removed from the website." },
   status_restore: { kind: "success", text: "Listing restored to its previous status." },
   verification_saved: { kind: "success", text: "Verification updated." },
+  trust_saved: { kind: "success", text: "What renters see was updated." },
+  visit_future: { kind: "error", text: "A site visit date cannot be in the future." },
+  contact_needs_identity: { kind: "error", text: "Record the identity check before marking the contact as a verified agent or property manager." },
   links_revoked: { kind: "success", text: "All manage links for this listing were revoked." },
   invalid: { kind: "error", text: "That request was not valid." },
 };
@@ -144,12 +148,17 @@ export default async function AdminListingPage({ params, searchParams }: Props) 
               </div>
               <div>
                 <h3>Verification checks</h3>
-                <p className="ngd-note">All three together show the “Verified” badge to renters.</p>
+                <p className="ngd-note">
+                  Record only checks that were actually done. Phone, identity and property together show the “Verified” badge;
+                  identity, property, price and availability each also show their own badge to renters.
+                </p>
                 <div className="ngd-checks">
                   {([
                     ["phone", "Phone confirmed", listing.verification?.phoneVerifiedAt],
-                    ["identity", "Identity checked", listing.verification?.identityVerifiedAt],
+                    ["identity", "Owner identity checked", listing.verification?.identityVerifiedAt],
                     ["property", "Property inspected", listing.verification?.propertyVerifiedAt],
+                    ["price", "Price checked", listing.verification?.priceVerifiedAt],
+                    ["availability", "Availability checked", listing.verification?.availabilityVerifiedAt],
                   ] as const).map(([check, label, at]) => (
                     <form key={check} action={setVerification}>
                       <input type="hidden" name="listingId" value={listing.id} />
@@ -160,6 +169,46 @@ export default async function AdminListingPage({ params, searchParams }: Props) 
                     </form>
                   ))}
                 </div>
+              </div>
+              <div>
+                <h3>NestGH site visit</h3>
+                <p className="ngd-note">
+                  {listing.verification?.visitedOn
+                    ? `Visited on ${listing.verification.visitedOn.toISOString().slice(0, 10)}. Renters see “Visited by NestGH” with this date.`
+                    : "No visit recorded."}
+                </p>
+                <form action={setSiteVisit} className="ngd-manage-row">
+                  <input type="hidden" name="listingId" value={listing.id} />
+                  <input type="date" name="visitedOn" aria-label="Visit date" defaultValue={listing.verification?.visitedOn?.toISOString().slice(0, 10) ?? ""} />
+                  <button className="ngd-btn">Save visit date</button>
+                  {listing.verification?.visitedOn ? <button className="ngd-btn" name="visitedOn" value="">Clear</button> : null}
+                </form>
+              </div>
+              <div>
+                <h3>What renters see</h3>
+                <p className="ngd-note">Leave a field on “Not shown” unless it has been confirmed. Nothing is inferred from the listing’s age.</p>
+                <form action={setListingTrust} className="ngd-manage-row">
+                  <input type="hidden" name="listingId" value={listing.id} />
+                  <label>
+                    Availability{" "}
+                    <select name="availabilityLabel" defaultValue={listing.availabilityLabel ?? ""}>
+                      <option value="">Not shown</option>
+                      {Object.entries(AVAILABILITY_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Contact{" "}
+                    <select name="contactType" defaultValue={listing.contactType ?? ""}>
+                      <option value="">Not shown</option>
+                      {Object.entries(CONTACT_TYPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                  </label>
+                  <button className="ngd-btn is-primary">Save</button>
+                </form>
+                {listing.contactType && VERIFIED_CONTACT_TYPES.has(listing.contactType) && !listing.verification?.identityVerifiedAt ? (
+                  <p className="ngd-note">“{CONTACT_TYPE_LABEL[listing.contactType]}” is hidden from renters until the identity check is recorded.</p>
+                ) : null}
+                <p className="ngd-note">The owner’s own description of their role (“{listing.owner.relationship}”) is not shown as a confirmed contact type.</p>
               </div>
               <div>
                 <h3>Owner manage link</h3>

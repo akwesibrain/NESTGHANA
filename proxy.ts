@@ -5,6 +5,10 @@ export function proxy(request: NextRequest) {
   const secure = process.env.NODE_ENV === "production";
   // Cloudflare Turnstile (bot protection) loads a script and an iframe when it is configured.
   const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? " https://challenges.cloudflare.com" : "";
+  // The Buy Data page (/buy-data) is a separate app with its own Supabase backend and inline styles.
+  const buyData = ["/buy-data", "/buy-data/", "/buy-data/index.html"].includes(request.nextUrl.pathname);
+  const buyDataBackend = "https://plbtnltcocsuekifddat.supabase.co";
+  const styleSource = buyData ? "'unsafe-inline'" : `'nonce-${nonce}'`;
   const policy = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -12,11 +16,11 @@ export function proxy(request: NextRequest) {
     "frame-ancestors 'none'",
     "object-src 'none'",
     "img-src 'self' data: blob:",
-    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
+    `style-src 'self' ${styleSource} https://fonts.googleapis.com`,
     // React's development build needs eval() for its error overlay; production never allows it.
     `script-src 'self' 'nonce-${nonce}'${turnstile}${secure ? "" : " 'unsafe-eval'"}`,
     `frame-src 'self'${turnstile}`,
-    "connect-src 'self'",
+    `connect-src 'self'${buyData ? ` ${buyDataBackend}` : ""}`,
     "font-src 'self' https://fonts.gstatic.com",
     // Only upgrade in production: the dev server is plain HTTP, so upgrading breaks every asset when opened via a LAN IP.
     ...(secure ? ["upgrade-insecure-requests"] : []),

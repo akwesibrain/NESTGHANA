@@ -15,8 +15,17 @@ const nextConfig: NextConfig = {
   // scripts/e2e.mjs builds into its own folder so it can run next to a normal `npm run dev`.
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   compress: true,
+  // The Buy Data page uses relative asset paths (app.js, images/…), so it must be served from a URL
+  // inside /buy-data/; a rewrite of the bare /buy-data would make them resolve to the site root.
+  async redirects() {
+    return [{ source: "/buy-data", destination: "/buy-data/index.html", permanent: false }];
+  },
   async rewrites() {
-    return { beforeFiles: [{ source: "/", destination: "/index.html" }], afterFiles: [], fallback: [] };
+    return {
+      beforeFiles: [{ source: "/", destination: "/index.html" }],
+      afterFiles: [],
+      fallback: [],
+    };
   },
   async headers() {
     return [
