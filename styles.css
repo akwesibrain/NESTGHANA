@@ -1044,13 +1044,120 @@ body.modal-open {
     grid-column: 1 / -1;
   }
 
+  /* Phones: Shops & Spaces cards two per row, matching the room cards. */
   .commercial-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .commercial-grid .commercial-card {
+    border-radius: 14px;
+  }
+
+  .commercial-grid .commercial-type {
+    top: 8px;
+    left: 8px;
+    max-width: calc(100% - 54px);
+    padding: 4px 8px;
+    font-size: 10.5px;
+  }
+
+  .commercial-grid .commercial-save {
+    top: 6px;
+    right: 6px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .commercial-grid .commercial-save svg {
+    width: 16px;
+    height: 16px;
   }
 
   .commercial-card-body {
-    padding: 15px;
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .commercial-grid .commercial-card h3 {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .commercial-grid .commercial-location {
+    gap: 4px;
+    font-size: 11.5px;
+  }
+
+  .commercial-grid .commercial-location svg {
+    width: 13px;
+    height: 13px;
+    flex-basis: 13px;
+    margin-top: 1px;
+  }
+
+  /* One row of facts; the rest are in the details window. */
+  .commercial-grid .commercial-facts {
+    gap: 4px;
+    max-height: 24px;
+    overflow: hidden;
+  }
+
+  .commercial-grid .commercial-facts span {
+    padding: 2px 7px;
+    font-size: 10.5px;
+  }
+
+  .commercial-grid .commercial-pricing {
+    gap: 5px;
+    padding-top: 8px;
+  }
+
+  /* Label above amount: a 150px card is too narrow for both on one line. */
+  .commercial-grid .commercial-pricing p {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    font-size: 10.5px;
+  }
+
+  .commercial-grid .commercial-pricing b {
+    font-size: 12.5px;
+    text-align: left;
+  }
+
+  .commercial-grid .commercial-pricing .commercial-rent {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .commercial-grid .commercial-pricing .commercial-rent b {
+    font-size: 16px;
+  }
+
+  .commercial-grid .commercial-pricing .commercial-rent span {
+    font-size: 10.5px;
+  }
+
+  .commercial-grid .commercial-pricing .commercial-move-in {
+    padding-top: 5px;
+  }
+
+  .commercial-grid .commercial-availability {
+    gap: 5px;
+    font-size: 10.5px;
+  }
+
+  .commercial-grid .commercial-details-button {
+    min-height: 40px;
+    padding: 0 8px;
+    font-size: 12.5px;
   }
 
   .commercial-gallery {
