@@ -3972,17 +3972,47 @@ body.public-site .cookie-reject {
     height: 68px;
   }
 
+  /* The open menu fills the screen below the header, above the bottom tabs. */
+  body.public-site nav:has(.links.open) {
+    z-index: 24;
+  }
+
+  /* A transformed ancestor would stop the fixed menu from filling the viewport. */
+  body.public-site nav:has(.links.open) .w {
+    transform: none;
+  }
+
+  body.public-site:has(.links.open) {
+    overflow: hidden;
+  }
+
+  /* The menu button becomes a close button while the menu is open. */
+  .ib.m[aria-expanded="true"] svg {
+    display: none;
+  }
+
+  .ib.m[aria-expanded="true"]::before {
+    content: "\2715";
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
   .links.open {
     top: calc(68px + env(safe-area-inset-top, 0px));
-    right: 16px;
-    left: 16px;
+    right: 0;
+    bottom: 0;
+    left: 0;
     gap: 0;
-    padding: 8px 16px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
+    max-height: none;
+    padding: 8px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
     background: var(--card);
-    box-shadow: 0 12px 32px rgba(23, 22, 20, 0.15);
+    box-shadow: none;
     color: var(--ink);
+    overscroll-behavior: contain;
   }
 
   .links.open a {
