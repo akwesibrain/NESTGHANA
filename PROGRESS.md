@@ -1,11 +1,12 @@
 # NestGH Implementation Progress
 
-Last updated: 2026-10-08
+Last updated: 2026-10-11
 
 **Stack:** Next.js (App Router, TypeScript) · MySQL / MariaDB (XAMPP, port 3308) · Prisma ORM 7 · Paystack.
 All data goes through the Next.js API (`app/api/*`) to MySQL via Prisma. There is no third-party
-database or auth service. The exception is the separate Buy Data page (`/buy-data`): it runs on its own
-Supabase backend and is not part of this backend.
+database or auth service. The Buy Data page (`/buy-data`) uses the same API and database for its
+packages, orders and payments (`app/api/data/*`, Admin → Data bundles); only its AI assistant chat
+still calls a Supabase function.
 
 | Step | Status | Notes |
 |---|---|---|
@@ -23,8 +24,8 @@ Supabase backend and is not part of this backend.
 
 | Command | What it covers |
 |---|---|
-| `npm run test:db` | 38 tests on a throwaway database: schema rules, listing lifecycle, admin auth/MFA/sessions, submission, payments (fake Paystack), approval, trust metadata, owner manage links, notifications, availability job, sales analytics |
-| `npm run test:e2e` | Whole flow over HTTP on a real Next.js server: submit → pay (webhook) → owner manage link → admin pages → public listing with photos |
+| `npm run test:db` | 46 tests on a throwaway database: schema rules, listing lifecycle, admin auth/MFA/sessions, submission, payments (fake Paystack), approval, trust metadata, data bundle orders, owner manage links, notifications, availability job, sales analytics |
+| `npm run test:e2e` | Whole flow over HTTP on a real Next.js server: submit → pay (webhook) → owner manage link → admin pages → public listing with photos; then a Buy Data purchase through to the admin delivery queue |
 | `npm run test:security` | Cross-site request protection, photo metadata (GPS) removal |
 | `node --test tests/listing-pricing.test.cjs` | Fees by listing type |
 | `npm run typecheck`, `npm run build` | TypeScript and production build |
@@ -40,6 +41,8 @@ Supabase backend and is not part of this backend.
 
 ## Not built yet
 
+- Automatic data bundle delivery and customer SMS: a team member sends each bundle and marks the order delivered in Admin → Data bundles.
+- The Buy Data AI assistant still runs on its Supabase function (it stores nothing in MySQL).
 - Automatic WhatsApp/email sending (messages are queued in Admin → Messages and sent with one click).
 - Phases 2 and 3 of `frontend-data-contract.md` (cost breakdown, living details, walkthrough video, campus distances): the website does not display them yet.
 - Shareable public page per listing; server-side room search.

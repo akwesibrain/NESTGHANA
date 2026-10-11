@@ -5,7 +5,8 @@ export function proxy(request: NextRequest) {
   const secure = process.env.NODE_ENV === "production";
   // Cloudflare Turnstile (bot protection) loads a script and an iframe when it is configured.
   const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? " https://challenges.cloudflare.com" : "";
-  // The Buy Data page (/buy-data) is a separate app with its own Supabase backend and inline styles.
+  // The Buy Data page (/buy-data) uses inline styles, and its AI assistant still calls a Supabase function.
+  // Its packages, orders and payments use this site's own API.
   const buyData = ["/buy-data", "/buy-data/", "/buy-data/index.html"].includes(request.nextUrl.pathname);
   const buyDataBackend = "https://plbtnltcocsuekifddat.supabase.co";
   const styleSource = buyData ? "'unsafe-inline'" : `'nonce-${nonce}'`;

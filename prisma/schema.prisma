@@ -208,6 +208,7 @@ model AdminUser {
   listingsApproved     Listing[]
   phoneVerified        ListingVerification[]    @relation("PhoneVerifier")
   identityVerified     ListingVerification[]    @relation("IdentityVerifier")
+  dataOrdersDelivered  DataOrder[]              @relation("DataOrderDeliverer")
   propertyVerified     ListingVerification[]    @relation("PropertyVerifier")
   priceVerified        ListingVerification[]    @relation("PriceVerifier")
   availabilityVerified ListingVerification[]    @relation("AvailabilityVerifier")
@@ -763,4 +764,78 @@ model Notification {
   @@index([status, createdAt])
   @@index([listingId, createdAt])
   @@map("notifications")
+}
+
+// ───────────────────────── Buy Data (data bundles) ─────────────────────────
+
+enum MobileNetwork {
+  MTN
+  TELECEL
+  AIRTELTIGO
+}
+
+enum DataOrderStatus {
+  /// Checkout started; Paystack has not confirmed payment.
+  PENDING
+  /// Paid; the bundle still has to be sent to the customer.
+  PAID
+  /// Paid and the bundle was sent.
+  DELIVERED
+  /// Paystack reported the payment as failed or abandoned.
+  FAILED
+  /// Paid but not delivered; closed by an admin (for example after a refund).
+  CANCELLED
+}
+
+/// A data bundle on sale on the Buy Data page.
+model DataPackage {
+  id           Int           @id @default(autoincrement()) @db.UnsignedInt
+  network      MobileNetwork
+  packageName  String        @map("package_name") @db.VarChar(80)
+  /// Display size, e.g. "2GB".
+  dataAmount   String        @map("data_amount") @db.VarChar(20)
+  pricePesewas Int           @map("price_pesewas") @db.UnsignedInt
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.DateTime(3)
+
+  orders DataOrder[]
+
+  @@index([active, network])
+  @@map("data_packages")
+}
+
+/// One purchase of a data bundle. Package details and price are copied at checkout, so later
+/// price changes never alter what a customer was charged for.
+model DataOrder {
+  id                    String          @id @default(uuid()) @db.Char(36)
+  packageId             Int             @map("package_id") @db.UnsignedInt
+  network               MobileNetwork
+  packageName           String          @map("package_name") @db.VarChar(80)
+  dataAmount            String          @map("data_amount") @db.VarChar(20)
+  amountPesewas         Int             @map("amount_pesewas") @db.UnsignedInt
+  currency              String          @default("GHS") @db.Char(3)
+  /// Number that receives the bundle.
+  customerPhoneE164     String          @map("customer_phone_e164") @db.VarChar(16)
+  /// Paystack receipt address.
+  customerEmail         String          @map("customer_email") @db.VarChar(254)
+  status                DataOrderStatus @default(PENDING)
+  reference             String          @unique @db.VarChar(80)
+  paystackTransactionId String?         @unique @map("paystack_transaction_id") @db.VarChar(100)
+  paidAt                DateTime?       @map("paid_at") @db.DateTime(3)
+  deliveredAt           DateTime?       @map("delivered_at") @db.DateTime(3)
+  deliveredById         String?         @map("delivered_by") @db.Char(36)
+  /// Admin note (required when cancelling).
+  note                  String?         @db.VarChar(500)
+  ipHash                Bytes?          @map("ip_hash") @db.Binary(32)
+  createdAt             DateTime        @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.DateTime(3)
+
+  package     DataPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  deliveredBy AdminUser?  @relation("DataOrderDeliverer", fields: [deliveredById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([customerPhoneE164])
+  @@index([paidAt])
+  @@map("data_orders")
 }

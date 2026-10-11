@@ -468,3 +468,91 @@ export async function updateAdminAccount(formData: FormData) {
   revalidatePath("/admin/settings");
   redirect(`/admin/settings?team=${parsed.data.action}`);
 }
+
+const dataOrderInput = z.object({
+  orderId: z.uuid(),
+  action: z.enum(["deliver", "undeliver", "cancel"]),
+  note: z.string().trim().max(500).optional(),
+});
+
+/**
+ * Buy Data orders: mark a paid order delivered (after the bundle was sent), undo that, or cancel a
+ * paid order that will not be delivered (a note saying why, e.g. the refund, is required).
+ */
+export async function updateDataOrder(formData: FormData) {
+  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN", "SUPPORT"]);
+  const parsed = dataOrderInput.safeParse({ orderId: formData.get("orderId"), action: formData.get("action"), note: formData.get("note") ?? undefined });
+  if (!parsed.success) redirect("/admin/data?data=invalid");
+  const { orderId, action } = parsed.data;
+  const note = parsed.data.note || null;
+  if (action === "cancel" && (!note || note.length < 3)) redirect("/admin/data?data=note_required");
+
+  const required = action === "undeliver" ? "DELIVERED" : "PAID";
+  const data = action === "deliver"
+    ? { status: "DELIVERED" as const, deliveredAt: new Date(), deliveredById: admin.user.id }
+    : action === "undeliver"
+      ? { status: "PAID" as const, deliveredAt: null, deliveredById: null }
+      : { status: "CANCELLED" as const, note };
+  const changed = await getDb().$transaction(async tx => {
+    // Only act on the status the admin saw, so two people cannot process the same order twice.
+    const result = await tx.dataOrder.updateMany({ where: { id: orderId, status: required }, data });
+    if (result.count !== 1) return false;
+    await tx.adminActivityLog.create({
+      data: {
+        adminUserId: admin.user.id, action: "DATA_ORDER_CHANGED", resourceType: "DATA_ORDER", resourceId: orderId,
+        previousState: { status: required }, newState: { status: data.status }, reason: note, source: "admin_dashboard", metadata: {},
+      },
+    });
+    return true;
+  });
+  revalidatePath("/admin/data");
+  redirect(`/admin/data?data=${changed ? action : "not_allowed"}`);
+}
+
+const dataPackageInput = z.object({
+  packageId: z.union([z.literal(""), z.coerce.number().int().positive()]),
+  network: z.enum(["MTN", "TELECEL", "AIRTELTIGO"]),
+  packageName: z.string().trim().min(1).max(80),
+  dataAmount: z.string().trim().min(1).max(20),
+  // Cedis with up to two decimals.
+  price: z.string().trim().regex(/^\d{1,4}(\.\d{1,2})?$/),
+  active: z.enum(["on", "off"]),
+});
+
+/** Adds a data package or updates one (name, size, price, on sale or not). */
+export async function saveDataPackage(formData: FormData) {
+  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN"]);
+  const parsed = dataPackageInput.safeParse({
+    packageId: formData.get("packageId") ?? "",
+    network: formData.get("network"),
+    packageName: formData.get("packageName"),
+    dataAmount: formData.get("dataAmount"),
+    price: formData.get("price"),
+    active: formData.get("active") === "on" ? "on" : "off",
+  });
+  if (!parsed.success) redirect("/admin/data?data=package_invalid");
+  const pricePesewas = Math.round(Number(parsed.data.price) * 100);
+  // GH₵0.10 to GH₵5,000.
+  if (pricePesewas < 10 || pricePesewas > 500_000) redirect("/admin/data?data=package_invalid");
+  const fields = {
+    network: parsed.data.network, packageName: parsed.data.packageName, dataAmount: parsed.data.dataAmount,
+    pricePesewas, active: parsed.data.active === "on",
+  };
+  const packageId = parsed.data.packageId === "" ? null : parsed.data.packageId;
+  await getDb().$transaction(async tx => {
+    const previous = packageId ? await tx.dataPackage.findUniqueOrThrow({ where: { id: packageId } }) : null;
+    const saved = packageId
+      ? await tx.dataPackage.update({ where: { id: packageId }, data: fields })
+      : await tx.dataPackage.create({ data: fields });
+    await tx.adminActivityLog.create({
+      data: {
+        adminUserId: admin.user.id, action: packageId ? "DATA_PACKAGE_UPDATED" : "DATA_PACKAGE_CREATED", resourceType: "DATA_PACKAGE",
+        resourceId: String(saved.id),
+        previousState: previous ? { packageName: previous.packageName, dataAmount: previous.dataAmount, pricePesewas: previous.pricePesewas, active: previous.active } : undefined,
+        newState: fields, source: "admin_dashboard", metadata: {},
+      },
+    });
+  });
+  revalidatePath("/admin/data");
+  redirect("/admin/data?data=package_saved");
+}

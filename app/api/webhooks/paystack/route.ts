@@ -1,3 +1,4 @@
+import { DATA_REFERENCE_PATTERN, finalizeDataPayment } from "@/lib/server/data-bundles";
 import { finalizePayment, REFERENCE_PATTERN } from "@/lib/server/payments";
 import { paystackConfigured, validWebhookSignature, verifyTransaction } from "@/lib/server/paystack";
 
@@ -19,15 +20,18 @@ export async function POST(request: Request) {
   }
 
   const reference = event.data?.reference;
-  if (event.event !== "charge.success" || typeof reference !== "string" || !REFERENCE_PATTERN.test(reference)) {
-    // Not a NestGH listing-fee charge (or an event type we do not act on): acknowledge it.
+  const isListingFee = typeof reference === "string" && REFERENCE_PATTERN.test(reference);
+  const isDataOrder = typeof reference === "string" && DATA_REFERENCE_PATTERN.test(reference);
+  if (event.event !== "charge.success" || typeof reference !== "string" || (!isListingFee && !isDataOrder)) {
+    // Not a NestGH charge (or an event type we do not act on): acknowledge it.
     return new Response(null, { status: 200 });
   }
 
   try {
     const transaction = await verifyTransaction(reference);
     if (transaction.status === "success") {
-      await finalizePayment(reference, transaction, "charge.success", rawBody, event as Record<string, never>);
+      if (isDataOrder) await finalizeDataPayment(reference, transaction);
+      else await finalizePayment(reference, transaction, "charge.success", rawBody, event as Record<string, never>);
     }
     return new Response(null, { status: 200 });
   } catch (error) {

@@ -194,6 +194,47 @@ try {
   assert.ok(!JSON.stringify(rooms).includes("Plot 12"), "exact address stays private");
   step("approved listing is public with its photos; address and profile photo stay private");
 
+  // ── Buy Data: packages → checkout → payment (webhook) → admin delivery queue ──
+  const post = (url, body, headers = {}) => fetch(BASE + url, { method: "POST", headers: { "Content-Type": "application/json", Origin: BASE, ...headers }, body: JSON.stringify(body) });
+  const buyPage = await (await fetch(`${BASE}/buy-data/index.html`)).text();
+  const buyScript = await (await fetch(`${BASE}/buy-data/app.js`)).text();
+  assert.ok(!buyPage.includes("supabase.js") && buyScript.includes("/api/data"), "Buy Data page uses the NestGH API");
+  const { packages } = await (await fetch(`${BASE}/api/data/packages`)).json();
+  assert.equal(packages.length, 6);
+  assert.deepEqual(packages[1], { id: 2, network: "MTN", package_name: "MTN 5GB", data_amount: "5GB", price: 20, status: "active" });
+
+  const order = { package_id: 2, customer_phone: "0241234567", customer_email: "e2e.buyer@example.com" };
+  assert.equal((await post("/api/data/checkout", order, { Origin: "https://evil.example" })).status, 403, "cross-site checkout is refused");
+  assert.equal((await post("/api/data/checkout", { ...order, customer_phone: "123" })).status, 400);
+  const started = await (await post("/api/data/checkout", order)).json();
+  assert.ok(started.success && started.order_id, "checkout started");
+  assert.match(started.reference, /^NGD-[0-9A-F]{32}$/);
+  assert.equal(started.authorization_url, `http://127.0.0.1:${fake.address().port}/pay/${started.reference}`);
+
+  const early = await post("/api/data/verify", { reference: started.reference });
+  assert.equal(early.status, 409, "not paid yet");
+  assert.equal((await early.json()).verified, false);
+  paid.set(started.reference, 2000);
+  const dataEvent = JSON.stringify({ event: "charge.success", data: { reference: started.reference } });
+  const sign = body => ({ "x-paystack-signature": createHmac("sha512", SECRET).update(body).digest("hex") });
+  assert.equal((await fetch(`${BASE}/api/webhooks/paystack`, { method: "POST", body: dataEvent, headers: sign(dataEvent) })).status, 200);
+  assert.equal((await fetch(`${BASE}/api/webhooks/paystack`, { method: "POST", body: dataEvent, headers: sign(dataEvent) })).status, 200, "webhook retries are harmless");
+  assert.deepEqual(await (await post("/api/data/verify", { reference: started.reference })).json(), { verified: true, payment_status: "success" });
+  const [dataOrder] = await sql("SELECT status, amount_pesewas, customer_phone_e164, network, data_amount FROM data_orders WHERE id = ?", [started.order_id], "nestghana_e2e");
+  assert.deepEqual({ ...dataOrder }, { status: "PAID", amount_pesewas: 2000, customer_phone_e164: "+233241234567", network: "MTN", data_amount: "5GB" });
+  step("Buy Data: packages load from MySQL; checkout and signed webhook record the order as paid once");
+
+  assert.equal((await fetch(`${BASE}/admin/data`, { redirect: "manual" })).status, 307, "data orders need an admin session");
+  const dataAdmin = await (await fetch(`${BASE}/admin/data`, { headers: cookie })).text();
+  // The e2e admin is a MODERATOR, who may not see customer orders.
+  assert.ok(!dataAdmin.includes("0241234567"), "moderators cannot see data orders");
+  await sql("INSERT INTO admin_roles (user_id, role, updated_at) VALUES (?, 'SUPPORT', UTC_TIMESTAMP(3))", [adminId], "nestghana_e2e");
+  const dataAdminPage = await (await fetch(`${BASE}/admin/data`, { headers: cookie })).text();
+  for (const text of ["Data bundles", "0241234567", "e2e.buyer@example.com", started.reference, "Mark delivered", "Paid, to deliver"]) {
+    assert.ok(dataAdminPage.includes(text), `data orders page shows ${text}`);
+  }
+  step("Buy Data: the paid order is in the admin delivery queue with the number to send to");
+
   console.log("\nEnd-to-end flow passed.");
 } catch (error) {
   failed = true;

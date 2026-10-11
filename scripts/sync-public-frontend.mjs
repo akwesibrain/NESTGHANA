@@ -26,9 +26,6 @@ const assets = [
   ["buy-data/images/nestgh-logo-192.png", "buy-data/images/nestgh-logo-192.png"],
   ["buy-data/videos/hero.mp4", "buy-data/videos/hero.mp4"],
   ["data/ghana-locations.json", "ghana-locations.json"],
-  // Only the Buy Data page (/buy-data) uses this; it has its own Supabase backend. The listings site does not.
-  ["node_modules/@supabase/supabase-js/dist/umd/supabase.js", "supabase.js"],
-  ["node_modules/@supabase/supabase-js/LICENSE", "supabase.LICENSE.txt"],
 ];
 
 await mkdir(publicDir, { recursive: true });

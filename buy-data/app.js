@@ -162,31 +162,18 @@ if (track) {
 
 
 // ================================================================
-// SUPABASE CONNECTION
+// BACKEND
 // ================================================================
+// Packages, orders and payments use the NestGH API (MySQL).
+// Only the AI assistant still runs on its Supabase function.
+
+const DATA_API_URL = '/api/data';
 
 const SUPABASE_URL =
   'https://plbtnltcocsuekifddat.supabase.co';
 
 const SUPABASE_PUBLISHABLE_KEY =
   'sb_publishable_gwgxy9az6GagMy-0K_HoMw_FVcsVSVW';
-
-let supabaseClient = null;
-
-if (
-  window.supabase &&
-  typeof window.supabase.createClient === 'function'
-) {
-  supabaseClient =
-    window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY
-    );
-} else {
-  console.error(
-    'Plus Data: Supabase library was not loaded. Make sure index.html loads @supabase/supabase-js before app.js.'
-  );
-}
 
 
 // ================================================================
@@ -263,34 +250,30 @@ async function loadPackagesFromSupabase() {
     return false;
   }
 
-  if (!supabaseClient) {
-    console.error(
-      'Plus Data: Cannot load packages because Supabase is unavailable.'
-    );
-
-    return false;
-  }
-
   packagesLoading = true;
 
   try {
-    const {
-      data,
-      error
-    } = await supabaseClient
-      .from('data_packages')
-      .select(
-        'id, network, package_name, data_amount, price, status'
-      )
-      .eq('status', 'active')
-      .order('id', {
-        ascending: true
-      });
+    const response =
+      await fetch(
+        `${DATA_API_URL}/packages`
+      );
 
-    if (error) {
+    const result =
+      await response
+        .json()
+        .catch(() => null);
+
+    const data =
+      result?.packages;
+
+    if (
+      !response.ok ||
+      !Array.isArray(data)
+    ) {
       console.error(
-        'Plus Data: Supabase package loading failed:',
-        error
+        'Plus Data: package loading failed:',
+        result?.error ||
+          response.status
       );
 
       return false;
@@ -1222,10 +1205,7 @@ if (checkoutPayBtn) {
   checkoutPayBtn.addEventListener(
     'click',
     async () => {
-      if (
-        !checkoutState ||
-        !supabaseClient
-      ) {
+      if (!checkoutState) {
         return;
       }
 
@@ -1310,16 +1290,13 @@ if (checkoutPayBtn) {
       try {
         const response =
           await fetch(
-            `${SUPABASE_URL}/functions/v1/paystack-initialize`,
+            `${DATA_API_URL}/checkout`,
             {
               method: 'POST',
 
               headers: {
                 'Content-Type':
-                  'application/json',
-
-                apikey:
-                  SUPABASE_PUBLISHABLE_KEY
+                  'application/json'
               },
 
               body: JSON.stringify({
@@ -1438,16 +1415,13 @@ async function handlePaystackCallback() {
   try {
     const response =
       await fetch(
-        `${SUPABASE_URL}/functions/v1/paystack-verify`,
+        `${DATA_API_URL}/verify`,
         {
           method: 'POST',
 
           headers: {
             'Content-Type':
-              'application/json',
-
-            apikey:
-              SUPABASE_PUBLISHABLE_KEY
+              'application/json'
           },
 
           body: JSON.stringify({
