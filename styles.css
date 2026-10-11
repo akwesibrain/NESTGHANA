@@ -1188,7 +1188,8 @@ body.modal-open {
   display: flex;
   gap: 6px;
 }
-.acts a {
+.acts a,
+.property-contact-actions a {
   height: 36px;
   border-radius: 999px;
   display: flex;
@@ -3449,7 +3450,8 @@ body.public-site nav .logo small {
   gap: 8px;
 }
 
-.acts a {
+.acts a,
+.property-contact-actions a {
   height: 44px;
 }
 

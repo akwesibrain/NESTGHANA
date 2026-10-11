@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ListingStatus } from "@/generated/prisma/client";
@@ -130,7 +129,7 @@ export function Card({ title, link, children, className = "" }: { title?: string
 export function Thumb({ imageId, small = false }: { imageId?: string; small?: boolean }) {
   const size = small ? 44 : 56;
   return imageId ? (
-    <Image className={`ngd-thumb${small ? " is-small" : ""}`} src={`/api/admin/images/${imageId}`} alt="" width={size} height={size} unoptimized />
+    <img className={`ngd-thumb${small ? " is-small" : ""}`} src={`/api/admin/images/${imageId}`} alt="" width={size} height={size} loading="lazy" decoding="async" />
   ) : (
     <span className={`ngd-thumb is-empty${small ? " is-small" : ""}`} aria-hidden="true"><Icon name="home" /></span>
   );
@@ -143,7 +142,7 @@ export function AdminFrame({ admin, active, alerts = 0, children }: { admin: Adm
     <div className="admin-shell ngd">
       <header className="ngd-topbar">
         <Link className="ngd-logo" href="/admin" aria-label="NestGH admin home">
-          <Image src="/logo-192.png" alt="" width={40} height={40} priority />
+          <img src="/logo-192.png" alt="" width={40} height={40} />
           <span><strong>NestGH</strong><small>Find. Rent. Grow.</small></span>
         </Link>
         <nav className="ngd-tabs" aria-label="Admin sections">

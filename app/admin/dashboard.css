@@ -380,6 +380,8 @@
 .ngd-manage-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ngd-manage-row form { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
 .ngd-manage-row input[type="text"] { min-height: 32px; min-width: 240px; border: 1px solid #d3dae5; border-radius: 8px; padding: 0 10px; font: inherit; font-size: 12px; }
+.ngd-manage-row input[type="date"], .ngd-manage-row select { min-height: 32px; border: 1px solid #d3dae5; border-radius: 8px; padding: 0 10px; background: #fff; font: inherit; font-size: 12px; }
+.ngd-manage-row label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
 .ngd-checks { display: flex; flex-wrap: wrap; gap: 8px; }
 .ngd-checks form { margin: 0; }
 .ngd-check { display: inline-flex; align-items: center; gap: 6px; }

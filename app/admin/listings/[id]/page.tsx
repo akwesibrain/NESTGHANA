@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { changeListingStatus, ownerLinkAction, reviewListing, setListingTrust, setSiteVisit, setVerification } from "@/app/admin/actions";
@@ -230,7 +229,7 @@ export default async function AdminListingPage({ params, searchParams }: Props) 
               {listing.images.map(image => (
                 <figure key={image.id}>
                   <a href={`/api/admin/images/${image.id}`} target="_blank" rel="noopener">
-                    <Image src={`/api/admin/images/${image.id}`} alt={`${image.category} photo`} width={320} height={220} unoptimized />
+                    <img src={`/api/admin/images/${image.id}`} alt={`${image.category} photo`} width={320} height={220} loading="lazy" decoding="async" />
                   </a>
                   <figcaption>{image.category.replaceAll("_", " ").toLowerCase()} {image.approvedForPublic ? "· public" : "· private"}</figcaption>
                 </figure>

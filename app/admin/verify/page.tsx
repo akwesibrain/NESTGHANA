@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
@@ -38,7 +37,7 @@ export default async function VerifyAdminPage({ searchParams }: { searchParams: 
           <>
             <h1>Set up your authenticator</h1>
             <p>Scan this code with an authenticator app (Google Authenticator, Microsoft Authenticator, Authy or 1Password), then enter the 6-digit code it shows.</p>
-            <Image src={setup.qr} alt="QR code for your authenticator app" width={220} height={220} unoptimized />
+            <img src={setup.qr} alt="QR code for your authenticator app" width={220} height={220} />
             <p>Can&apos;t scan? Enter this key manually:</p>
             <p><code>{setup.secret.match(/.{1,4}/g)?.join(" ")}</code></p>
           </>

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import type { ListingStatus } from "@/generated/prisma/client";
 import { ownerConfirm, ownerMarkTaken, ownerResubmit, ownerUpdateUnits } from "@/app/manage/actions";
@@ -128,7 +127,7 @@ export default async function ManageListingPage({ params, searchParams }: Props)
 function Brand() {
   return (
     <Link className="mg-brand" href="/">
-      <Image src="/logo-192.png" alt="" width={36} height={36} />
+      <img src="/logo-192.png" alt="" width={36} height={36} />
       <span>NestGH</span>
     </Link>
   );

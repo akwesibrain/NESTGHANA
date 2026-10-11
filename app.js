@@ -627,8 +627,9 @@ function openSheet(i) {
   m = d.m || {},
   D = DEF[r.ty],
   monthlyRent = r.p,
+    // "adv" counts rent payments for the listing's own period (e.g. 1 semester), not months.
     estimatedMoveIn =
-      monthlyRent * (Number(r.adv) || 0) +
+      (r.rentAmount ?? monthlyRent) * (Number(r.adv) || 0) +
       (Number(r.dep) || 0) +
       (Number(r.fee) || 0) +
       (Number(d.oth) || 0),
