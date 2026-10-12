@@ -137,12 +137,13 @@ export function Thumb({ imageId, small = false }: { imageId?: string; small?: bo
   );
 }
 
-/** Top bar + tabs shared by every signed-in admin page. */
+/** Sidebar navigation + top bar shared by every signed-in admin page. */
 export function AdminFrame({ admin, active, alerts = 0, children }: { admin: AdminContext; active: string; alerts?: number; children: ReactNode }) {
   const name = admin.user.displayName || admin.user.email;
+  const section = TABS.find(tab => tab.href === active)?.label ?? "Admin";
   return (
     <div className="admin-shell ngd">
-      <header className="ngd-topbar">
+      <aside className="ngd-sidebar">
         <Link className="ngd-logo" href="/admin" aria-label="NestGH admin home">
           <img src="/logo-192.png" alt="" width={40} height={40} />
           <span><strong>NestGH</strong><small>Find. Rent. Grow.</small></span>
@@ -150,29 +151,36 @@ export function AdminFrame({ admin, active, alerts = 0, children }: { admin: Adm
         <nav className="ngd-tabs" aria-label="Admin sections">
           {TABS.map(tab => (
             <Link key={tab.href} href={tab.href} className={tab.href === active ? "is-active" : undefined} aria-current={tab.href === active ? "page" : undefined}>
-              <Icon name={tab.icon} size={16} />{tab.label}
+              <Icon name={tab.icon} size={18} /><span>{tab.label}</span>
+              {tab.href === "/admin/reports" && alerts ? <b className="ngd-nav-count" aria-label={`${alerts} open`}>{alerts}</b> : null}
             </Link>
           ))}
         </nav>
-        <div className="ngd-topbar-actions">
-          <Link className="ngd-icon-button" href="/admin/listings" aria-label="Search listings"><Icon name="search" /></Link>
-          <Link className="ngd-icon-button" href="/admin/reports" aria-label={alerts ? `${alerts} open reports` : "Reports"}>
-            <Icon name="bell" />{alerts ? <span className="ngd-dot" aria-hidden="true" /> : null}
-          </Link>
-          <details className="ngd-account">
-            <summary>
-              <span className="ngd-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
-              <span className="ngd-account-name">{admin.user.displayName || "Admin"}</span>
-            </summary>
-            <div className="ngd-account-menu">
-              <p><strong>{name}</strong><span>{admin.roles.join(", ").replaceAll("_", " ").toLowerCase()}</span></p>
-              <Link href="/" target="_blank">View website <Icon name="external" size={14} /></Link>
-              <form action={signOutAdmin}><button type="submit">Sign out</button></form>
-            </div>
-          </details>
-        </div>
-      </header>
-      <main className="ngd-main">{children}</main>
+        <Link className="ngd-sidebar-foot" href="/" target="_blank"><Icon name="external" size={16} /><span>View website</span></Link>
+      </aside>
+      <div className="ngd-body">
+        <header className="ngd-topbar">
+          <p className="ngd-topbar-title">{section}</p>
+          <div className="ngd-topbar-actions">
+            <Link className="ngd-icon-button" href="/admin/listings" aria-label="Search listings"><Icon name="search" /></Link>
+            <Link className="ngd-icon-button" href="/admin/reports" aria-label={alerts ? `${alerts} open reports` : "Reports"}>
+              <Icon name="bell" />{alerts ? <span className="ngd-dot" aria-hidden="true" /> : null}
+            </Link>
+            <details className="ngd-account">
+              <summary>
+                <span className="ngd-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
+                <span className="ngd-account-name">{admin.user.displayName || "Admin"}</span>
+              </summary>
+              <div className="ngd-account-menu">
+                <p><strong>{name}</strong><span>{admin.roles.join(", ").replaceAll("_", " ").toLowerCase()}</span></p>
+                <Link href="/" target="_blank">View website <Icon name="external" size={14} /></Link>
+                <form action={signOutAdmin}><button type="submit">Sign out</button></form>
+              </div>
+            </details>
+          </div>
+        </header>
+        <main className="ngd-main">{children}</main>
+      </div>
     </div>
   );
 }

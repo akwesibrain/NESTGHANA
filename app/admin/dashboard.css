@@ -33,6 +33,50 @@
 .ngd .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .ngd-icon { flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
+/* ───── Layout: sidebar + content ───── */
+.ngd { display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+.ngd-body { min-width: 0; }
+
+.ngd-sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 20px 14px 16px;
+  background: var(--ngd-navy);
+  color: #d5deea;
+}
+
+.ngd-logo { display: flex; align-items: center; gap: 10px; padding: 0 6px; text-decoration: none; }
+.ngd-logo img { width: 40px; height: 40px; border-radius: 10px; background: #fff; object-fit: contain; }
+.ngd-logo span { display: grid; line-height: 1.1; }
+.ngd-logo strong { font-size: 21px; font-weight: 800; color: #fff; }
+.ngd-logo small { color: #9fb0c5; font-size: 11px; font-weight: 600; }
+
+.ngd-tabs { display: grid; gap: 3px; }
+.ngd-tabs a, .ngd-sidebar-foot {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #c3cfde;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ngd .ngd-tabs a, .ngd .ngd-sidebar-foot { color: #c3cfde; }
+.ngd .ngd-tabs a:hover, .ngd .ngd-sidebar-foot:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.ngd .ngd-tabs a.is-active { background: #fff; color: var(--ngd-navy); }
+.ngd-nav-count { margin-left: auto; border-radius: 999px; padding: 1px 8px; background: var(--ngd-crit); color: #fff; font-size: 11px; font-weight: 700; }
+.ngd-sidebar-foot { margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.12); border-radius: 0; padding-top: 16px; }
+.ngd .ngd-sidebar-foot:hover { background: transparent; }
+
 /* ───── Top bar ───── */
 .ngd-topbar {
   position: sticky;
@@ -40,41 +84,14 @@
   z-index: 20;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 20px;
   border-bottom: 1px solid var(--ngd-line);
-  padding: 12px 28px;
+  padding: 10px 28px;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(6px);
 }
-
-.ngd-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.ngd-logo img { width: 40px; height: 40px; border-radius: 10px; object-fit: contain; }
-.ngd-logo span { display: grid; line-height: 1.1; }
-.ngd-logo strong { font-size: 21px; font-weight: 800; color: var(--ngd-ink); }
-.ngd-logo small { color: var(--ngd-muted); font-size: 11px; font-weight: 600; }
-
-.ngd-tabs {
-  display: flex;
-  gap: 4px;
-  margin: 0 auto;
-  border-radius: 999px;
-  padding: 4px;
-  background: #f1f4f8;
-}
-.ngd-tabs a {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border-radius: 999px;
-  padding: 8px 16px;
-  color: #3d4a5c;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.ngd-tabs a:hover { background: #e4e9f1; color: var(--ngd-ink); }
-.ngd-tabs a.is-active { background: var(--ngd-navy); color: #fff; }
+.ngd-topbar-title { margin: 0; color: var(--ngd-muted); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 
 .ngd-topbar-actions { display: flex; align-items: center; gap: 8px; }
 .ngd-icon-button {
@@ -123,7 +140,8 @@
 .ngd-account-menu form { margin: 0; }
 
 /* ───── Page layout ───── */
-.ngd-main { width: min(1440px, 100%); margin: 0 auto; padding: 24px 28px 48px; }
+/* Content uses the full width beside the sidebar. */
+.ngd-main { padding: 24px 28px 48px; }
 .ngd-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .ngd-page-head h1 { font-size: 24px; font-weight: 800; }
 .ngd-page-head p { margin: 2px 0 0; color: var(--ngd-muted); }
@@ -336,14 +354,28 @@
   .ngd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 1100px) {
-  .ngd-topbar { flex-wrap: wrap; }
-  .ngd-tabs { order: 3; width: 100%; overflow-x: auto; margin: 0; }
-  .ngd-topbar-actions { margin-left: auto; }
   .ngd-row-top, .ngd-row-bottom { grid-template-columns: minmax(0, 1fr); }
+}
+/* Tablets and phones: the sidebar becomes a bar across the top with a scrolling row of sections. */
+@media (max-width: 960px) {
+  .ngd { display: block; position: relative; }
+  .ngd-sidebar { position: static; height: auto; overflow: visible; gap: 10px; padding: 10px 16px 8px; }
+  .ngd-logo { padding: 0; min-height: 40px; }
+  .ngd-tabs { display: flex; gap: 4px; margin: 0 -16px; padding: 0 16px 2px; overflow-x: auto; scrollbar-width: none; }
+  .ngd-tabs::-webkit-scrollbar { display: none; }
+  .ngd-tabs a { padding: 8px 12px; font-size: 13px; }
+  .ngd-sidebar-foot { display: none; }
+  /* Search, alerts and account sit in the dark bar, beside the logo. */
+  .ngd-topbar { position: absolute; top: 0; right: 0; border: 0; padding: 10px 16px; background: transparent; backdrop-filter: none; }
+  .ngd-topbar-title { display: none; }
+  .ngd-topbar .ngd-icon-button { border-color: rgba(255, 255, 255, 0.25); background: transparent; color: #fff; }
+  .ngd-topbar .ngd-account summary:hover { background: rgba(255, 255, 255, 0.1); }
+  .ngd-topbar .ngd-avatar { background: #fff; color: var(--ngd-navy); }
+  .ngd-topbar .ngd-account-name { color: #fff; }
 }
 @media (max-width: 700px) {
   .ngd-main { padding: 16px 16px 40px; }
-  .ngd-topbar { padding: 10px 16px; gap: 10px; }
+  .ngd-topbar { gap: 8px; }
   .ngd-logo small, .ngd-account-name { display: none; }
   .ngd-page-head { flex-direction: column; align-items: flex-start; }
   .ngd-row-4, .ngd-kpis, .ngd-bars-two, .ngd-map { grid-template-columns: minmax(0, 1fr); }
