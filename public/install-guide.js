@@ -2,6 +2,7 @@
   "use strict";
 
   const SHOW_DELAY_MS = 4000;
+  const AFTER_COOKIE_DELAY_MS = 1500;
   const SNOOZE_DAYS = 7;
   const STORAGE_KEY = "nestgh-install-guide-dismissed-at";
   const OPEN_EVENT = "nest:open-install-guide";
@@ -253,9 +254,29 @@
 
     const device = detectDevice();
     if (!device.mobile || isInstalled() || isSnoozed()) return;
-    showTimer = window.setTimeout(() => {
-      if (!isInstalled() && !isSnoozed()) open(device.tab);
-    }, SHOW_DELAY_MS);
+    const schedule = (delay) => {
+      window.clearTimeout(showTimer);
+      showTimer = window.setTimeout(() => {
+        // Never stack the guide on top of something else the visitor is in the middle of.
+        if (isInstalled() || isSnoozed() || isOpen || document.body.classList.contains("modal-open")) return;
+        open(device.tab);
+      }, delay);
+    };
+
+    // One interruption at a time: while the cookie banner is waiting for an answer, hold the guide
+    // back and show it shortly after the visitor has made their choice.
+    const cookieBanner = document.getElementById("cookie-banner");
+    if (cookieBanner && !cookieBanner.hidden) {
+      const observer = new MutationObserver(() => {
+        if (!cookieBanner.hidden) return;
+        observer.disconnect();
+        schedule(AFTER_COOKIE_DELAY_MS);
+      });
+      observer.observe(cookieBanner, { attributes: true, attributeFilter: ["hidden"] });
+      window.addEventListener("pagehide", () => observer.disconnect());
+      return;
+    }
+    schedule(SHOW_DELAY_MS);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
