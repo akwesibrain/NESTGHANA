@@ -18,6 +18,13 @@ const assets = [
   ["logo.png", "logo.png"],
   ["logo-80.webp", "logo-80.webp"],
   ["logo-192.png", "logo-192.png"],
+  ["manifest.webmanifest", "manifest.webmanifest"],
+  ["install-guide.css", "install-guide.css"],
+  ["install-guide.js", "install-guide.js"],
+  ["icons/icon-192.png", "icons/icon-192.png"],
+  ["icons/icon-512.png", "icons/icon-512.png"],
+  ["icons/icon-maskable-512.png", "icons/icon-maskable-512.png"],
+  ["icons/apple-touch-icon-180.png", "icons/apple-touch-icon-180.png"],
   ["listing-pricing.js", "listing-pricing.js"],
   ["buy-data/index.html", "buy-data/index.html"],
   ["buy-data/app.js", "buy-data/app.js"],
@@ -29,6 +36,7 @@ const assets = [
 ];
 
 await mkdir(publicDir, { recursive: true });
+await mkdir(resolve(publicDir, "icons"), { recursive: true });
 await mkdir(resolve(publicDir, "buy-data/images"), { recursive: true });
 await mkdir(resolve(publicDir, "buy-data/videos"), { recursive: true });
 await Promise.all(assets.map(([source, destination]) =>
