@@ -65,7 +65,7 @@ export async function signOutAdmin() {
 
 function parseCedis(value: FormDataEntryValue | null): number | null {
   const amount = String(value || "").trim();
-  if (!/^d{1,8}(?:.d{1,2})?$/.test(amount)) return null;
+  if (!/^\d{1,8}(?:\.\d{1,2})?$/.test(amount)) return null;
   const [whole, fraction = ""] = amount.split(".");
   const pesewas = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
   return Number.isSafeInteger(pesewas) && pesewas > 0 && pesewas <= 2_147_483_647 ? pesewas : null;

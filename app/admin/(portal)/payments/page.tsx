@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { PaymentStatus } from "@/generated/prisma/client";
-import { AdminFrame, Card, cedis, ghanaDate } from "@/app/admin/admin-ui";
-import { SalesLive } from "@/app/admin/payments/sales-live";
+import { Card, cedis, ghanaDate } from "@/app/admin/admin-ui";
+import { SalesLive } from "@/app/admin/(portal)/payments/sales-live";
 import { getSalesAnalytics } from "@/lib/server/sales-analytics";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
@@ -20,11 +20,11 @@ const STATUS: Record<PaymentStatus, { label: string; tone: "good" | "warning" | 
 const TYPE_LABEL = { ROOM: "Room", HOSTEL: "Hostel", SPACE: "Shop / space" } as const;
 
 export default async function AdminPaymentsPage({ searchParams }: { searchParams: SearchParams }) {
-  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN"]);
+  await requireAdmin(["SUPER_ADMIN", "ADMIN"]);
   const params = await searchParams;
   const status = (Object.keys(STATUS) as PaymentStatus[]).find(s => s === params.status);
   const db = getDb();
-  const [payments, sales, openReports] = await Promise.all([
+  const [payments, sales] = await Promise.all([
     db.payment.findMany({
       where: status ? { status } : {},
       orderBy: { createdAt: "desc" },
@@ -35,11 +35,10 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
       },
     }),
     getSalesAnalytics(30),
-    db.report.count({ where: { status: { in: ["OPEN", "REVIEWING"] } } }),
   ]);
 
   return (
-    <AdminFrame admin={admin} active="/admin/payments" alerts={openReports}>
+    <>
       <div className="ngd-page-head">
         <div><h1>Payments</h1><p>Listing fees paid through Paystack. Amounts are recorded only after Paystack confirms them.</p></div>
       </div>
@@ -74,7 +73,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
         </div>
         <p className="ngd-note">Shows the 100 most recent attempts.</p>
       </Card>
-    </AdminFrame>
+    </>
   );
 }
 

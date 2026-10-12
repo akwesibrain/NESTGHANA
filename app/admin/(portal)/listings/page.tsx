@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ListingStatus, Prisma } from "@/generated/prisma/client";
 import { reviewListing } from "@/app/admin/actions";
-import { AdminFrame, Card, cedis, count, ghanaDate, StatusBadge, Thumb } from "@/app/admin/admin-ui";
+import { Card, cedis, count, ghanaDate, StatusBadge, Thumb } from "@/app/admin/admin-ui";
 import { hasRole } from "@/lib/server/admin-auth";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
@@ -46,7 +46,7 @@ export default async function AdminListingsPage({ searchParams }: { searchParams
     ...(q ? { OR: [{ title: { contains: q } }, { id: { startsWith: q } }, { area: { name: { contains: q } } }, { area: { parent: { name: { contains: q } } } }] } : {}),
   };
   const db = getDb();
-  const [rows, total, statusCounts, openReports] = await Promise.all([
+  const [rows, total, statusCounts] = await Promise.all([
     db.listing.findMany({
       where,
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
@@ -61,7 +61,6 @@ export default async function AdminListingsPage({ searchParams }: { searchParams
     }),
     db.listing.count({ where }),
     db.listing.groupBy({ by: ["status"], _count: { _all: true } }),
-    db.report.count({ where: { status: { in: ["OPEN", "REVIEWING"] } } }),
   ]);
   const statusCount = (value: string) =>
     value ? statusCounts.find(s => s.status === value)?._count._all ?? 0 : statusCounts.reduce((sum, s) => sum + s._count._all, 0);
@@ -75,7 +74,7 @@ export default async function AdminListingsPage({ searchParams }: { searchParams
   const message = params.review ? reviewMessages[params.review] : undefined;
 
   return (
-    <AdminFrame admin={admin} active="/admin/listings" alerts={openReports}>
+    <>
       <div className="ngd-page-head">
         <div><h1>Listings</h1><p>Every submission, with search, filters and review actions.</p></div>
         <span className="ngd-chip">{count(total)} matching</span>
@@ -145,6 +144,6 @@ export default async function AdminListingsPage({ searchParams }: { searchParams
           </nav>
         ) : null}
       </Card>
-    </AdminFrame>
+    </>
   );
 }

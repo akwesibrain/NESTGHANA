@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { DataOrderStatus } from "@/generated/prisma/client";
 import { saveDataPackage, updateDataOrder } from "@/app/admin/actions";
-import { AdminFrame, Card, cedis, ghanaDate } from "@/app/admin/admin-ui";
+import { Card, cedis, ghanaDate } from "@/app/admin/admin-ui";
 import { hasRole } from "@/lib/server/admin-auth";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { DATA_ORDER_LABEL, getDataSalesSummary, NETWORK_LABEL } from "@/lib/server/data-bundles";
@@ -32,7 +32,7 @@ export default async function AdminDataPage({ searchParams }: { searchParams: Se
   const status = (Object.keys(DATA_ORDER_LABEL) as DataOrderStatus[]).find(s => s === params.status);
   const canEditPackages = hasRole(admin, ["SUPER_ADMIN", "ADMIN"]);
   const db = getDb();
-  const [orders, packages, summary, openReports] = await Promise.all([
+  const [orders, packages, summary] = await Promise.all([
     db.dataOrder.findMany({
       // By default, show paid orders, with those still waiting for their bundle first.
       where: status ? { status } : { status: { in: ["PAID", "DELIVERED", "CANCELLED"] } },
@@ -42,12 +42,11 @@ export default async function AdminDataPage({ searchParams }: { searchParams: Se
     }),
     db.dataPackage.findMany({ orderBy: [{ network: "asc" }, { pricePesewas: "asc" }] }),
     getDataSalesSummary(),
-    db.report.count({ where: { status: { in: ["OPEN", "REVIEWING"] } } }),
   ]);
   const message = params.data ? messages[params.data] : undefined;
 
   return (
-    <AdminFrame admin={admin} active="/admin/data" alerts={openReports}>
+    <>
       <div className="ngd-page-head">
         <div><h1>Data bundles</h1><p>Orders from the Buy Data page. Send the bundle to the customer’s number, then mark the order delivered.</p></div>
         <Link className="ngd-chip" href="/buy-data/index.html" target="_blank">Open Buy Data page</Link>
@@ -150,7 +149,7 @@ export default async function AdminDataPage({ searchParams }: { searchParams: Se
           <p className="ngd-note">A price change applies to new orders only. Take a package off sale instead of deleting it, so past orders keep their record.</p>
         </Card>
       </div>
-    </AdminFrame>
+    </>
   );
 }
 

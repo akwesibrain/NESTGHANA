@@ -1,5 +1,5 @@
 import { createAdminAccount, updateAdminAccount, updateListingFees } from "@/app/admin/actions";
-import { AdminFrame, Card, cedis, ghanaDate } from "@/app/admin/admin-ui";
+import { Card, cedis, ghanaDate } from "@/app/admin/admin-ui";
 import { hasRole } from "@/lib/server/admin-auth";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
@@ -28,19 +28,18 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
   const canManage = hasRole(admin, ["SUPER_ADMIN", "ADMIN"]);
   const isSuper = hasRole(admin, ["SUPER_ADMIN"]);
   const db = getDb();
-  const [settings, history, admins, openReports] = await Promise.all([
+  const [settings, history, admins] = await Promise.all([
     db.websiteSettings.findUnique({ where: { id: 1 } }),
     db.websiteSettingsHistory.findMany({ orderBy: { createdAt: "desc" }, take: 10, include: { changedBy: { select: { displayName: true, email: true } } } }),
     db.adminUser.findMany({
       orderBy: { createdAt: "asc" },
       select: { id: true, email: true, displayName: true, isActive: true, mfaEnabledAt: true, lastLoginAt: true, roles: { select: { role: true } } },
     }),
-    db.report.count({ where: { status: { in: ["OPEN", "REVIEWING"] } } }),
   ]);
   const message = params.fee ? feeMessages[params.fee] : params.team ? teamMessages[params.team] : undefined;
 
   return (
-    <AdminFrame admin={admin} active="/admin/settings" alerts={openReports}>
+    <>
       <div className="ngd-page-head">
         <div><h1>Settings</h1><p>Listing fees and the admin team.</p></div>
       </div>
@@ -119,6 +118,6 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           <p className="ngd-note">Passwords can also be reset on the server with <code>npm run admin:create -- --email … --reset</code>.</p>
         </Card>
       </div>
-    </AdminFrame>
+    </>
   );
 }

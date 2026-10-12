@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { updateMessage } from "@/app/admin/actions";
-import { AdminFrame, Card, ghanaDate, Icon } from "@/app/admin/admin-ui";
+import { Card, ghanaDate, Icon } from "@/app/admin/admin-ui";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
 import { whatsappUrl } from "@/lib/server/notifications";
@@ -22,11 +22,11 @@ const FLASH: Record<string, { kind: "success" | "error"; text: string }> = {
 };
 
 export default async function AdminMessagesPage({ searchParams }: { searchParams: SearchParams }) {
-  const admin = await requireAdmin(["SUPER_ADMIN", "ADMIN", "MODERATOR", "SUPPORT"]);
+  await requireAdmin(["SUPER_ADMIN", "ADMIN", "MODERATOR", "SUPPORT"]);
   const params = await searchParams;
   const showHistory = params.show === "history";
   const db = getDb();
-  const [messages, pendingCount, openReports] = await Promise.all([
+  const [messages, pendingCount] = await Promise.all([
     db.notification.findMany({
       where: showHistory ? { status: { not: "PENDING" } } : { status: "PENDING" },
       orderBy: { createdAt: showHistory ? "desc" : "asc" },
@@ -34,12 +34,11 @@ export default async function AdminMessagesPage({ searchParams }: { searchParams
       include: { listing: { select: { id: true, title: true, owner: { select: { fullName: true } } } }, sentBy: { select: { displayName: true, email: true } } },
     }),
     db.notification.count({ where: { status: "PENDING" } }),
-    db.report.count({ where: { status: { in: ["OPEN", "REVIEWING"] } } }),
   ]);
   const flash = params.msg ? FLASH[params.msg] : undefined;
 
   return (
-    <AdminFrame admin={admin} active="/admin/messages" alerts={openReports}>
+    <>
       <div className="ngd-page-head">
         <div>
           <h1>Messages</h1>
@@ -85,6 +84,6 @@ export default async function AdminMessagesPage({ searchParams }: { searchParams
         </ul>
         <p className="ngd-note">Messages with a private manage link are cleared from the database once sent or dismissed. When a WhatsApp or email provider is set up, these can be sent automatically.</p>
       </Card>
-    </AdminFrame>
+    </>
   );
 }

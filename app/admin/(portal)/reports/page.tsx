@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReportStatus } from "@/generated/prisma/client";
 import { updateReportStatus } from "@/app/admin/actions";
-import { AdminFrame, Card, ghanaDate, StatusBadge } from "@/app/admin/admin-ui";
+import { Card, ghanaDate, StatusBadge } from "@/app/admin/admin-ui";
 import { hasRole } from "@/lib/server/admin-auth";
 import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
@@ -53,7 +53,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   const message = params.report ? messages[params.report] : undefined;
 
   return (
-    <AdminFrame admin={admin} active="/admin/reports" alerts={open}>
+    <>
       <div className="ngd-page-head">
         <div><h1>Reports</h1><p>Problems reported by visitors, and admin security events.</p></div>
         <span className="ngd-chip">{open} open</span>
@@ -116,6 +116,6 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
           </Card>
         </div>
       ) : null}
-    </AdminFrame>
+    </>
   );
 }

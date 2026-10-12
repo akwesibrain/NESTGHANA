@@ -6,7 +6,6 @@ import { requireAdmin } from "@/lib/server/admin-session";
 import { getDb } from "@/lib/server/db";
 import { AVAILABILITY_LABEL, CONTACT_TYPE_LABEL, VERIFIED_CONTACT_TYPES } from "@/lib/server/listing-trust";
 import { ROOM_TYPE_LABEL } from "@/lib/server/public-listings";
-import { AdminFrame } from "@/app/admin/admin-ui";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ review?: string }> };
 
@@ -87,7 +86,7 @@ export default async function AdminListingPage({ params, searchParams }: Props) 
   const region = town?.parent;
 
   return (
-    <AdminFrame admin={admin} active="/admin/listings">
+    <>
       <section className="admin-detail">
           <p><Link className="admin-text-link" href="/admin/listings">← Back to listings</Link></p>
           <div className="admin-panel-heading">
@@ -343,6 +342,6 @@ export default async function AdminListingPage({ params, searchParams }: Props) 
             ) : null}
           </div>
       </section>
-    </AdminFrame>
+    </>
   );
 }

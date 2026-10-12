@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { reviewListing, signInAdmin } from "@/app/admin/actions";
-import { AdminFrame, Card, cedis, count, ghanaDate, Icon, StatusBadge, Thumb, timeAgo, Trend } from "@/app/admin/admin-ui";
-import { hasRole } from "@/lib/server/admin-auth";
+import { Suspense } from "react";
+import { Card, cedis, count, ghanaDate, Icon, StatusBadge, Thumb, timeAgo, Trend } from "@/app/admin/admin-ui";
+import { PortalFrame } from "@/app/admin/portal-frame";
+import { DashboardSkeleton } from "@/app/admin/skeletons";
+import { hasRole, type AdminContext } from "@/lib/server/admin-auth";
 import { getDashboardData } from "@/lib/server/admin-dashboard";
 import { getAdminContext, requireAdmin } from "@/lib/server/admin-session";
 import { ROOM_TYPE_LABEL } from "@/lib/server/public-listings";
@@ -47,9 +50,20 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
     return <SignIn error={signInErrors[params.error || ""]} siteKey={turnstileEnabled() ? turnstileSiteKey() : null} nonce={nonce} />;
   }
   const admin = await requireAdmin();
+  return (
+    <PortalFrame admin={admin}>
+      {/* The frame shows at once; the figures stream in behind a skeleton. */}
+      <Suspense fallback={<DashboardSkeleton />}>
+        <Dashboard admin={admin} review={params.review} />
+      </Suspense>
+    </PortalFrame>
+  );
+}
+
+async function Dashboard({ admin, review }: { admin: AdminContext; review?: string }) {
   const canReview = hasRole(admin, ["SUPER_ADMIN", "ADMIN", "MODERATOR"]);
   const d = await getDashboardData();
-  const message = params.review ? reviewMessages[params.review] : undefined;
+  const message = review ? reviewMessages[review] : undefined;
   const regionTotal = d.regions.reduce((sum, r) => sum + r.count, 0);
   const townMax = Math.max(1, ...d.towns.map(t => t.count));
   const availTotal = d.availability.available + d.availability.needsAttention;
@@ -57,224 +71,229 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
   const payTotal = d.payments.paid.count + d.payments.pending.count + d.payments.failed.count;
   const pct = (n: number) => (payTotal ? `${Math.round((n / payTotal) * 100)}% of attempts` : "no attempts yet");
   const maxRegion = Math.max(1, ...d.regions.map(r => r.count));
+  const firstName = admin.user.displayName?.trim().split(/\s+/)[0];
+  const waiting = d.moderation.pending;
 
   return (
-    <AdminFrame admin={admin} active="/admin" alerts={d.safety.reportsOpen}>
-      <div className="ngd-page-head">
-        <div>
-          <h1>Overview</h1>
-          <p>Here’s what’s happening on NestGH today.</p>
+    <>
+      <section className="ngd-hero" aria-label="Today">
+        <div className="ngd-hero-text">
+          <p className="ngd-eyebrow">{ghanaDate(new Date())}</p>
+          <h1>Welcome back{firstName ? `, ${firstName}` : ""}</h1>
+          <p>
+            {waiting ? `${count(waiting)} listing${waiting === 1 ? " is" : "s are"} waiting for review.` : "Nothing is waiting for review."}{" "}
+            Trends compare the last 30 days.
+          </p>
         </div>
-        <span className="ngd-chip"><Icon name="calendar" size={15} /> {ghanaDate(new Date())} · trends compare the last 30 days</span>
-      </div>
+        <nav className="ngd-hero-actions" aria-label="Quick actions">
+          <Link href="/admin/listings?status=PENDING_APPROVAL"><Icon name="clock" /><span><strong>{count(waiting)}</strong> to review</span></Link>
+          <Link href="/admin/reports"><Icon name="flag" /><span><strong>{count(d.safety.reportsOpen)}</strong> open report{d.safety.reportsOpen === 1 ? "" : "s"}</span></Link>
+          <Link href="/admin/payments"><Icon name="card" /><span><strong>{count(d.payments.awaitingPayment)}</strong> awaiting payment</span></Link>
+          <Link href="/admin/settings"><Icon name="settings" /><span>Fees &amp; settings</span></Link>
+        </nav>
+      </section>
       {message ? <p className="status-banner" data-kind={message.kind} role={message.kind === "error" ? "alert" : "status"}>{message.text}</p> : null}
 
-      <div className="ngd-row ngd-row-top">
-        <div className="ngd-kpis">
-          <Kpi icon="building" tone="blue" label="Total listings" value={count(d.kpis.totalListings)} trend={<Trend value={d.kpis.listingsTrend} />} />
-          <Kpi icon="users" tone="violet" label="Property owners" value={count(d.kpis.owners)} trend={<Trend value={d.kpis.ownersTrend} />} />
-          <Kpi icon="cedi" tone="orange" label="Listing fee revenue" value={cedis(d.kpis.revenuePesewas)} trend={<Trend value={d.kpis.revenueTrend} />} />
-          <Kpi icon="check" tone="green" label="Live listings" value={count(d.kpis.live)} trend={<span className="ngd-muted">{d.kpis.totalListings ? Math.round((d.kpis.live / d.kpis.totalListings) * 100) : 0}% of all listings</span>} />
-        </div>
-        <Card title="Quick actions" className="ngd-quick">
-          <div className="ngd-quick-grid">
-            <Link href="/admin/listings?status=PENDING_APPROVAL"><Icon name="clock" /><span>Review pending{d.moderation.pending ? ` (${d.moderation.pending})` : ""}</span></Link>
-            <Link href="/admin/payments"><Icon name="card" /><span>View payments</span></Link>
-            <Link href="/admin/reports"><Icon name="flag" /><span>Reports{d.safety.reportsOpen ? ` (${d.safety.reportsOpen})` : ""}</span></Link>
-            <Link href="/admin/settings"><Icon name="settings" /><span>Fees &amp; settings</span></Link>
-          </div>
-        </Card>
+      <div className="ngd-kpis">
+        <Kpi icon="building" tone="blue" label="Total listings" value={count(d.kpis.totalListings)} trend={<Trend value={d.kpis.listingsTrend} />} />
+        <Kpi icon="users" tone="violet" label="Property owners" value={count(d.kpis.owners)} trend={<Trend value={d.kpis.ownersTrend} />} />
+        <Kpi icon="cedi" tone="orange" label="Listing fee revenue" value={cedis(d.kpis.revenuePesewas)} trend={<Trend value={d.kpis.revenueTrend} />} />
+        <Kpi icon="check" tone="green" label="Live listings" value={count(d.kpis.live)} trend={<span className="ngd-muted">{d.kpis.totalListings ? Math.round((d.kpis.live / d.kpis.totalListings) * 100) : 0}% of all listings</span>} />
       </div>
 
-      <div className="ngd-row ngd-row-4">
-        <Card title="Listing moderation" link={{ href: "/admin/listings" }}>
-          <div className="ngd-mini-stats">
-            <MiniStat icon="clock" tone="warning" label="Pending" value={d.moderation.pending} />
-            <MiniStat icon="check" tone="good" label="Live" value={d.moderation.live} />
-            <MiniStat icon="x" tone="critical" label="Rejected" value={d.moderation.rejected} />
-          </div>
-          <ul className="ngd-queue">
-            {d.moderation.queue.map(item => (
-              <li key={item.id}>
-                <Thumb imageId={item.images[0]?.id} />
-                <div>
-                  <Link href={`/admin/listings/${item.id}`}><strong>{item.title}</strong></Link>
-                  <span>{cedis(item.rentAmountPesewas)} · {ROOM_TYPE_LABEL[item.roomType]} · {item.area.name}</span>
-                  <small>{timeAgo(item.createdAt)}</small>
-                </div>
-                {canReview ? (
-                  <div className="ngd-queue-actions">
-                    <form action={reviewListing}>
-                      <input type="hidden" name="listingId" value={item.id} />
-                      <input type="hidden" name="from" value="dashboard" />
-                      <button className="ngd-btn is-primary" type="submit" name="decision" value="approve">Approve</button>
-                    </form>
-                    <Link className="ngd-btn" href={`/admin/listings/${item.id}`}>Review</Link>
-                  </div>
-                ) : null}
-              </li>
-            ))}
-            {!d.moderation.queue.length ? <li className="ngd-empty">Nothing waiting for review.</li> : null}
-          </ul>
-        </Card>
-
-        <Card title="Owners & team">
-          <div className="ngd-mini-stats">
-            <MiniStat icon="users" tone="blue" label="Owners" value={d.owners.total} />
-            <MiniStat icon="check" tone="good" label="With live listing" value={d.owners.withLive} />
-            <MiniStat icon="shield" tone="violet" label="Active admins" value={d.owners.admins} />
-          </div>
-          <Meter label="Owners with a live listing" value={d.owners.withLive} total={d.owners.total} tone="good" />
-          <Meter label="New owners in the last 30 days" value={d.owners.newThisMonth} total={d.owners.total} tone="warning" />
-          <p className="ngd-note">Renters browse without accounts, so there are no renter user numbers.</p>
-        </Card>
-
-        <Card title="Payments & revenue" link={{ href: "/admin/payments" }}>
-          <div className="ngd-hero-figure">
-            <span>Total listing fees collected</span>
-            <strong>{cedis(d.payments.paid.pesewas, 2)}</strong>
-            <Trend value={d.kpis.revenueTrend} />
-          </div>
-          <div className="ngd-pay-split">
-            <PayStat tone="good" icon="check" label="Successful" value={d.payments.paid} note={pct(d.payments.paid.count)} />
-            <PayStat tone="warning" icon="clock" label="In progress" value={d.payments.pending} note={pct(d.payments.pending.count)} />
-            <PayStat tone="critical" icon="x" label="Failed / cancelled" value={d.payments.failed} note={pct(d.payments.failed.count)} />
-          </div>
-          <p className="ngd-note">{count(d.payments.awaitingPayment)} submitted listing{d.payments.awaitingPayment === 1 ? "" : "s"} not paid yet.</p>
-        </Card>
-
-        <Card title="Reports & security" link={{ href: "/admin/reports" }}>
-          <ul className="ngd-alerts">
-            <AlertRow icon="alert" tone="critical" label="Open listing reports" value={d.safety.reportsOpen}
-              note={`${d.safety.reportsNow} new in 7 days (${d.safety.reportsBefore} the week before)`} />
-            <AlertRow icon="key" tone="warning" label="Failed admin sign-ins" value={d.safety.failedLogins} note="last 7 days" />
-            <AlertRow icon="lock" tone="warning" label="Lockouts & blocked attempts" value={d.safety.lockouts} note="last 7 days" />
-            <AlertRow icon="shield" tone="neutral" label="Wrong authenticator codes" value={d.safety.mfaFailures} note="last 7 days" />
-          </ul>
-        </Card>
-      </div>
-
-      <div className="ngd-row ngd-row-4">
-        <Card title="Availability & freshness">
-          <div className="ngd-mini-stats is-two">
-            <MiniStat icon="check" tone="good" label="Available (live)" value={d.availability.available} />
-            <MiniStat icon="clock" tone="warning" label="Needs confirmation / unavailable" value={d.availability.needsAttention} />
-          </div>
-          <Meter label="Public listings that are available" value={d.availability.available} total={availTotal} tone="good" />
-          <div className="ngd-inline-figure">
-            <Icon name="calendar" />
-            <div><span>Average time since owners confirmed</span><strong>{d.availability.avgConfirmDays === null ? "—" : d.availability.avgConfirmDays === 0 ? "Today" : `${d.availability.avgConfirmDays} day${d.availability.avgConfirmDays === 1 ? "" : "s"}`}</strong></div>
-          </div>
-          <span className="sr-only">{availPct}% available</span>
-        </Card>
-
-        <Card title="Location & market">
-          <div className="ngd-bars-two">
-            <div>
-              <h3><Icon name="pin" size={14} /> Top regions</h3>
-              <BarList rows={d.regions.slice(0, 6)} total={regionTotal} max={maxRegion} showPct />
-            </div>
-            <div>
-              <h3><Icon name="pin" size={14} /> Top towns</h3>
-              <BarList rows={d.towns} total={regionTotal} max={townMax} />
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Property categories" link={{ href: "/admin/listings" }}>
-          <div className="ngd-categories">
-            {d.categories.map(c => (
-              <div key={c.label}>
-                <Icon name={{ Rooms: "bed", Hostels: "hostel", Shops: "shop", Offices: "office", Warehouses: "warehouse" }[c.label] ?? "grid"} />
-                <span>{c.label}</span>
-                <strong>{count(c.count)}</strong>
+      <div className="ngd-dash">
+        <div className="ngd-dash-main">
+          <div className="ngd-duo">
+            <Card title="Listing moderation" link={{ href: "/admin/listings" }}>
+              <div className="ngd-mini-stats">
+                <MiniStat icon="clock" tone="warning" label="Pending" value={d.moderation.pending} />
+                <MiniStat icon="check" tone="good" label="Live" value={d.moderation.live} />
+                <MiniStat icon="x" tone="critical" label="Rejected" value={d.moderation.rejected} />
               </div>
-            ))}
-          </div>
-          <p className="ngd-note">Public listings (live, needs confirmation or unavailable).</p>
-        </Card>
-
-        <Card title="Recent activity">
-          <ul className="ngd-activity">
-            {d.activity.map(a => (
-              <li key={a.id}>
-                <span className="ngd-activity-dot" aria-hidden="true" />
-                <div>
-                  <Link href={`/admin/listings/${a.listing.id}`}>{a.listing.title}</Link>
-                  <span>Now <StatusBadge status={a.newStatus} /> · by {a.actorType.toLowerCase()}</span>
-                  <small>{timeAgo(a.createdAt)}</small>
-                </div>
-              </li>
-            ))}
-            {!d.activity.length ? <li className="ngd-empty">No activity yet.</li> : null}
-          </ul>
-        </Card>
-      </div>
-
-      <div className="ngd-row ngd-row-bottom">
-        <Card title="Recent listings" link={{ href: "/admin/listings" }}>
-          <div className="ngd-table-wrap">
-            <table className="ngd-table">
-              <thead><tr><th>Image</th><th>Title</th><th>Location</th><th>Type</th><th>Price</th><th>Status</th><th>Listed on</th><th><span className="sr-only">Open</span></th></tr></thead>
-              <tbody>
-                {d.recent.map(l => (
-                  <tr key={l.id}>
-                    <td><Thumb imageId={l.images[0]?.id} small /></td>
-                    <td><Link href={`/admin/listings/${l.id}`}>{l.title}</Link></td>
-                    <td>{[l.area.name, l.area.parent?.name].filter(Boolean).join(", ")}</td>
-                    <td>{ROOM_TYPE_LABEL[l.roomType]}</td>
-                    <td>{cedis(l.rentAmountPesewas)}<small className="ngd-muted"> /{l.rentPeriod === "MONTH" ? "month" : l.rentPeriod.toLowerCase().replace("_", " ")}</small></td>
-                    <td><StatusBadge status={l.status} /></td>
-                    <td>{ghanaDate(l.createdAt)}</td>
-                    <td><Link className="ngd-icon-button is-small" href={`/admin/listings/${l.id}`} aria-label={`Open ${l.title}`}><Icon name="arrowRight" size={14} /></Link></td>
-                  </tr>
+              <ul className="ngd-queue">
+                {d.moderation.queue.map(item => (
+                  <li key={item.id}>
+                    <Thumb imageId={item.images[0]?.id} />
+                    <div>
+                      <Link href={`/admin/listings/${item.id}`}><strong>{item.title}</strong></Link>
+                      <span>{cedis(item.rentAmountPesewas)} · {ROOM_TYPE_LABEL[item.roomType]} · {item.area.name}</span>
+                      <small>{timeAgo(item.createdAt)}</small>
+                    </div>
+                    {canReview ? (
+                      <div className="ngd-queue-actions">
+                        <form action={reviewListing}>
+                          <input type="hidden" name="listingId" value={item.id} />
+                          <input type="hidden" name="from" value="dashboard" />
+                          <button className="ngd-btn is-primary" type="submit" name="decision" value="approve">Approve</button>
+                        </form>
+                        <Link className="ngd-btn" href={`/admin/listings/${item.id}`}>Review</Link>
+                      </div>
+                    ) : null}
+                  </li>
                 ))}
-              </tbody>
-            </table>
-            {!d.recent.length ? <p className="ngd-empty">No listings yet.</p> : null}
-          </div>
-        </Card>
+                {!d.moderation.queue.length ? <li className="ngd-empty">Nothing waiting for review.</li> : null}
+              </ul>
+            </Card>
 
-        <Card title="Listings by region">
-          <div className="ngd-map">
-            <svg viewBox="0 0 300 420" role="img" aria-label="Schematic map of Ghana with public listing counts per region">
-              <polygon className="ngd-map-land" points={GHANA_OUTLINE.map(p => project(p).join(",")).join(" ")} />
-              {d.regions.map(r => {
-                const point = REGION_POINTS[r.name];
-                if (!point) return null;
-                const [x, y] = project(point);
-                const radius = 14 + Math.sqrt(r.count / maxRegion) * 14;
-                return (
-                  <g key={r.name} className="ngd-map-pin">
-                    <title>{`${r.name}: ${r.count} listing${r.count === 1 ? "" : "s"}`}</title>
-                    <circle cx={x} cy={y} r={radius} />
-                    <text x={x} y={y + 5} textAnchor="middle">{r.count}</text>
-                    <text className="ngd-map-label" x={x} y={y + radius + 13} textAnchor="middle">{r.name}</text>
-                  </g>
-                );
-              })}
-            </svg>
-            <ol className="ngd-map-legend">
-              {d.regions.map(r => <li key={r.name}><span>{r.name}</span><strong>{r.count}</strong></li>)}
-              {!d.regions.length ? <li className="ngd-empty">No public listings yet.</li> : null}
-            </ol>
+            <Card title="Payments & revenue" link={{ href: "/admin/payments" }}>
+              <div className="ngd-hero-figure">
+                <span>Total listing fees collected</span>
+                <strong>{cedis(d.payments.paid.pesewas, 2)}</strong>
+                <Trend value={d.kpis.revenueTrend} />
+              </div>
+              <div className="ngd-pay-split">
+                <PayStat tone="good" icon="check" label="Successful" value={d.payments.paid} note={pct(d.payments.paid.count)} />
+                <PayStat tone="warning" icon="clock" label="In progress" value={d.payments.pending} note={pct(d.payments.pending.count)} />
+                <PayStat tone="critical" icon="x" label="Failed / cancelled" value={d.payments.failed} note={pct(d.payments.failed.count)} />
+              </div>
+              <p className="ngd-note">{count(d.payments.awaitingPayment)} submitted listing{d.payments.awaitingPayment === 1 ? "" : "s"} not paid yet.</p>
+            </Card>
           </div>
-          <p className="ngd-note">Schematic map; circles sit at each region’s capital. Hover a circle for its count.</p>
-        </Card>
+
+          <Card title="Recent listings" link={{ href: "/admin/listings" }}>
+            <div className="ngd-table-wrap">
+              <table className="ngd-table">
+                <thead><tr><th>Image</th><th>Title</th><th>Location</th><th>Type</th><th>Price</th><th>Status</th><th>Listed on</th><th><span className="sr-only">Open</span></th></tr></thead>
+                <tbody>
+                  {d.recent.map(l => (
+                    <tr key={l.id}>
+                      <td><Thumb imageId={l.images[0]?.id} small /></td>
+                      <td><Link href={`/admin/listings/${l.id}`}>{l.title}</Link></td>
+                      <td>{[l.area.name, l.area.parent?.name].filter(Boolean).join(", ")}</td>
+                      <td>{ROOM_TYPE_LABEL[l.roomType]}</td>
+                      <td>{cedis(l.rentAmountPesewas)}<small className="ngd-muted"> /{l.rentPeriod === "MONTH" ? "month" : l.rentPeriod.toLowerCase().replace("_", " ")}</small></td>
+                      <td><StatusBadge status={l.status} /></td>
+                      <td>{ghanaDate(l.createdAt)}</td>
+                      <td><Link className="ngd-icon-button is-small" href={`/admin/listings/${l.id}`} aria-label={`Open ${l.title}`}><Icon name="arrowRight" size={14} /></Link></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!d.recent.length ? <p className="ngd-empty">No listings yet.</p> : null}
+            </div>
+          </Card>
+
+          <div className="ngd-duo">
+            <Card title="Availability & freshness">
+              <div className="ngd-mini-stats is-two">
+                <MiniStat icon="check" tone="good" label="Available (live)" value={d.availability.available} />
+                <MiniStat icon="clock" tone="warning" label="Needs confirmation / unavailable" value={d.availability.needsAttention} />
+              </div>
+              <Meter label="Public listings that are available" value={d.availability.available} total={availTotal} tone="good" />
+              <div className="ngd-inline-figure">
+                <Icon name="calendar" />
+                <div><span>Average time since owners confirmed</span><strong>{d.availability.avgConfirmDays === null ? "—" : d.availability.avgConfirmDays === 0 ? "Today" : `${d.availability.avgConfirmDays} day${d.availability.avgConfirmDays === 1 ? "" : "s"}`}</strong></div>
+              </div>
+              <span className="sr-only">{availPct}% available</span>
+            </Card>
+
+            <Card title="Property categories" link={{ href: "/admin/listings" }}>
+              <div className="ngd-categories">
+                {d.categories.map(c => (
+                  <div key={c.label}>
+                    <Icon name={{ Rooms: "bed", Hostels: "hostel", Shops: "shop", Offices: "office", Warehouses: "warehouse" }[c.label] ?? "grid"} />
+                    <span>{c.label}</span>
+                    <strong>{count(c.count)}</strong>
+                  </div>
+                ))}
+              </div>
+              <p className="ngd-note">Public listings (live, needs confirmation or unavailable).</p>
+            </Card>
+          </div>
+
+          <Card title="Listings by region">
+            <div className="ngd-map">
+              <svg viewBox="0 0 300 420" role="img" aria-label="Schematic map of Ghana with public listing counts per region">
+                <polygon className="ngd-map-land" points={GHANA_OUTLINE.map(p => project(p).join(",")).join(" ")} />
+                {d.regions.map(r => {
+                  const point = REGION_POINTS[r.name];
+                  if (!point) return null;
+                  const [x, y] = project(point);
+                  const radius = 14 + Math.sqrt(r.count / maxRegion) * 14;
+                  return (
+                    <g key={r.name} className="ngd-map-pin">
+                      <title>{`${r.name}: ${r.count} listing${r.count === 1 ? "" : "s"}`}</title>
+                      <circle cx={x} cy={y} r={radius} />
+                      <text x={x} y={y + 5} textAnchor="middle">{r.count}</text>
+                      <text className="ngd-map-label" x={x} y={y + radius + 13} textAnchor="middle">{r.name}</text>
+                    </g>
+                  );
+                })}
+              </svg>
+              <ol className="ngd-map-legend">
+                {d.regions.map(r => <li key={r.name}><span>{r.name}</span><strong>{r.count}</strong></li>)}
+                {!d.regions.length ? <li className="ngd-empty">No public listings yet.</li> : null}
+              </ol>
+            </div>
+            <p className="ngd-note">Schematic map; circles sit at each region’s capital. Hover a circle for its count.</p>
+          </Card>
+        </div>
+
+        <aside className="ngd-dash-rail" aria-label="Activity and safety">
+          <Card title="Reports & security" link={{ href: "/admin/reports" }}>
+            <ul className="ngd-alerts">
+              <AlertRow icon="alert" tone="critical" label="Open listing reports" value={d.safety.reportsOpen}
+                note={`${d.safety.reportsNow} new in 7 days (${d.safety.reportsBefore} the week before)`} />
+              <AlertRow icon="key" tone="warning" label="Failed admin sign-ins" value={d.safety.failedLogins} note="last 7 days" />
+              <AlertRow icon="lock" tone="warning" label="Lockouts & blocked attempts" value={d.safety.lockouts} note="last 7 days" />
+              <AlertRow icon="shield" tone="neutral" label="Wrong authenticator codes" value={d.safety.mfaFailures} note="last 7 days" />
+            </ul>
+          </Card>
+
+          <Card title="Recent activity">
+            <ul className="ngd-activity">
+              {d.activity.map(a => (
+                <li key={a.id}>
+                  <span className="ngd-activity-dot" aria-hidden="true" />
+                  <div>
+                    <Link href={`/admin/listings/${a.listing.id}`}>{a.listing.title}</Link>
+                    <span>Now <StatusBadge status={a.newStatus} /> · by {a.actorType.toLowerCase()}</span>
+                    <small>{timeAgo(a.createdAt)}</small>
+                  </div>
+                </li>
+              ))}
+              {!d.activity.length ? <li className="ngd-empty">No activity yet.</li> : null}
+            </ul>
+          </Card>
+
+          <Card title="Owners & team">
+            <div className="ngd-mini-stats">
+              <MiniStat icon="users" tone="blue" label="Owners" value={d.owners.total} />
+              <MiniStat icon="check" tone="good" label="With live listing" value={d.owners.withLive} />
+              <MiniStat icon="shield" tone="violet" label="Active admins" value={d.owners.admins} />
+            </div>
+            <Meter label="Owners with a live listing" value={d.owners.withLive} total={d.owners.total} tone="good" />
+            <Meter label="New owners in the last 30 days" value={d.owners.newThisMonth} total={d.owners.total} tone="warning" />
+            <p className="ngd-note">Renters browse without accounts, so there are no renter user numbers.</p>
+          </Card>
+
+          <Card title="Location & market">
+            <div className="ngd-bars-two">
+              <div>
+                <h3><Icon name="pin" size={14} /> Top regions</h3>
+                <BarList rows={d.regions.slice(0, 6)} total={regionTotal} max={maxRegion} showPct />
+              </div>
+              <div>
+                <h3><Icon name="pin" size={14} /> Top towns</h3>
+                <BarList rows={d.towns} total={regionTotal} max={townMax} />
+              </div>
+            </div>
+          </Card>
+        </aside>
       </div>
-    </AdminFrame>
+    </>
   );
 }
 
 function Kpi({ icon, tone, label, value, trend }: { icon: string; tone: string; label: string; value: string; trend: React.ReactNode }) {
   return (
-    <article className="ngd-card ngd-kpi">
-      <span className={`ngd-icon-tile is-${tone}`}><Icon name={icon} size={22} /></span>
+    <article className={`ngd-card ngd-kpi is-${tone}`}>
       <div>
         <span className="ngd-kpi-label">{label}</span>
         <strong className="ngd-kpi-value">{value}</strong>
         {trend}
       </div>
+      <span className={`ngd-icon-tile is-${tone}`}><Icon name={icon} size={22} /></span>
     </article>
   );
 }

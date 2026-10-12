@@ -1,22 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ListingStatus } from "@/generated/prisma/client";
-import { signOutAdmin } from "@/app/admin/actions";
-import type { AdminContext } from "@/lib/server/admin-auth";
 import "./admin.css";
 import "./dashboard.css";
 
-// Shared admin chrome (top bar + tabs) and small presentational pieces used by every admin page.
-
-const TABS = [
-  { href: "/admin", label: "Dashboard", icon: "home" },
-  { href: "/admin/listings", label: "Listings", icon: "list" },
-  { href: "/admin/payments", label: "Payments", icon: "card" },
-  { href: "/admin/data", label: "Data bundles", icon: "signal" },
-  { href: "/admin/reports", label: "Reports", icon: "flag" },
-  { href: "/admin/messages", label: "Messages", icon: "chat" },
-  { href: "/admin/settings", label: "Settings", icon: "settings" },
-] as const;
+// Small presentational pieces used by every admin page. The frame itself is in portal-frame.tsx.
 
 const ICONS: Record<string, ReactNode> = {
   home: <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /><path d="M10 21v-6h4v6" /></>,
@@ -49,6 +37,8 @@ const ICONS: Record<string, ReactNode> = {
   activity: <path d="M3 12h4l3-8 4 16 3-8h4" />,
   external: <><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></>,
   arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
+  logout: <><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" /><path d="M10 16l4-4-4-4M14 12H4" /></>,
+  inbox: <><path d="M4 13 6.5 5h11L20 13v6H4Z" /><path d="M4 13h4.5a3.5 3.5 0 0 0 7 0H20" /></>,
   chat: <><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12Z" /><path d="M8.5 11h7M8.5 14h4" /></>,
 };
 
@@ -137,50 +127,13 @@ export function Thumb({ imageId, small = false }: { imageId?: string; small?: bo
   );
 }
 
-/** Sidebar navigation + top bar shared by every signed-in admin page. */
-export function AdminFrame({ admin, active, alerts = 0, children }: { admin: AdminContext; active: string; alerts?: number; children: ReactNode }) {
-  const name = admin.user.displayName || admin.user.email;
-  const section = TABS.find(tab => tab.href === active)?.label ?? "Admin";
+/** Friendly empty state for tables and lists. */
+export function Empty({ icon = "inbox", title, children }: { icon?: string; title: string; children?: ReactNode }) {
   return (
-    <div className="admin-shell ngd">
-      <aside className="ngd-sidebar">
-        <Link className="ngd-logo" href="/admin" aria-label="NestGH admin home">
-          <img src="/logo-192.png" alt="" width={40} height={40} />
-          <span><strong>NestGH</strong><small>Find. Rent. Grow.</small></span>
-        </Link>
-        <nav className="ngd-tabs" aria-label="Admin sections">
-          {TABS.map(tab => (
-            <Link key={tab.href} href={tab.href} className={tab.href === active ? "is-active" : undefined} aria-current={tab.href === active ? "page" : undefined}>
-              <Icon name={tab.icon} size={18} /><span>{tab.label}</span>
-              {tab.href === "/admin/reports" && alerts ? <b className="ngd-nav-count" aria-label={`${alerts} open`}>{alerts}</b> : null}
-            </Link>
-          ))}
-        </nav>
-        <Link className="ngd-sidebar-foot" href="/" target="_blank"><Icon name="external" size={16} /><span>View website</span></Link>
-      </aside>
-      <div className="ngd-body">
-        <header className="ngd-topbar">
-          <p className="ngd-topbar-title">{section}</p>
-          <div className="ngd-topbar-actions">
-            <Link className="ngd-icon-button" href="/admin/listings" aria-label="Search listings"><Icon name="search" /></Link>
-            <Link className="ngd-icon-button" href="/admin/reports" aria-label={alerts ? `${alerts} open reports` : "Reports"}>
-              <Icon name="bell" />{alerts ? <span className="ngd-dot" aria-hidden="true" /> : null}
-            </Link>
-            <details className="ngd-account">
-              <summary>
-                <span className="ngd-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
-                <span className="ngd-account-name">{admin.user.displayName || "Admin"}</span>
-              </summary>
-              <div className="ngd-account-menu">
-                <p><strong>{name}</strong><span>{admin.roles.join(", ").replaceAll("_", " ").toLowerCase()}</span></p>
-                <Link href="/" target="_blank">View website <Icon name="external" size={14} /></Link>
-                <form action={signOutAdmin}><button type="submit">Sign out</button></form>
-              </div>
-            </details>
-          </div>
-        </header>
-        <main className="ngd-main">{children}</main>
-      </div>
+    <div className="ngd-empty-state">
+      <span className="ngd-empty-icon"><Icon name={icon} size={22} /></span>
+      <strong>{title}</strong>
+      {children ? <p>{children}</p> : null}
     </div>
   );
 }
