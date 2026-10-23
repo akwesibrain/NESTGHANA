@@ -176,7 +176,7 @@ const commercial = {
 function updateModalScroll() {
   document.body.classList.toggle(
     "modal-open",
-    ["sheet", "lf", "pol", "psheet"].some((id) =>
+    ["sheet", "lf", "psheet"].some((id) =>
       $(id).classList.contains("on"),
     ),
   );
@@ -766,7 +766,6 @@ $("sheet").onclick = async (e) => {
 };
 document.onkeydown = (e) => {
   if (e.key === "Escape") {
-    if ($("pol").classList.contains("on")) return;
     if ($("lf").classList.contains("on")) {
       closeLF();
       return;
@@ -776,7 +775,7 @@ document.onkeydown = (e) => {
     $("mn").setAttribute("aria-expanded", "false");
   }
   if (e.key !== "Tab") return;
-  const modal = ["pol", "lf", "sheet"].find((id) =>
+  const modal = ["lf", "sheet"].find((id) =>
     $(id).classList.contains("on"),
   );
   if (!modal) return;
@@ -2067,7 +2066,7 @@ ${sec("Photos", 7, `<div class="rvp">${al.map((s) => `<img src="${s}" alt="Listi
 ${sec("Owner or representative", 8, `<div style="display:flex;gap:12px;align-items:center"><div class="av" style="margin:0;border-style:solid"><img src="${S.profile}" alt="Profile photo"></div><div><b>${esc(S.name)}</b><div class="np" style="margin:0">${esc(S.role)}. ${esc(S.rel)}</div></div></div>` + KV({ "Shown to seekers": "Profile photo, name, role, WhatsApp and Call buttons", Phone: S.phone, WhatsApp: S.wa }) + `<div class="vs"><span>Phone: not verified yet</span><span>Identity: not verified yet</span><span>Property: not verified yet</span></div>`)}
 <div class="warn">CHECK YOUR INFORMATION CAREFULLY</div><div class="fld" data-f="consent"><label class="ch line"><input type="checkbox" data-k="accurate"${S.accurate ? " checked" : ""}><span>I confirm that all information is accurate.</span></label>
 ${CONS.map((c, i) => `<label class="ch line"><input type="checkbox" data-cons="${i}"${S.cons[i] ? " checked" : ""}><span>${c}</span></label>`).join("")}<em class="er"></em></div>
-<p class="pv2"><b>Privacy notice.</b> NestGH uses what you submit to review and publish your listing, contact you about availability, and prevent fraud. Your profile photo, name, role and contact buttons may be shown to people viewing your listing. Your exact address is only seen by NestGH admin, and identity documents are never shown publicly. You can ask to see, correct or delete your information under Ghana's Data Protection Act, 2012 (Act 843). Read our full <a href="#" data-pol="privacy">Privacy Policy</a>, <a href="#" data-pol="cookie">Cookie Policy</a> and <a href="#" data-pol="terms">Terms and Conditions</a>.</p>
+<p class="pv2"><b>Privacy notice.</b> NestGH uses what you submit to review and publish your listing, contact you about availability, and prevent fraud. Your profile photo, name, role and contact buttons may be shown to people viewing your listing. Your exact address is only seen by NestGH admin, and identity documents are never shown publicly. You can ask to see, correct or delete your information under Ghana's Data Protection Act, 2012 (Act 843). Read our <a href="/privacy">Privacy Policy</a>, <a href="/cookies">Cookie Policy</a> and <a href="/terms">Terms and Conditions</a>.</p>
 ${pricingSummary}<p class="pv2">Payment does not approve or verify your listing. NestGH reviews every listing first.</p>`;
       }
       return `<h2>Review and pay</h2><p class="sub2">Check everything. This is what seekers will see once NestGH approves your listing.</p>${fail}
@@ -2082,7 +2081,7 @@ ${sec("Photos", 7, `<div class="rvp">${al.map((s) => `<img src="${s}" alt="Listi
 ${sec("Owner or caretaker", 8, `<div style="display:flex;gap:12px;align-items:center"><div class="av" style="margin:0;border-style:solid"><img src="${S.profile}" alt="Profile photo"></div><div><b>${esc(S.name)}</b><div class="np" style="margin:0">${esc(S.role)}. ${esc(S.rel)}</div></div></div>` + KV({ "Shown to seekers": "Profile photo, name, role, WhatsApp and Call buttons", Phone: S.phone, WhatsApp: S.wa }) + `<div class="vs"><span>Phone: not verified yet</span><span>Identity: not verified yet</span><span>Property: not verified yet</span></div>`)}
 <div class="warn">CHECK YOUR INFORMATION CAREFULLY</div><div class="fld" data-f="consent"><label class="ch line"><input type="checkbox" data-k="accurate"${S.accurate ? " checked" : ""}><span>I confirm that all information is accurate.</span></label>
 ${CONS.map((c, i) => `<label class="ch line"><input type="checkbox" data-cons="${i}"${S.cons[i] ? " checked" : ""}><span>${c}</span></label>`).join("")}<em class="er"></em></div>
-<p class="pv2"><b>Privacy notice.</b> NestGH uses what you submit to review and publish your listing, contact you about availability, and prevent fraud. Your profile photo, name, role and contact buttons may be shown on your listing. Your exact address is only seen by NestGH admin, and identity documents are never shown publicly. You can ask to see, correct or delete your information under Ghana's Data Protection Act, 2012 (Act 843). Read our full <a href="#" data-pol="privacy">Privacy Policy</a>, <a href="#" data-pol="cookie">Cookie Policy</a> and <a href="#" data-pol="terms">Terms and Conditions</a>.</p>
+<p class="pv2"><b>Privacy notice.</b> NestGH uses what you submit to review and publish your listing, contact you about availability, and prevent fraud. Your profile photo, name, role and contact buttons may be shown on your listing. Your exact address is only seen by NestGH admin, and identity documents are never shown publicly. You can ask to see, correct or delete your information under Ghana's Data Protection Act, 2012 (Act 843). Read our <a href="/privacy">Privacy Policy</a>, <a href="/cookies">Cookie Policy</a> and <a href="/terms">Terms and Conditions</a>.</p>
 ${pricingSummary}<p class="pv2">No renewal fee is charged to keep a listing live while the room is genuinely available. Payment does not approve or verify your listing. NestGH reviews every listing first.</p>`;
     },
     v: () => {
@@ -2519,43 +2518,6 @@ $("nx").onclick = next;
 $("lx").onclick = closeLF;
 ["l1", "l2"].forEach((i) => ($(i).onclick = openLF));
 
-/* ===== POLICIES ===== */
-const POLT = {
-  privacy: "Privacy Policy",
-  cookie: "Cookie Policy",
-  terms: "Terms and Conditions",
-};
-let policyReturnFocus = null;
-function openPol(k) {
-  policyReturnFocus =
-    document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-  $("pt2").textContent = POLT[k];
-  $("pc").innerHTML = $("t-" + k).innerHTML;
-  $("pol").classList.add("on");
-  $("pol").scrollTo(0, 0);
-  updateModalScroll();
-  $("px").focus();
-}
-function closePol() {
-  $("pol").classList.remove("on");
-  updateModalScroll();
-  if (policyReturnFocus?.isConnected) policyReturnFocus.focus();
-  policyReturnFocus = null;
-}
-document.addEventListener("click", (e) => {
-  const a = e.target.closest("[data-pol]");
-  if (a) {
-    e.preventDefault();
-    openPol(a.dataset.pol);
-  }
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && $("pol").classList.contains("on")) closePol();
-});
-$("px").onclick = closePol;
-
 /* ===== COOKIE PREFERENCES ===== */
 const COOKIE_CONSENT_KEY = "nestgh_cookie_consent_v1";
 const cookieBanner = $("cookie-banner");
@@ -2569,23 +2531,40 @@ function saveCookieChoice(choice) {
       JSON.stringify({ choice, updatedAt: new Date().toISOString() }),
     );
     cookieBanner.hidden = true;
-  } catch {
+  } catch (error) {
+    console.error("Could not save cookie choice:", error);
     toast(
       "Your cookie choice could not be saved. Please check your browser storage settings.",
     );
   }
 }
-try {
-  if (!localStorage.getItem(COOKIE_CONSENT_KEY)) showCookieBanner();
-} catch {
-  showCookieBanner();
-  toast(
-    "Browser storage is unavailable. Your cookie choice may not be remembered.",
-  );
+function readCookieChoice() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(COOKIE_CONSENT_KEY) || "null");
+    if (saved?.choice === "essential-only" || saved?.choice === "all") {
+      return saved.choice;
+    }
+    if (saved?.choice === "rejected") return "essential-only";
+    if (saved?.choice === "accepted") return "all";
+  } catch (error) {
+    console.error("Could not read cookie choice:", error);
+    toast(
+      "Browser storage is unavailable. Your cookie choice may not be remembered.",
+    );
+  }
+  return null;
 }
-$("cookie-accept").onclick = () => saveCookieChoice("accepted");
-$("cookie-reject").onclick = () => saveCookieChoice("rejected");
-$("cookie-settings").onclick = (e) => {
-  e.preventDefault();
-  showCookieBanner();
-};
+if (!readCookieChoice()) showCookieBanner();
+document.addEventListener("click", (event) => {
+  const control = event.target.closest(
+    "#cookie-accept, #cookie-reject, #cookie-settings",
+  );
+  if (!control) return;
+  if (control.id === "cookie-accept") saveCookieChoice("all");
+  else if (control.id === "cookie-reject")
+    saveCookieChoice("essential-only");
+  else {
+    event.preventDefault();
+    showCookieBanner();
+  }
+});

@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 
-type Choice = "accepted" | "rejected";
+type Choice = "essential-only" | "all";
 const storageKey = "nestgh_cookie_consent_v1";
 const listeners = new Set<() => void>();
 let sessionChoice: Choice | null = null;
@@ -12,7 +12,9 @@ function getChoice(): Choice | null {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       const value = JSON.parse(saved) as { choice?: unknown };
-      if (value.choice === "accepted" || value.choice === "rejected") return value.choice;
+      if (value.choice === "essential-only" || value.choice === "all") return value.choice;
+      if (value.choice === "rejected") return "essential-only";
+      if (value.choice === "accepted") return "all";
     }
   } catch (error) {
     console.error("cookie_consent_read_failed", error);
@@ -70,13 +72,13 @@ export function CookieConsent() {
         <aside className="cookie-consent" aria-label="Cookie preferences">
           <div>
             <strong>Your privacy matters</strong>
-            <p>We use essential browser storage where needed. Optional analytics and advertising cookies are not active.</p>
-            <a href="/privacy">Read our privacy notice</a>
+            <p>We use browser storage for saved rooms and payment recovery, plus a secure cookie for admin sign-in. We do not use analytics or advertising cookies.</p>
+            <a href="/cookies">Read our Cookie Policy</a>
             {storageError ? <p role="alert">Your choice may not be saved in this browser.</p> : null}
           </div>
           <div className="cookie-consent-actions">
-            <button type="button" className="cookie-reject" onClick={() => saveChoice("rejected")}>Reject</button>
-            <button type="button" className="cookie-accept" onClick={() => saveChoice("accepted")}>Accept cookies</button>
+            <button type="button" className="cookie-reject" onClick={() => saveChoice("essential-only")}>Essential only</button>
+            <button type="button" className="cookie-accept" onClick={() => saveChoice("all")}>Accept all</button>
           </div>
         </aside>
       ) : null}

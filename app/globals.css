@@ -161,6 +161,20 @@
   line-height: 1.75;
 }
 
+.info-page ul,
+.info-page ol {
+  padding-left: 1.25rem;
+  line-height: 1.75;
+}
+
+.info-page li + li {
+  margin-top: 6px;
+}
+
+.info-page code {
+  overflow-wrap: anywhere;
+}
+
 .info-link {
   display: inline-block;
   margin-top: 24px;

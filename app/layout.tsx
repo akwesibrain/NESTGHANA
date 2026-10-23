@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: "NestGH — Find your next room",
     template: "%s | NestGH",
   },
-  description: "Find available rooms and student hostels in Ghana. Clear pricing, current availability, and direct contact with owners.",
+  description: "Browse rooms and student hostels across Ghana. Check current availability and contact owners directly.",
   referrer: "no-referrer",
   icons: { icon: "/logo-192.png", apple: "/logo-192.png" },
 };
